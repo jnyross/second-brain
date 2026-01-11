@@ -1,6 +1,6 @@
 # PRD.md — Product Requirements Document (Project-Specific)
 
-**PRD version:** 0.4.0
+**PRD version:** 0.5.0
 **Status:** Draft
 **Last updated:** 2026-01-11
 **Completion promise (must match Prompt.md):** `<promise>COMPLETE</promise>`
@@ -532,7 +532,204 @@ Want me to:
 - All sent emails logged in audit trail
 - Drafts visible in Gmail drafts folder
 
-### 4.6 Failure Handling
+### 4.6 Google Maps API
+
+**Purpose:** Enrich places with structured data, provide travel context, validate locations
+
+**Capabilities:**
+
+*Place Enrichment:*
+- Validate extracted place names (fuzzy "SF" → "San Francisco, CA")
+- Geocode places to coordinates (lat/lng)
+- Get place details (address, phone, hours, type)
+- Resolve ambiguous places ("that coffee shop" → recent places near you)
+
+*Travel Intelligence:*
+- Calculate travel time between locations (with real-time traffic)
+- Estimate arrival times for tasks with places
+- Morning briefing: "Meeting in Palo Alto at 2pm - leave by 1:15pm (45 min with traffic)"
+- Detect unrealistic schedules: "You have meetings in SF at 10am and LA at 11am"
+
+*Proximity Features:*
+- "What tasks can I do near here?" (location-aware task suggestions)
+- Group errands by area: "You have 3 tasks in downtown"
+- Trigger reminders by location (future): "You're near the hardware store - buy lightbulbs?"
+
+**Behavior:**
+
+| Trigger | Action |
+|---------|--------|
+| Place extracted from message | Geocode and enrich, store in Places DB |
+| Task has place + time | Calculate travel time from home/previous location |
+| Morning briefing | Include travel estimates for today's location-based tasks |
+| User asks "how far is X" | Real-time distance/duration |
+
+**Example Interactions:**
+
+```
+User: "Meet Dave at Blue Bottle Coffee tomorrow at 3pm"
+
+AI: "✅ Task: Meet Dave at Blue Bottle Coffee
+📍 Blue Bottle Coffee, 315 Linden St, San Francisco, CA 94102
+📅 Tomorrow 3:00 PM
+🚗 25 min from home (with typical traffic)
+
+Saved to Notion"
+```
+
+```
+Morning Briefing:
+🗓️ TODAY'S SCHEDULE
+• 10:00 AM - Dentist appointment (Dr. Smith, 123 Main St)
+  └─ Leave by 9:40 AM (20 min drive)
+• 2:00 PM - Meet Sarah at Ferry Building
+  └─ Leave by 1:30 PM (25 min from dentist)
+• 5:00 PM - Pick up dry cleaning (on your way home)
+```
+
+**Places Database Integration:**
+
+When a place is mentioned:
+1. Search existing Places DB for match (by name, address, or coordinates)
+2. If found: link to existing record
+3. If new: create Places record with Maps API data
+4. Store: name, address, lat/lng, place_id, category, notes
+
+**API Usage:**
+
+| API | Purpose | Cost |
+|-----|---------|------|
+| Geocoding API | Address → coordinates | $5/1000 requests |
+| Places API | Place details, search | $17/1000 requests |
+| Distance Matrix API | Travel times | $5/1000 elements |
+| Directions API | Route details | $5/1000 requests |
+
+**Security:**
+- API key restricted to specific APIs (not all Google services)
+- Key restricted by IP/referrer where possible
+- No user location tracking without explicit consent
+- All place queries logged
+
+### 4.7 Google Drive API
+
+**Purpose:** Workspace for longer-form content, research storage, project documentation
+
+**Capabilities:**
+
+*Document Creation:*
+- Create Google Docs for research reports, meeting notes, project plans
+- Create Sheets for data analysis, tracking, comparisons
+- Create Slides for presentations (future)
+- Organize into project folders automatically
+
+*Research Storage:*
+- Save web research to Drive (summarized articles, scraped data)
+- Store AI-generated reports and analyses
+- Keep drafts and iterations for review
+- Link Drive files to Notion Projects/Tasks
+
+*Collaboration Ready:*
+- Documents can be shared with others
+- Real-time collaboration on AI-generated drafts
+- Export to PDF, Word, etc.
+
+**Folder Structure:**
+
+```
+Second Brain/
+├── Research/
+│   ├── {Project Name}/
+│   │   ├── Research Notes - {Topic}.gdoc
+│   │   └── Data Analysis.gsheet
+│   └── General/
+├── Meeting Notes/
+│   └── {Date} - {Meeting Title}.gdoc
+├── Reports/
+│   └── {Report Name} - {Date}.gdoc
+└── Drafts/
+    └── Email Draft - {Subject}.gdoc
+```
+
+**Behavior:**
+
+| Trigger | Action |
+|---------|--------|
+| User: "Research X and write a report" | Create Doc in Research/{Project}/, populate with findings |
+| User: "Take notes for my meeting with Y" | Create Doc in Meeting Notes/, link to People |
+| User: "Compare options for Z" | Create Sheet with comparison matrix |
+| User: "Draft a proposal for X" | Create Doc in Drafts/, iterate with feedback |
+| Task completed with research | Attach Drive link to Notion task |
+
+**Example Interactions:**
+
+```
+User: "Research the best CRM options for a small business and create a comparison"
+
+AI: "I'll research CRM options and create a comparison document.
+
+🔍 Researching: HubSpot, Salesforce, Pipedrive, Zoho, Freshsales...
+
+📄 Created: 'CRM Comparison - Small Business.gsheet'
+📁 Location: Second Brain/Research/General/
+
+Summary:
+| CRM | Price | Best For |
+|-----|-------|----------|
+| HubSpot | Free-$50/mo | Startups, marketing focus |
+| Pipedrive | $15/mo | Sales teams |
+| Zoho | $14/mo | Budget-conscious |
+
+Full comparison with 12 criteria in the sheet. Want me to add anything?"
+```
+
+```
+User: "Write up the meeting notes from my call with Sarah about Project X"
+
+AI: "I'll create meeting notes. What were the key points discussed?
+
+Or I can check:
+- Recent tasks mentioning Sarah + Project X
+- Emails from Sarah today
+- Your calendar event details
+
+Want me to draft from context, or will you dictate the notes?"
+```
+
+**Integration with Notion:**
+
+| Notion Entity | Drive Integration |
+|---------------|-------------------|
+| Project | Folder in Research/{Project Name}/ |
+| Task | drive_file_id field links to relevant doc |
+| People | Meeting notes reference people involved |
+| Inbox | Research items can spawn Drive docs |
+
+**Document Types:**
+
+| Type | Format | Use Case |
+|------|--------|----------|
+| Research Report | Google Doc | In-depth analysis, citations, narrative |
+| Comparison Matrix | Google Sheet | Feature comparisons, pros/cons, scoring |
+| Meeting Notes | Google Doc | Structured notes, action items, attendees |
+| Data Export | Google Sheet | Notion data exports, tracking over time |
+| Draft Content | Google Doc | Emails, proposals, documents for review |
+
+**Autonomy Levels:**
+
+| Action | Autonomy | Confirmation |
+|--------|----------|--------------|
+| Create Doc (private) | Full | No - just notify |
+| Create in shared folder | Medium | Yes - "Create in Team folder?" |
+| Share with others | Low | Yes - show sharing preview |
+| Delete document | Low | Yes - confirm deletion |
+
+**Security:**
+- OAuth scopes: drive.file (only files created by app)
+- Cannot access existing Drive files unless explicitly shared
+- All file operations logged
+- No permanent deletion (trash first, then permanent after 30 days)
+
+### 4.8 Failure Handling
 
 **Design principle:** The system must NEVER silently fail. User always gets feedback.
 
@@ -578,7 +775,7 @@ Want me to:
 | Whisper | Based on tier | Queue if limited |
 | Google | 1M queries/day | No concern for personal use |
 
-### 4.7 Idempotency
+### 4.9 Idempotency
 
 **Problem:** Network retries can cause duplicate actions.
 
@@ -597,7 +794,7 @@ Want me to:
 3. If found with error, may retry based on error type
 4. If not found, proceed and log with key
 
-### 4.8 Playwright (Web Research)
+### 4.10 Playwright (Web Research)
 
 **Purpose:** Research tasks that require web browsing
 
@@ -1035,6 +1232,56 @@ When models are more capable:
 - **And:** Voice file reference stored
 - **Pass condition:** Debrief includes "I heard '[transcript]' - is that right?"
 
+### AT-121 — Place Enrichment via Maps API
+- **Given:** User sends "Meet Dave at Blue Bottle Coffee tomorrow"
+- **When:** Google Maps API enabled
+- **Then:** Place geocoded and enriched with address, lat/lng
+- **And:** Places database record created or linked
+- **And:** Task notes include formatted address
+- **Pass condition:** Places DB contains "Blue Bottle Coffee" with coordinates AND task linked
+
+### AT-122 — Travel Time in Morning Briefing
+- **Given:** User has task "Dentist at 2pm" with place "123 Main St"
+- **When:** Morning briefing generated
+- **Then:** Briefing includes travel estimate from home
+- **Pass condition:** Briefing contains "Leave by X" with calculated departure time
+
+### AT-123 — Unrealistic Schedule Detection
+- **Given:** User has meeting in San Francisco at 10am
+- **When:** User sends "Meeting in Los Angeles at 11am"
+- **Then:** Warning shown: "Travel time ~6 hours - schedule conflict detected"
+- **And:** Task created but flagged for review
+- **Pass condition:** Task exists AND warning logged AND needs_clarification=true
+
+### AT-124 — Drive Research Document Creation
+- **Given:** User sends "Research best CRM options for small business"
+- **When:** Google Drive API enabled
+- **Then:** Google Doc created in Second Brain/Research/ folder
+- **And:** Document populated with research findings
+- **And:** Task created linking to Drive document
+- **Pass condition:** Drive API confirms doc exists AND task.drive_file_id populated
+
+### AT-125 — Drive Meeting Notes
+- **Given:** User sends "Create meeting notes for call with Sarah"
+- **When:** Google Drive API enabled
+- **Then:** Google Doc created in Second Brain/Meeting Notes/ folder
+- **And:** Document titled with date and meeting description
+- **And:** Linked to Sarah in People database
+- **Pass condition:** Drive doc exists AND task linked to Person "Sarah"
+
+### AT-126 — Drive Comparison Sheet
+- **Given:** User sends "Compare iPhone vs Android - create a sheet"
+- **When:** Google Drive API enabled
+- **Then:** Google Sheet created with comparison matrix
+- **And:** Sheet has structured columns (criteria, option 1, option 2, notes)
+- **Pass condition:** Drive API confirms Sheet exists with correct structure
+
+### AT-127 — Proximity Task Suggestions
+- **Given:** User has 3 tasks with places in downtown SF
+- **When:** User asks "What can I do near Union Square?"
+- **Then:** Response lists nearby tasks with distances
+- **Pass condition:** Response includes all 3 tasks with distance estimates
+
 ---
 
 ## 9. Task Backlog (Revised)
@@ -1119,6 +1366,30 @@ When models are more capable:
 | T-112 | P1 | Create /status command | T-060 | Shows pending items |
 | T-113 | P1 | Create /today command | T-060, T-102 | Shows today's schedule |
 
+### Phase 8: Google Maps Integration
+| Task ID | Pri | Title | Depends On | Acceptance Test |
+|---------|-----|-------|------------|-----------------|
+| T-150 | P1 | Set up Google Maps API client | — | API calls succeed |
+| T-151 | P1 | Implement place geocoding | T-150 | Address → coordinates |
+| T-152 | P1 | Implement place enrichment | T-151 | Full place details retrieved |
+| T-153 | P1 | Integrate with Places database | T-152, T-071 | AT-121 |
+| T-154 | P1 | Implement travel time calculator | T-150 | Distance Matrix API works |
+| T-155 | P1 | Add travel times to morning briefing | T-154, T-080 | AT-122 |
+| T-156 | P2 | Implement schedule conflict detection | T-154 | AT-123 |
+| T-157 | P2 | Implement proximity task suggestions | T-151 | AT-127 |
+
+### Phase 9: Google Drive Integration
+| Task ID | Pri | Title | Depends On | Acceptance Test |
+|---------|-----|-------|------------|-----------------|
+| T-160 | P1 | Implement Google Drive OAuth | T-100 | Shares OAuth with Calendar |
+| T-161 | P1 | Create folder structure manager | T-160 | Second Brain folders created |
+| T-162 | P1 | Implement Google Docs creation | T-161 | Docs created in correct folder |
+| T-163 | P1 | Implement Google Sheets creation | T-161 | Sheets created with structure |
+| T-164 | P1 | Build research-to-doc pipeline | T-162, T-103 | AT-124 |
+| T-165 | P1 | Implement meeting notes creator | T-162, T-070 | AT-125 |
+| T-166 | P2 | Implement comparison sheet generator | T-163 | AT-126 |
+| T-167 | P2 | Link Drive files to Notion tasks | T-162, T-051 | drive_file_id populated |
+
 ### Future Phases
 | Task ID | Pri | Title | Notes |
 |---------|-----|-------|-------|
@@ -1128,6 +1399,9 @@ When models are more capable:
 | T-130 | P2 | Proactive nudges | "Don't forget X" |
 | T-131 | P2 | Always-on listening | When models ready |
 | T-140 | P2 | WhatsApp integration | Alternative to Telegram |
+| T-170 | P3 | Location-triggered reminders | "You're near X" |
+| T-171 | P3 | Google Slides integration | Presentation creation |
+| T-172 | P3 | Drive file sharing automation | With confirmation |
 
 ---
 
@@ -1138,7 +1412,21 @@ When models are more capable:
 | Telegram Bot Token | Capture channel | @BotFather on Telegram |
 | Notion API Key | Knowledge storage | notion.so/my-integrations |
 | OpenAI API Key | Whisper transcription | platform.openai.com |
-| Google OAuth | Calendar access | console.cloud.google.com |
+| Google OAuth Client | Calendar, Gmail, Drive | console.cloud.google.com |
+| Google Maps API Key | Place enrichment, travel times | console.cloud.google.com |
+
+**Google OAuth Scopes Required:**
+- `https://www.googleapis.com/auth/calendar` - Calendar read/write
+- `https://www.googleapis.com/auth/gmail.readonly` - Read emails
+- `https://www.googleapis.com/auth/gmail.send` - Send emails
+- `https://www.googleapis.com/auth/gmail.compose` - Create drafts
+- `https://www.googleapis.com/auth/drive.file` - Create/edit files created by app
+
+**Google Maps APIs Required:**
+- Geocoding API
+- Places API
+- Distance Matrix API
+- Directions API (optional, for detailed routes)
 
 ---
 
@@ -1156,6 +1444,16 @@ When models are more capable:
 ---
 
 ## 12. Changelog
+
+- 0.5.0 (2026-01-11): Google integrations expansion
+  - Added Section 4.6: Google Maps API (place enrichment, travel times, proximity)
+  - Added Section 4.7: Google Drive API (research docs, meeting notes, comparisons)
+  - Renumbered Sections 4.8-4.10 (Failure Handling, Idempotency, Playwright)
+  - Added acceptance tests AT-121 through AT-127 (Maps and Drive)
+  - Added Phase 8: Google Maps Integration (T-150 to T-157)
+  - Added Phase 9: Google Drive Integration (T-160 to T-167)
+  - Added future tasks T-170 to T-172 (location triggers, Slides, sharing)
+  - Updated API Keys section with OAuth scopes and Maps APIs required
 
 - 0.4.0 (2026-01-11): Critical gap fixes
   - Added Section 1: Tech Stack & Deployment (Python, aiogram, systemd)
