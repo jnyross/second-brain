@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. PRD v0.4.0 with critical gap fixes complete.
+- Status: Phase 0 complete. Phase 1-2 (Notion + Telegram capture) in progress. T-070 (People service) completed.
 
 ## Iteration Log
 
@@ -131,3 +131,52 @@
   - assistant briefing: Send morning briefing
   - assistant check: Verify configuration
   - assistant sync: Process offline queue
+- Iteration 18 (T-052) - Entity Extraction Service
+  - Created src/assistant/services/entities.py with EntityExtractor class
+  - Implemented extraction for people (with/call/email patterns), places (at/near patterns), dates (tomorrow/today/weekday/relative)
+  - Added tests/test_entities.py (21 tests)
+  - Commands: PYTHONPATH=src python -m pytest tests/test_entities.py -v (21 passed)
+  - Commit: pending
+- Iteration 19 (T-053) - Confidence Scoring Service
+  - Created src/assistant/services/confidence.py with ConfidenceScorer class
+  - Scoring factors: action verbs (+25), entities (+5 each, max +15), time (+15), length (+5)
+  - Penalties: filler words (-30), questions (-10), vague pronouns (-15)
+  - 80% threshold for automatic action vs human review
+  - Added tests/test_confidence.py (25 tests)
+  - Commands: PYTHONPATH=src python -m pytest tests/test_confidence.py -v (25 passed)
+  - Commit: pending
+- Iteration 20 (T-054) - Classification Router
+  - Created src/assistant/services/router.py with ClassificationRouter class
+  - Routes to: Tasks, Inbox, People, Places, Projects based on intent type
+  - Secondary targets: links People/Places entities when routing to Tasks
+  - Low confidence (<80%) always routes to Inbox with flag_review
+  - Added tests/test_router.py (24 tests)
+  - Commands: PYTHONPATH=src python -m pytest tests/test_router.py -v (24 passed)
+  - Commit: pending
+- Iteration 21 (T-062) - Whisper Transcription Service
+  - Created src/assistant/services/whisper.py with WhisperTranscriber class
+  - Features: async transcription with retry logic, confidence scoring from avg_logprob
+  - Low-confidence detection (<80%) sets is_low_confidence flag and needs_review property
+  - Supports: mp3, mp4, m4a, wav, ogg, oga, webm audio formats
+  - Added tests/test_whisper.py (32 tests)
+  - Commands: PYTHONPATH=src python -m pytest tests/test_whisper.py -v (32 passed)
+  - Commit: pending
+- Iteration 22 (T-063) - Voice Message Handler
+  - Created src/assistant/telegram/handlers.py with all message handlers
+  - Voice handler: downloads audio from Telegram, transcribes via Whisper, processes through MessageProcessor
+  - Low-confidence transcriptions show "I heard: ..." prefix with confidence % and audio reference note
+  - Command handlers: /start, /help, /today, /status, /debrief
+  - Text handler: processes through MessageProcessor pipeline
+  - Error handling: graceful recovery from transcription/network/processing errors
+  - Added tests/test_handlers.py (19 tests)
+  - Commands: PYTHONPATH=src python -m pytest tests/test_handlers.py -v (19 passed)
+  - Commit: pending
+- Iteration 23 (T-070) - People Lookup/Create Service
+  - Service already existed in src/assistant/services/people.py with PeopleService class
+  - Added comprehensive tests in tests/test_people.py (30 tests)
+  - Features: lookup by name/alias, lookup_or_create, create person
+  - Disambiguation logic: partner/family relationships prioritized, recency ranking, confidence scoring
+  - Acceptance tests covered: AT-104 (person linking), AT-105 (person creation), AT-117 (disambiguation)
+  - Commands: PYTHONPATH=src python -m pytest tests/test_people.py -v (30 passed)
+  - Full test suite: 193 tests pass
+  - Commit: pending

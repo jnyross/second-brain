@@ -282,8 +282,8 @@
         "T-051"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created src/assistant/services/entities.py with EntityExtractor class. Tests in tests/test_entities.py (21 tests pass). Extracts people (with/call/email patterns), places (at/near patterns), dates (tomorrow/today/weekday/relative time).",
       "updated_at": "2026-01-11"
     },
     {
@@ -296,8 +296,8 @@
         "T-052"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created src/assistant/services/confidence.py with ConfidenceScorer class. Tests in tests/test_confidence.py (25 tests pass). Scores based on: action verbs (+25), entities (+5 each), time (+15), length (+5), with penalties for filler words (-30), questions (-10), vagueness (-15). 80% threshold for actionability.",
       "updated_at": "2026-01-11"
     },
     {
@@ -310,8 +310,8 @@
         "T-053"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created src/assistant/services/router.py with ClassificationRouter class. Tests in tests/test_router.py (24 tests pass). Routes to Tasks/Inbox/People/Places/Projects based on intent type. Secondary targets for entity linking. 80% confidence threshold.",
       "updated_at": "2026-01-11"
     },
     {
@@ -353,8 +353,8 @@
         "T-060"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created src/assistant/services/whisper.py with WhisperTranscriber class. Tests in tests/test_whisper.py (32 tests pass). Features: async transcription with retry logic, confidence scoring from avg_logprob, low-confidence detection, support for mp3/mp4/m4a/wav/ogg/webm formats.",
       "updated_at": "2026-01-11"
     },
     {
@@ -370,8 +370,8 @@
       "acceptance_tests": [
         "AT-102"
       ],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created src/assistant/telegram/handlers.py with voice message handler. Downloads audio from Telegram, transcribes via Whisper, processes through MessageProcessor. Low-confidence transcriptions show 'I heard' prefix and audio reference note. Tests in tests/test_handlers.py (19 tests pass).",
       "updated_at": "2026-01-11"
     },
     {
@@ -401,8 +401,8 @@
       "acceptance_tests": [
         "AT-103"
       ],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created src/assistant/services/clarification.py with ClarificationService. Features: query_inbox for needs_clarification=True, create_task_from_item, dismiss_item, format_for_debrief. Added query_inbox and mark_inbox_processed to NotionClient. Tests in tests/test_clarification.py (24 tests pass).",
       "updated_at": "2026-01-11"
     },
     {
@@ -420,8 +420,8 @@
         "AT-105",
         "AT-117"
       ],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created src/assistant/services/people.py with PeopleService class. Features: lookup by name/alias, lookup_or_create, create, disambiguation logic (partner/family priority, recency ranking, confidence scoring). Tests in tests/test_people.py (30 tests pass). Covers AT-104 (person linking), AT-105 (person creation), AT-117 (disambiguation).",
       "updated_at": "2026-01-11"
     },
     {
