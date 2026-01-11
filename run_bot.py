@@ -104,9 +104,17 @@ async def transcribe_voice(file_path: str) -> str | None:
         logger.error(f"Transcription failed: {e}")
         return None
 
-async def create_task(title: str, due_date: str | None = None, confidence: int = 100) -> str | None:
+async def create_task(title: str, due_date: str | None = None, confidence: int = 100, 
+                      places: list[str] | None = None, people: list[str] | None = None) -> str | None:
     if not NOTION_KEY or not TASKS_DB:
         return None
+    
+    notes_parts = []
+    if places:
+        notes_parts.append(f"Location: {', '.join(places)}")
+    if people:
+        notes_parts.append(f"People: {', '.join(people)}")
+    notes = "\n".join(notes_parts) if notes_parts else None
         
     props = {
         "title": {"title": [{"text": {"content": title}}]},
@@ -116,6 +124,8 @@ async def create_task(title: str, due_date: str | None = None, confidence: int =
     }
     if due_date:
         props["due_date"] = {"date": {"start": due_date}}
+    if notes:
+        props["notes"] = {"rich_text": [{"text": {"content": notes}}]}
     
     try:
         async with httpx.AsyncClient() as client:
@@ -247,7 +257,9 @@ async def handle_voice(message: Message):
         task_id = await create_task(
             parsed.get("title", transcript),
             parsed.get("due_date"),
-            parsed.get("confidence", 85)
+            parsed.get("confidence", 85),
+            parsed.get("places"),
+            parsed.get("people"),
         )
         await log_action(f"Task: {parsed.get('title', transcript)[:50]}")
         
@@ -256,7 +268,9 @@ async def handle_voice(message: Message):
         if parsed.get("due_date"):
             response += f"\nDue: {parsed.get('due_date')}"
         if parsed.get("places"):
-            response += f"\nPlace: {', '.join(parsed.get('places'))}"
+            response += f"\nLocation: {', '.join(parsed.get('places'))}"
+        if parsed.get("people"):
+            response += f"\nPeople: {', '.join(parsed.get('people'))}"
         response += f"\n\n_Saved to Notion_"
         await processing_msg.edit_text(response)
 
@@ -279,7 +293,9 @@ async def handle_text(message: Message):
         task_id = await create_task(
             parsed.get("title", text),
             parsed.get("due_date"),
-            parsed.get("confidence", 85)
+            parsed.get("confidence", 85),
+            parsed.get("places"),
+            parsed.get("people"),
         )
         await log_action(f"Task: {parsed.get('title', text)[:50]}")
         
@@ -287,7 +303,9 @@ async def handle_text(message: Message):
         if parsed.get("due_date"):
             response += f"\nDue: {parsed.get('due_date')}"
         if parsed.get("places"):
-            response += f"\nPlace: {', '.join(parsed.get('places'))}"
+            response += f"\nLocation: {', '.join(parsed.get('places'))}"
+        if parsed.get("people"):
+            response += f"\nPeople: {', '.join(parsed.get('people'))}"
         response += f"\n\n_Saved to Notion_"
         await message.answer(response)
 
