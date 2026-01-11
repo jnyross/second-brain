@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
@@ -22,6 +23,31 @@ SCOPES = [
 
 TOKEN_PATH = Path.home() / ".second-brain" / "google_token.json"
 CREDENTIALS_PATH = Path(__file__).parent.parent.parent.parent / "google_credentials.json"
+
+
+def extract_oauth_code(text: str) -> str | None:
+    candidate = text.strip()
+    if not candidate:
+        return None
+
+    if candidate.startswith(("http://", "https://")):
+        parsed = urlparse(candidate)
+        for query in (parsed.query, parsed.fragment):
+            if not query:
+                continue
+            qs = parse_qs(query)
+            code_values = qs.get("code")
+            if code_values and isinstance(code_values[0], str) and code_values[0]:
+                return code_values[0]
+
+    if "code=" in candidate:
+        query = candidate.lstrip("?#")
+        qs = parse_qs(query)
+        code_values = qs.get("code")
+        if code_values and isinstance(code_values[0], str) and code_values[0]:
+            return code_values[0]
+
+    return candidate
 
 
 class GoogleAuth:
@@ -83,14 +109,43 @@ class GoogleAuth:
         with open(TOKEN_PATH, "w") as f:
             f.write(self._credentials.to_json())
     
+    def _get_redirect_uri(self, flow: InstalledAppFlow) -> str | None:
+        client_config = flow.client_config or {}
+
+        redirect_uris = client_config.get("redirect_uris")
+        if isinstance(redirect_uris, str) and redirect_uris:
+            return redirect_uris
+        if isinstance(redirect_uris, (list, tuple)) and redirect_uris:
+            first = redirect_uris[0]
+            return first if isinstance(first, str) and first else None
+
+        for config_key in ("installed", "web"):
+            nested_redirect_uris = client_config.get(config_key, {}).get("redirect_uris", [])
+            if isinstance(nested_redirect_uris, str) and nested_redirect_uris:
+                return nested_redirect_uris
+            if isinstance(nested_redirect_uris, (list, tuple)) and nested_redirect_uris:
+                first = nested_redirect_uris[0]
+                return first if isinstance(first, str) and first else None
+
+        return None
+
     def get_auth_url(self) -> str | None:
         if not CREDENTIALS_PATH.exists():
             return None
         
         try:
             flow = InstalledAppFlow.from_client_secrets_file(str(CREDENTIALS_PATH), SCOPES)
-            flow.redirect_uri = "urn:ietf:wg:oauth:2.0:oob"
-            auth_url, _ = flow.authorization_url(prompt="consent")
+            redirect_uri = self._get_redirect_uri(flow)
+            if not redirect_uri:
+                logger.error(
+                    "No redirect_uris found in google_credentials.json (top-level or under 'installed'/'web')."
+                )
+                return None
+            flow.redirect_uri = redirect_uri
+            auth_url, _ = flow.authorization_url(
+                prompt="consent",
+                access_type="offline",
+            )
             return auth_url
         except Exception as e:
             logger.error(f"Failed to generate auth URL: {e}")
@@ -102,7 +157,13 @@ class GoogleAuth:
         
         try:
             flow = InstalledAppFlow.from_client_secrets_file(str(CREDENTIALS_PATH), SCOPES)
-            flow.redirect_uri = "urn:ietf:wg:oauth:2.0:oob"
+            redirect_uri = self._get_redirect_uri(flow)
+            if not redirect_uri:
+                logger.error(
+                    "No redirect_uris found in google_credentials.json (top-level or under 'installed'/'web')."
+                )
+                return False
+            flow.redirect_uri = redirect_uri
             flow.fetch_token(code=code)
             self._credentials = flow.credentials
             self._save_token()

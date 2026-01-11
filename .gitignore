@@ -37,3 +37,4 @@ out/
 .second-brain/
 *.egg-info/
 google_credentials.json
+client_secret*.json

@@ -48,7 +48,7 @@ drive_client = None
 try:
     from assistant.google.maps import MapsClient, PlaceDetails
     from assistant.google.drive import DriveClient
-    from assistant.google.auth import google_auth
+    from assistant.google.auth import extract_oauth_code, google_auth
     
     if GOOGLE_MAPS_KEY:
         maps_client = MapsClient(api_key=GOOGLE_MAPS_KEY)
@@ -328,37 +328,70 @@ async def cmd_status(message: Message):
 @dp.message(Command("setup_google"))
 async def cmd_setup_google(message: Message):
     try:
+        logger.info("Google auth setup requested (chat_id=%s)", message.chat.id)
+
         if google_auth.load_saved_credentials():
+            logger.info("Google already authenticated (chat_id=%s)", message.chat.id)
             await message.answer("Google already authenticated!")
             return
-        
+
         auth_url = google_auth.get_auth_url()
         if auth_url:
-            await message.answer(
-                f"Click to authenticate Google:\n\n{auth_url}\n\n"
-                "After authenticating, send me the code with:\n"
-                "/google_code YOUR_CODE"
+            logger.info(
+                "Generated Google auth URL (chat_id=%s, has_redirect_uri=%s)",
+                message.chat.id,
+                "redirect_uri=" in auth_url,
+            )
+            await bot.send_message(
+                chat_id=message.chat.id,
+                text=(
+                    "Click to authenticate Google:\n\n"
+                    f"{auth_url}\n\n"
+                    "After authenticating, you'll be redirected to http://localhost (it may not load on your phone).\n"
+                    "Copy the full URL (or just the code=... value) and send:\n"
+                    "/google_code <CODE or URL>"
+                ),
+                parse_mode=None,
+                disable_web_page_preview=True,
             )
         else:
-            await message.answer("Google credentials file not found. Add google_credentials.json to the project.")
-    except Exception as e:
-        await message.answer(f"Setup failed: {e}")
+            logger.warning("Failed to generate Google auth URL (chat_id=%s)", message.chat.id)
+            await message.answer(
+                "Google credentials file not found. Add google_credentials.json to the project."
+            )
+    except Exception:
+        logger.exception("Google auth setup failed (chat_id=%s)", message.chat.id)
+        await message.answer("Setup failed")
 
 @dp.message(Command("google_code"))
 async def cmd_google_code(message: Message):
     try:
+        logger.info("Received google_code (chat_id=%s)", message.chat.id)
+
         parts = message.text.split(maxsplit=1)
         if len(parts) < 2:
-            await message.answer("Usage: /google_code YOUR_CODE")
+            logger.warning("google_code missing code argument (chat_id=%s)", message.chat.id)
+            await message.answer("Usage: /google_code <CODE or URL>")
             return
-        
-        code = parts[1].strip()
+
+        raw_input = parts[1].strip()
+        code = extract_oauth_code(raw_input)
+        if not code:
+            logger.warning("google_code could not extract code (chat_id=%s)", message.chat.id)
+            await message.answer(
+                "Couldn't find a code. Paste either the code itself, or the full http://localhost URL."
+            )
+            return
+
         if google_auth.complete_auth_with_code(code):
+            logger.info("Google authenticated successfully (chat_id=%s)", message.chat.id)
             await message.answer("Google authenticated successfully!")
         else:
+            logger.warning("Google authentication failed (chat_id=%s)", message.chat.id)
             await message.answer("Authentication failed. Try /setup_google again.")
-    except Exception as e:
-        await message.answer(f"Authentication failed: {e}")
+    except Exception:
+        logger.exception("Google authentication errored (chat_id=%s)", message.chat.id)
+        await message.answer("Authentication failed")
 
 @dp.message(Command("research"))
 async def cmd_research(message: Message):
