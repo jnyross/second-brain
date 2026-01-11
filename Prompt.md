@@ -1,7 +1,7 @@
 # Prompt.md — Ralph Loop Contract (Stable)
 
-**Contract version:** 1.1.0  
-**Last updated:** 2026-01-08  
+**Contract version:** 1.2.0  
+**Last updated:** 2026-01-11  
 **Completion promise (exact):** `<promise>COMPLETE</promise>`  
 **Blocked promise (exact):** `<promise>NEEDS_INPUT</promise>`
 
@@ -301,7 +301,47 @@ Do not guess. Do not proceed.
 
 ---
 
-## 12. Changelog (append-only)
+## 12. Status Reporting (MANDATORY for autonomous loops)
+
+When running in an autonomous loop (e.g., via `ralph` or `ralph_loop.sh`), you MUST output a status block at the end of every response to enable the loop controller to detect completion, blocking, or progress.
+
+**Status block format (must appear exactly as shown):**
+
+```
+---RALPH_STATUS---
+STATUS: [IN_PROGRESS | COMPLETE | BLOCKED]
+TASKS_COMPLETED_THIS_LOOP: <number>
+FILES_MODIFIED: <number>
+TESTS_STATUS: [PASSING | FAILING | NOT_RUN]
+WORK_TYPE: [IMPLEMENTATION | TESTING | DOCUMENTATION | REFACTORING]
+EXIT_SIGNAL: [true | false]
+RECOMMENDATION: <brief summary of next action>
+---END_RALPH_STATUS---
+```
+
+**Field definitions:**
+
+| Field | Values | Description |
+|-------|--------|-------------|
+| `STATUS` | IN_PROGRESS, COMPLETE, BLOCKED | Overall loop state |
+| `TASKS_COMPLETED_THIS_LOOP` | 0, 1, 2... | Tasks marked `passes: true` this iteration |
+| `FILES_MODIFIED` | 0, 1, 2... | Source files changed (not config/docs) |
+| `TESTS_STATUS` | PASSING, FAILING, NOT_RUN | Result of `VERIFY_COMMAND` |
+| `WORK_TYPE` | IMPLEMENTATION, TESTING, DOCUMENTATION, REFACTORING | Primary activity this iteration |
+| `EXIT_SIGNAL` | true, false | Set `true` only when all completion criteria (§10) are met |
+| `RECOMMENDATION` | text | Brief next action (e.g., "Continue with T-052") |
+
+**Rules:**
+
+- `EXIT_SIGNAL: true` is allowed **only** when §10 completion criteria are satisfied.
+- If blocked per §11, set `STATUS: BLOCKED` and `EXIT_SIGNAL: false`.
+- The status block enables circuit breaker detection (test-only loops, repeated errors).
+- Do not fake progress—`FILES_MODIFIED: 0` with `WORK_TYPE: IMPLEMENTATION` triggers stuck detection.
+
+---
+
+## 13. Changelog (append-only)
 
 1.0.0 (2026-01-08): Initial stable contract.
 1.1.0 (2026-01-08): Added HITL/AFK modes + mandatory safety limits, circuit breaker, instruction discovery, risk tie-breaker.
+1.2.0 (2026-01-11): Added §12 Status Reporting for ralph-claude-code autonomous loop integration.
