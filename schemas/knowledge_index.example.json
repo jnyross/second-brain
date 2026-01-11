@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "documents": [
+    {
+      "id": "K-001",
+      "path": "knowledge/preferences.md",
+      "content_type": "text/markdown",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "tags": ["preferences"],
+      "added_at": "2026-01-11T00:00:00Z",
+      "updated_at": "2026-01-11T00:00:00Z"
+    }
+  ]
+}

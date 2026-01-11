@@ -1,0 +1,38 @@
+
+# Ralph Loop: ignore common secrets and junk (auto)
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+credentials.*
+*credentials*.json
+*.secrets
+*.secret
+secrets.*
+
+# Common build/deps caches
+node_modules/
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+coverage/
+.dist/
+dist/
+build/
+out/
+
+# OS/editor
+.DS_Store
+
+# Worktrees
+.worktrees/
+
+# Second Brain specific
+.second-brain/
+*.egg-info/

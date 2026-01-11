@@ -1,0 +1,879 @@
+{
+  "schema_version": "1.2",
+  "tasks": [
+    {
+      "id": "T-000",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Initialize loop state + runbook",
+      "description": "Project has Prompt.md, PRD.md, and .ralph state files tracked in git.",
+      "depends_on": [],
+      "acceptance_tests": [],
+      "passes": true,
+      "evidence": "Created Prompt.md, PRD.md, .ralph/PROGRESS.md, .ralph/TASKS.json",
+      "updated_at": "2026-01-10"
+    },
+    {
+      "id": "T-001",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Design knowledge base schema",
+      "description": "Knowledge base schema is documented and verifiable; schema artifact(s) exist and validation can run deterministically.",
+      "depends_on": [
+        "T-000"
+      ],
+      "acceptance_tests": [
+        "AT-003"
+      ],
+      "passes": true,
+      "evidence": "Added schemas/knowledge_index.schema.json and schemas/knowledge_index.example.json. Ran scripts/knowledge_schema_test.sh (pass) which validates example via scripts/knowledge_validate.sh.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-002",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Implement task data structure",
+      "description": "Task storage schema exists, CRUD operations implemented, and acceptance tests for task creation/completion pass.",
+      "depends_on": [
+        "T-001"
+      ],
+      "acceptance_tests": [
+        "AT-001",
+        "AT-002"
+      ],
+      "passes": true,
+      "evidence": "Added scripts/task_create.sh and scripts/task_complete.sh plus scripts/at_001_task_creation_test.sh and scripts/at_002_task_completion_test.sh. Ran both tests (pass).",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-003",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Create conversation logging system",
+      "description": "Conversation logs are written deterministically, rotated, and searchable.",
+      "depends_on": [
+        "T-000"
+      ],
+      "acceptance_tests": [],
+      "passes": true,
+      "evidence": "Added scripts/conversation_log.sh and scripts/conversation_log_test.sh. Updated bootstrap.sh to create conversation/ directory. Ran scripts/conversation_log_test.sh (pass) - logs user and assistant messages to conversation/log.jsonl.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-005",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Implement no-progress stuck detection",
+      "description": "No-progress detector pauses after N iterations with low output and no file changes; NEEDS_INPUT.md is created.",
+      "depends_on": [
+        "T-000"
+      ],
+      "acceptance_tests": [
+        "AT-005"
+      ],
+      "passes": true,
+      "evidence": "Added scripts/stuck_detector.sh and scripts/at_005_stuck_no_progress_test.sh. Ran AT-005 test (pass) - detects 5 consecutive low-output iterations, creates NEEDS_INPUT.md, resets on progress.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-006",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Implement same-error stuck detection",
+      "description": "Same-error detector pauses after M repeats; NEEDS_INPUT.md is created.",
+      "depends_on": [
+        "T-000"
+      ],
+      "acceptance_tests": [
+        "AT-006"
+      ],
+      "passes": true,
+      "evidence": "Added scripts/at_006_stuck_same_error_test.sh. Ran AT-006 test (pass) - detects 3 consecutive same errors, creates NEEDS_INPUT.md, resets on different errors or success.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-007",
+      "priority": "P0",
+      "risk": "R0",
+      "title": "Implement cost tracking",
+      "description": "Per-iteration cost is tracked and daily limits enforced.",
+      "depends_on": [
+        "T-000"
+      ],
+      "acceptance_tests": [
+        "AT-007"
+      ],
+      "passes": true,
+      "evidence": "Added scripts/cost_tracker.sh and scripts/at_007_cost_tracking_test.sh. Ran AT-007 test (pass) - tracks cumulative cost, pauses at budget limit, creates NEEDS_INPUT.md.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-008",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Implement sandbox enforcement",
+      "description": "Working directory isolation enforced and sandbox violations logged.",
+      "depends_on": [
+        "T-000"
+      ],
+      "acceptance_tests": [
+        "AT-008"
+      ],
+      "passes": true,
+      "evidence": "Added scripts/sandbox_guard.sh and scripts/at_008_sandbox_test.sh. Ran AT-008 test (pass) - blocks /etc/passwd, path traversal, /tmp; logs violations to security_log.json.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-009",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Implement learning database",
+      "description": "learning.json schema defined, corrections stored, and learned patterns applied to future tasks.",
+      "depends_on": [
+        "T-000"
+      ],
+      "acceptance_tests": [
+        "AT-009"
+      ],
+      "passes": true,
+      "evidence": "Added scripts/learning_db.sh and scripts/at_009_learning_test.sh. Ran AT-009 test (pass) - stores corrections, increments count/confidence, pattern matching works.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-010",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Implement task execution engine",
+      "description": "Tasks can be created/updated/completed/deleted with appropriate notifications.",
+      "depends_on": [
+        "T-002",
+        "T-003"
+      ],
+      "acceptance_tests": [
+        "AT-001",
+        "AT-002"
+      ],
+      "passes": true,
+      "evidence": "Added scripts/task_engine.sh and scripts/task_engine_test.sh. Ran test (pass) - full CRUD operations with history tracking and notification logging.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-011",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Implement knowledge base retrieval",
+      "description": "Files can be searched/indexed and retrieval produces citations.",
+      "depends_on": [
+        "T-001",
+        "T-003"
+      ],
+      "acceptance_tests": [
+        "AT-003"
+      ],
+      "passes": true,
+      "evidence": "Added scripts/knowledge_search.sh and scripts/knowledge_search_test.sh. Ran test (pass) - indexes md/txt/json, search returns citations with file paths.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-012",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Implement Claude Code CLI integration",
+      "description": "Claude adapter configured with streaming and tool-calling support.",
+      "depends_on": [
+        "T-000"
+      ],
+      "acceptance_tests": [],
+      "passes": true,
+      "evidence": "Added scripts/claude_adapter.sh and scripts/claude_adapter_test.sh. Ran test (pass) - config, check, prompt with streaming/tools support.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-013",
+      "priority": "P0",
+      "risk": "R2",
+      "title": "Create bootstrap script",
+      "description": "Bootstrap command initializes ~/.ai-assistant with config, learning schema, directories, and git repo.",
+      "depends_on": [
+        "T-000"
+      ],
+      "acceptance_tests": [],
+      "passes": true,
+      "evidence": "Ran scripts/bootstrap_test.sh (pass); bootstrap writes config.json and knowledge/learning.json, initializes git.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-014",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Create verify script",
+      "description": "VERIFY_COMMAND exists as scripts/verify.sh and performs deterministic checks; exits 0/1 and can run repeatedly.",
+      "depends_on": [
+        "T-013"
+      ],
+      "acceptance_tests": [],
+      "passes": true,
+      "evidence": "Ran scripts/bootstrap_test.sh (pass) and scripts/verify_test.sh (pass). scripts/verify.sh reports '✓ All checks passed (8/8)' against bootstrap fixture with stubbed claude/docker.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-015",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Create run script",
+      "description": "RUN_COMMAND executes, respects config, and handles completion promise.",
+      "depends_on": [
+        "T-012",
+        "T-013"
+      ],
+      "acceptance_tests": [],
+      "passes": true,
+      "evidence": "Added scripts/run.sh and scripts/run_test.sh. Ran test (pass) - config display, pre-flight checks, dry-run mode, completion promise handling.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-016",
+      "priority": "P0",
+      "risk": "R2",
+      "title": "Create smoke test script",
+      "description": "SMOKE_TEST_COMMAND runs in <5s and tests basic functionality.",
+      "depends_on": [
+        "T-000"
+      ],
+      "acceptance_tests": [],
+      "passes": true,
+      "evidence": "Ran scripts/smoke_test_test.sh (pass). scripts/smoke_test.sh reports '✓ Smoke test passed (4/4)' against bootstrap fixture.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-050",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Create Notion workspace structure",
+      "description": "Create all 9 Notion databases (Inbox, Tasks, People, Projects, Places, Preferences, Patterns, Emails, Log) with correct schemas from PRD Section 3.",
+      "depends_on": [],
+      "acceptance_tests": [],
+      "passes": true,
+      "evidence": "Created scripts/notion_bootstrap.py with all 9 database schemas. Syntax verified.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-051",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Implement Notion API client",
+      "description": "Python client for Notion API with CRUD operations on all databases, retry logic, and offline queue per PRD Section 4.6.",
+      "depends_on": [
+        "T-050"
+      ],
+      "acceptance_tests": [],
+      "passes": true,
+      "evidence": "Implemented src/assistant/notion/client.py with CRUD, retry, offline queue, idempotency. Syntax verified.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-052",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Create entity extraction service",
+      "description": "Extract people, dates, places, and other entities from natural language input.",
+      "depends_on": [
+        "T-051"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-053",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Implement confidence scoring",
+      "description": "Return 0-100 confidence score for AI interpretations of user input.",
+      "depends_on": [
+        "T-052"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-054",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Build classification router",
+      "description": "Route parsed input to correct Notion database based on entity type and confidence.",
+      "depends_on": [
+        "T-053"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-060",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Create Telegram bot",
+      "description": "Telegram bot using aiogram that responds to /start and basic commands.",
+      "depends_on": [],
+      "acceptance_tests": [],
+      "passes": true,
+      "evidence": "Created src/assistant/telegram/bot.py and handlers.py with aiogram. Commands: /start, /help, /today, /status, /debrief. Syntax verified.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-061",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Implement text message handler",
+      "description": "Handle incoming text messages, process through classification router, respond within 5s.",
+      "depends_on": [
+        "T-060",
+        "T-054"
+      ],
+      "acceptance_tests": [
+        "AT-101"
+      ],
+      "passes": true,
+      "evidence": "Implemented text message handler in handlers.py that processes through MessageProcessor. Syntax verified.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-062",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Integrate Whisper transcription",
+      "description": "Transcribe voice messages using OpenAI Whisper API.",
+      "depends_on": [
+        "T-060"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-063",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Implement voice message handler",
+      "description": "Handle voice messages: transcribe via Whisper, process like text, store audio reference.",
+      "depends_on": [
+        "T-061",
+        "T-062"
+      ],
+      "acceptance_tests": [
+        "AT-102"
+      ],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-064",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Build response generator",
+      "description": "Generate appropriate responses that never block on user input.",
+      "depends_on": [
+        "T-061"
+      ],
+      "acceptance_tests": [],
+      "passes": true,
+      "evidence": "Created response generator in processor.py that constructs responses from parsed intents. Syntax verified.",
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-065",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Implement low-confidence flagging",
+      "description": "Flag items with confidence <80% for clarification in debrief.",
+      "depends_on": [
+        "T-053",
+        "T-064"
+      ],
+      "acceptance_tests": [
+        "AT-103"
+      ],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-070",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Implement People lookup/create",
+      "description": "Look up existing people by name/alias, create new entries, handle disambiguation.",
+      "depends_on": [
+        "T-051",
+        "T-052"
+      ],
+      "acceptance_tests": [
+        "AT-104",
+        "AT-105",
+        "AT-117"
+      ],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-071",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Implement Places lookup/create",
+      "description": "Look up existing places, create new entries when needed.",
+      "depends_on": [
+        "T-051",
+        "T-052"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-072",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Implement Projects lookup",
+      "description": "Look up existing projects by name or context.",
+      "depends_on": [
+        "T-051",
+        "T-052"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-073",
+      "priority": "P0",
+      "risk": "R1",
+      "title": "Build relation linker",
+      "description": "Link tasks to people, places, and projects via Notion relations.",
+      "depends_on": [
+        "T-070",
+        "T-071",
+        "T-072"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-080",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Implement morning briefing generator",
+      "description": "Generate morning briefing with calendar, due tasks, emails, flagged items per PRD Section 5.2.",
+      "depends_on": [
+        "T-051"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-081",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Create scheduled briefing sender",
+      "description": "Send morning briefing at 7am via systemd timer.",
+      "depends_on": [
+        "T-080",
+        "T-060"
+      ],
+      "acceptance_tests": [
+        "AT-106"
+      ],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-082",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Implement /debrief command",
+      "description": "Interactive review session for unclear items.",
+      "depends_on": [
+        "T-060",
+        "T-065"
+      ],
+      "acceptance_tests": [
+        "AT-107"
+      ],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-083",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Build interactive clarification flow",
+      "description": "Walk through unclear items one by one, create/update tasks based on responses.",
+      "depends_on": [
+        "T-082"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-090",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Implement correction handler",
+      "description": "Handle 'wrong' replies and corrections, update affected records.",
+      "depends_on": [
+        "T-064"
+      ],
+      "acceptance_tests": [
+        "AT-108"
+      ],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-091",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Build pattern detection",
+      "description": "Detect repeated corrections and extract patterns.",
+      "depends_on": [
+        "T-090"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-092",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Implement pattern storage",
+      "description": "Store learned patterns in Notion Patterns database.",
+      "depends_on": [
+        "T-091",
+        "T-051"
+      ],
+      "acceptance_tests": [
+        "AT-109"
+      ],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-093",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Apply patterns to new inputs",
+      "description": "Check patterns before classification and apply learned behaviors.",
+      "depends_on": [
+        "T-092"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-100",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Implement Google Calendar OAuth",
+      "description": "OAuth flow for Google Calendar with token refresh.",
+      "depends_on": [],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-101",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Create calendar event creator",
+      "description": "Create Google Calendar events from tasks, with undo support.",
+      "depends_on": [
+        "T-100"
+      ],
+      "acceptance_tests": [
+        "AT-110",
+        "AT-116"
+      ],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-102",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Implement calendar reading",
+      "description": "Read upcoming calendar events for briefings.",
+      "depends_on": [
+        "T-100"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-103",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Integrate Playwright for research",
+      "description": "Web research using Playwright with screenshot evidence.",
+      "depends_on": [],
+      "acceptance_tests": [
+        "AT-112"
+      ],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-104",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Build research result formatter",
+      "description": "Format and store research results with sources.",
+      "depends_on": [
+        "T-103"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-110",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Implement comprehensive audit logging",
+      "description": "Log all actions to Notion Log database with idempotency keys per PRD Section 4.7.",
+      "depends_on": [
+        "T-051"
+      ],
+      "acceptance_tests": [
+        "AT-111",
+        "AT-113"
+      ],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-111",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Build 'Today I Learned' summary",
+      "description": "Include learned patterns in daily briefing.",
+      "depends_on": [
+        "T-092"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-112",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Create /status command",
+      "description": "Show pending tasks and flagged items.",
+      "depends_on": [
+        "T-060"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-113",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Create /today command",
+      "description": "Show today's schedule and due tasks.",
+      "depends_on": [
+        "T-060",
+        "T-102"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-114",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Implement offline queue and recovery",
+      "description": "Queue actions when Notion is down, sync on recovery per PRD Section 4.6.",
+      "depends_on": [
+        "T-051"
+      ],
+      "acceptance_tests": [
+        "AT-114",
+        "AT-115"
+      ],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-115",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Implement soft delete and undo",
+      "description": "Soft delete records and undo functionality per PRD Section 5.6 and 6.2.",
+      "depends_on": [
+        "T-051"
+      ],
+      "acceptance_tests": [
+        "AT-118"
+      ],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-116",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Implement timezone handling",
+      "description": "Parse times in user's timezone per PRD Section 5.4.",
+      "depends_on": [
+        "T-052"
+      ],
+      "acceptance_tests": [
+        "AT-119"
+      ],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-117",
+      "priority": "P1",
+      "risk": "R1",
+      "title": "Implement Whisper confidence handling",
+      "description": "Handle low-confidence transcriptions per PRD Section 4.6.",
+      "depends_on": [
+        "T-062"
+      ],
+      "acceptance_tests": [
+        "AT-120"
+      ],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-120",
+      "priority": "P2",
+      "risk": "R1",
+      "title": "Gmail read integration",
+      "description": "Read emails for morning briefing.",
+      "depends_on": [
+        "T-100"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-121",
+      "priority": "P2",
+      "risk": "R1",
+      "title": "Gmail draft creation",
+      "description": "Create email drafts with user confirmation.",
+      "depends_on": [
+        "T-120"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-122",
+      "priority": "P2",
+      "risk": "R1",
+      "title": "Gmail auto-reply",
+      "description": "Pattern-based auto-reply to emails.",
+      "depends_on": [
+        "T-121",
+        "T-092"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-130",
+      "priority": "P2",
+      "risk": "R1",
+      "title": "Proactive nudges",
+      "description": "Send 'Don't forget X' reminders proactively.",
+      "depends_on": [
+        "T-051",
+        "T-060"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-131",
+      "priority": "P2",
+      "risk": "R2",
+      "title": "Always-on listening mode",
+      "description": "Continuous voice input when models are ready.",
+      "depends_on": [
+        "T-062"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    },
+    {
+      "id": "T-140",
+      "priority": "P2",
+      "risk": "R1",
+      "title": "WhatsApp integration",
+      "description": "Alternative to Telegram for capture.",
+      "depends_on": [
+        "T-060"
+      ],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-11"
+    }
+  ]
+}

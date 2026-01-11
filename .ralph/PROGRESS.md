@@ -1,0 +1,133 @@
+# .ralph/PROGRESS.md
+
+## Runbook
+
+- Project root (workingDirectory): this folder
+- Contract: `Prompt.md`
+- Requirements: `PRD.md`
+- Tasks: `.ralph/TASKS.json`
+- Needs input: `.ralph/NEEDS_INPUT.md` (only when blocked)
+- Bootstrap: `scripts/bootstrap.sh`
+- Bootstrap test: `scripts/bootstrap_test.sh`
+
+## Current State
+
+- Initialized: yes
+- Status: Phase 0 complete. PRD v0.4.0 with critical gap fixes complete.
+
+## Iteration Log
+
+- Init: created contract artifacts.
+- Iteration 1 (T-013)
+  - Commands: scripts/bootstrap_test.sh (fail: missing bootstrap.sh), scripts/bootstrap_test.sh (pass)
+  - Results: bootstrap test passed
+  - Commit: not created (commit restricted by session instructions)
+- Iteration 1 (T-013) follow-up
+  - Commands: scripts/bootstrap_test.sh (pass)
+  - Results: bootstrap test passed with cleanup
+  - Commit: not created (commit restricted by session instructions)
+- Iteration 1 (T-013) review fixes
+  - Commands: scripts/bootstrap_test.sh (pass)
+  - Results: bootstrap test passed after idempotency fixes
+  - Commit: not created (commit restricted by session instructions)
+- Iteration 2 (T-014)
+  - Commands: scripts/bootstrap_test.sh (pass), scripts/verify_test.sh (pass)
+  - Results: verify script implemented and passes against bootstrap fixture
+  - Commit: not created (commit restricted by session instructions)
+- Iteration 3 (T-000 hygiene)
+  - Commands: jq -e '.' .ralph/TASKS.json (pass)
+  - Results: synced P0 backlog tasks into .ralph/TASKS.json
+  - Commit: not created (commit restricted by session instructions)
+- Iteration 4 (T-016)
+  - Commands: scripts/smoke_test_test.sh (pass)
+  - Results: smoke test script implemented and passes against bootstrap fixture
+  - Commit: not created (commit restricted by session instructions)
+- Iteration 5 (T-001)
+  - Commands: scripts/knowledge_schema_test.sh (pass)
+  - Results: knowledge index schema and validation script added
+  - Commit: not created (commit restricted by session instructions)
+- Iteration 6 (T-002)
+  - Commands: scripts/at_001_task_creation_test.sh (pass), scripts/at_002_task_completion_test.sh (pass)
+  - Results: task create/complete scripts added and validated by acceptance tests
+  - Commit: not created (commit restricted by session instructions)
+- Iteration 7 (T-003)
+  - Commands: scripts/conversation_log_test.sh (pass)
+  - Results: conversation logging system added - logs to conversation/log.jsonl in JSONL format
+  - Commit: not created (commit restricted by session instructions)
+- Iteration 8 (T-004) - REVERTED
+  - Results: HITL approval queue implemented then removed - switched to Autonomous mode per user request
+  - Changes: PRD.md Mode changed to Autonomous, removed --hitl flag, removed T-004/AT-004, deleted approval_queue.sh
+  - Commit: not created (commit restricted by session instructions)
+- Iteration 9 (T-005)
+  - Commands: scripts/at_005_stuck_no_progress_test.sh (pass)
+  - Results: No-progress stuck detection implemented via scripts/stuck_detector.sh
+  - Commit: pending
+- Iteration 10 (T-006)
+  - Commands: scripts/at_006_stuck_same_error_test.sh (pass)
+  - Results: Same-error stuck detection (already in stuck_detector.sh), AT-006 test validates
+  - Commit: pending
+- Iteration 11 (T-007)
+  - Commands: scripts/at_007_cost_tracking_test.sh (pass)
+  - Results: Cost tracking implemented via scripts/cost_tracker.sh, enforces daily budget
+  - Commit: pending
+- Iteration 12 (T-008)
+  - Commands: scripts/at_008_sandbox_test.sh (pass)
+  - Results: Sandbox enforcement via scripts/sandbox_guard.sh, logs to security_log.json
+  - Commit: pending
+- Iteration 13 (T-009)
+  - Commands: scripts/at_009_learning_test.sh (pass)
+  - Results: Learning database via scripts/learning_db.sh, pattern matching for corrections
+  - Commit: pending
+- Iteration 14 (T-010)
+  - Commands: scripts/task_engine_test.sh (pass)
+  - Results: Task execution engine with full CRUD + history + notifications
+  - Commit: pending
+- Iteration 15 (T-011)
+  - Commands: scripts/knowledge_search_test.sh (pass)
+  - Results: Knowledge base retrieval with indexing and citation-based search
+  - Commit: pending
+- Iteration 16 (T-012)
+  - Commands: scripts/claude_adapter_test.sh (pass)
+  - Results: Claude CLI adapter with streaming and tool-calling support
+  - Commit: pending
+- Iteration 17 (T-015)
+  - Commands: scripts/run_test.sh (pass)
+  - Results: Run script with config, check, start, dry-run modes
+  - Commit: pending
+- Final Verification
+  - All 16 P0 tasks complete with passes: true
+  - All 16 test harnesses (*_test.sh) pass
+  - Acceptance tests: AT-001, AT-002, AT-003, AT-005, AT-006, AT-007, AT-008, AT-009 implemented and passing
+- PRD v0.4.0 Critical Gap Fixes
+  - Oracle agent reviewed PRD for architecture gaps
+  - Added Section 1: Tech Stack & Deployment (Python 3.12, aiogram, VPS, systemd)
+  - Added Section 1.3: Secrets Management
+  - Added Section 1.4: Cost Estimate (~$7-12/mo)
+  - Added Section 4.6: Failure Handling (offline queue, retries, rate limiting)
+  - Added Section 4.7: Idempotency (dedupe keys, exactly-once processing)
+  - Added Section 5.4-5.6: Timezone, Disambiguation, Deletion Semantics
+  - Added Section 6.2-6.3: Undo/Rollback Semantics, Confirmation Requirements
+  - Enhanced all database schemas with operational fields
+  - Added acceptance tests AT-113 through AT-120
+- TASKS.json Sync
+  - Updated to schema 1.2 with 58 total tasks (16 complete from Phase 0)
+  - Added all Phase 1-7 tasks from PRD with dependencies and acceptance tests
+- Phase 1 Implementation (T-050, T-051)
+  - Created Python project structure with pyproject.toml
+  - Implemented Notion API client with retry logic, offline queue, idempotency
+  - Created all 9 database schemas (Inbox, Tasks, People, Projects, Places, Preferences, Patterns, Emails, Log)
+  - Added scripts/notion_bootstrap.py to create Notion databases
+- Phase 2 Implementation (T-060, T-061, T-064)
+  - Created Telegram bot with aiogram
+  - Implemented text message handler with parser
+  - Created response generator
+  - Added /start, /help, /today, /status, /debrief command stubs
+- Services Implementation
+  - Parser: extracts dates, times, people, places from natural language
+  - Processor: routes messages, handles high/low confidence
+  - BriefingGenerator: creates morning briefings from Notion data
+- CLI Implementation
+  - assistant run: Start Telegram bot
+  - assistant briefing: Send morning briefing
+  - assistant check: Verify configuration
+  - assistant sync: Process offline queue

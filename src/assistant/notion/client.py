@@ -1,0 +1,407 @@
+import hashlib
+import json
+from datetime import datetime
+from pathlib import Path
+from typing import Any, TypeVar, Generic
+import httpx
+from pydantic import BaseModel
+
+from assistant.config import settings
+from assistant.notion.schemas import (
+    InboxItem,
+    Task,
+    Person,
+    Project,
+    Place,
+    Preference,
+    Pattern,
+    Email,
+    LogEntry,
+    ActionType,
+)
+
+T = TypeVar("T", bound=BaseModel)
+
+NOTION_API_URL = "https://api.notion.com/v1"
+NOTION_VERSION = "2022-06-28"
+
+OFFLINE_QUEUE_PATH = Path.home() / ".second-brain" / "queue" / "pending.jsonl"
+
+
+class NotionClient:
+    def __init__(self, api_key: str | None = None):
+        self.api_key = api_key or settings.notion_api_key
+        self._client: httpx.AsyncClient | None = None
+
+    @property
+    def headers(self) -> dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self.api_key}",
+            "Notion-Version": NOTION_VERSION,
+            "Content-Type": "application/json",
+        }
+
+    async def _get_client(self) -> httpx.AsyncClient:
+        if self._client is None:
+            self._client = httpx.AsyncClient(
+                base_url=NOTION_API_URL,
+                headers=self.headers,
+                timeout=30.0,
+            )
+        return self._client
+
+    async def close(self) -> None:
+        if self._client:
+            await self._client.aclose()
+            self._client = None
+
+    async def _request(
+        self,
+        method: str,
+        path: str,
+        json_data: dict[str, Any] | None = None,
+        retries: int = 3,
+    ) -> dict[str, Any]:
+        client = await self._get_client()
+        last_error: Exception | None = None
+
+        for attempt in range(retries):
+            try:
+                response = await client.request(method, path, json=json_data)
+
+                if response.status_code == 429:
+                    retry_after = int(response.headers.get("Retry-After", "1"))
+                    import asyncio
+                    await asyncio.sleep(retry_after)
+                    continue
+
+                response.raise_for_status()
+                return response.json()
+
+            except httpx.HTTPStatusError as e:
+                last_error = e
+                if e.response.status_code >= 500:
+                    import asyncio
+                    await asyncio.sleep(2 ** attempt)
+                    continue
+                raise
+
+            except httpx.RequestError as e:
+                last_error = e
+                import asyncio
+                await asyncio.sleep(2 ** attempt)
+                continue
+
+        if last_error:
+            self._queue_offline(method, path, json_data)
+            raise last_error
+
+        raise RuntimeError("Request failed without error")
+
+    def _queue_offline(
+        self,
+        method: str,
+        path: str,
+        json_data: dict[str, Any] | None,
+    ) -> None:
+        OFFLINE_QUEUE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "method": method,
+            "path": path,
+            "data": json_data,
+        }
+        with open(OFFLINE_QUEUE_PATH, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+
+    def _generate_dedupe_key(self, *args: Any) -> str:
+        content = "|".join(str(a) for a in args)
+        return hashlib.sha256(content.encode()).hexdigest()[:16]
+
+    def _model_to_notion_properties(
+        self,
+        model: BaseModel,
+        db_type: str,
+    ) -> dict[str, Any]:
+        data = model.model_dump(exclude_none=True)
+        properties: dict[str, Any] = {}
+
+        for key, value in data.items():
+            if key == "id":
+                continue
+
+            if isinstance(value, datetime):
+                properties[key] = {"date": {"start": value.isoformat()}}
+            elif isinstance(value, bool):
+                properties[key] = {"checkbox": value}
+            elif isinstance(value, int):
+                properties[key] = {"number": value}
+            elif isinstance(value, list):
+                if all(isinstance(v, str) for v in value):
+                    properties[key] = {
+                        "multi_select": [{"name": v} for v in value]
+                    }
+            elif isinstance(value, str):
+                if key in ("title", "name", "preference", "trigger", "subject"):
+                    properties[key] = {"title": [{"text": {"content": value}}]}
+                elif key in ("status", "priority", "source", "relationship", 
+                           "action_type", "category", "place_type", "project_type"):
+                    properties[key] = {"select": {"name": value}}
+                else:
+                    properties[key] = {"rich_text": [{"text": {"content": value}}]}
+
+        return properties
+
+    async def create_inbox_item(self, item: InboxItem) -> str:
+        item.dedupe_key = self._generate_dedupe_key(
+            item.raw_input,
+            item.telegram_chat_id,
+            item.timestamp.isoformat(),
+        )
+
+        existing = await self._check_dedupe("inbox", item.dedupe_key)
+        if existing:
+            return existing
+
+        properties = self._model_to_notion_properties(item, "inbox")
+        result = await self._request(
+            "POST",
+            "/pages",
+            {
+                "parent": {"database_id": settings.notion_inbox_db_id},
+                "properties": properties,
+            },
+        )
+        return result["id"]
+
+    async def create_task(self, task: Task) -> str:
+        properties = self._model_to_notion_properties(task, "tasks")
+        result = await self._request(
+            "POST",
+            "/pages",
+            {
+                "parent": {"database_id": settings.notion_tasks_db_id},
+                "properties": properties,
+            },
+        )
+        return result["id"]
+
+    async def create_person(self, person: Person) -> str:
+        if person.email:
+            person.unique_key = person.email.lower()
+
+        properties = self._model_to_notion_properties(person, "people")
+        result = await self._request(
+            "POST",
+            "/pages",
+            {
+                "parent": {"database_id": settings.notion_people_db_id},
+                "properties": properties,
+            },
+        )
+        return result["id"]
+
+    async def create_log_entry(self, entry: LogEntry) -> str:
+        if entry.idempotency_key:
+            existing = await self._check_dedupe("log", entry.idempotency_key)
+            if existing:
+                return existing
+
+        properties = self._model_to_notion_properties(entry, "log")
+        result = await self._request(
+            "POST",
+            "/pages",
+            {
+                "parent": {"database_id": settings.notion_log_db_id},
+                "properties": properties,
+            },
+        )
+        return result["id"]
+
+    async def _check_dedupe(self, db_type: str, key: str) -> str | None:
+        db_id_map = {
+            "inbox": settings.notion_inbox_db_id,
+            "log": settings.notion_log_db_id,
+        }
+        db_id = db_id_map.get(db_type)
+        if not db_id:
+            return None
+
+        key_field = "dedupe_key" if db_type == "inbox" else "idempotency_key"
+
+        result = await self._request(
+            "POST",
+            f"/databases/{db_id}/query",
+            {
+                "filter": {
+                    "property": key_field,
+                    "rich_text": {"equals": key},
+                },
+                "page_size": 1,
+            },
+        )
+
+        if result.get("results"):
+            return result["results"][0]["id"]
+        return None
+
+    async def query_tasks(
+        self,
+        status: str | None = None,
+        due_before: datetime | None = None,
+        include_deleted: bool = False,
+    ) -> list[dict[str, Any]]:
+        filters: list[dict[str, Any]] = []
+
+        if status:
+            filters.append({
+                "property": "status",
+                "select": {"equals": status},
+            })
+
+        if due_before:
+            filters.append({
+                "property": "due_date",
+                "date": {"on_or_before": due_before.isoformat()},
+            })
+
+        if not include_deleted:
+            filters.append({
+                "property": "deleted_at",
+                "date": {"is_empty": True},
+            })
+
+        query_filter = {"and": filters} if len(filters) > 1 else (filters[0] if filters else None)
+
+        result = await self._request(
+            "POST",
+            f"/databases/{settings.notion_tasks_db_id}/query",
+            {"filter": query_filter} if query_filter else {},
+        )
+
+        return result.get("results", [])
+
+    async def query_people(
+        self,
+        name: str | None = None,
+        include_archived: bool = False,
+    ) -> list[dict[str, Any]]:
+        filters: list[dict[str, Any]] = []
+
+        if name:
+            filters.append({
+                "or": [
+                    {"property": "name", "title": {"contains": name}},
+                    {"property": "aliases", "rich_text": {"contains": name}},
+                ]
+            })
+
+        if not include_archived:
+            filters.append({
+                "property": "archived",
+                "checkbox": {"equals": False},
+            })
+
+        query_filter = {"and": filters} if len(filters) > 1 else (filters[0] if filters else None)
+
+        result = await self._request(
+            "POST",
+            f"/databases/{settings.notion_people_db_id}/query",
+            {"filter": query_filter} if query_filter else {},
+        )
+
+        return result.get("results", [])
+
+    async def soft_delete(self, page_id: str) -> None:
+        await self._request(
+            "PATCH",
+            f"/pages/{page_id}",
+            {
+                "properties": {
+                    "deleted_at": {"date": {"start": datetime.utcnow().isoformat()}},
+                }
+            },
+        )
+
+    async def undo_delete(self, page_id: str) -> None:
+        await self._request(
+            "PATCH",
+            f"/pages/{page_id}",
+            {
+                "properties": {
+                    "deleted_at": {"date": None},
+                }
+            },
+        )
+
+    async def update_task_status(self, page_id: str, status: str) -> None:
+        update: dict[str, Any] = {
+            "properties": {
+                "status": {"select": {"name": status}},
+                "last_modified_at": {"date": {"start": datetime.utcnow().isoformat()}},
+            }
+        }
+
+        if status == "done":
+            update["properties"]["completed_at"] = {
+                "date": {"start": datetime.utcnow().isoformat()}
+            }
+
+        await self._request("PATCH", f"/pages/{page_id}", update)
+
+    async def log_action(
+        self,
+        action_type: ActionType,
+        idempotency_key: str | None = None,
+        input_text: str | None = None,
+        action_taken: str | None = None,
+        confidence: int | None = None,
+        entities_affected: list[str] | None = None,
+        external_api: str | None = None,
+        external_resource_id: str | None = None,
+        error_code: str | None = None,
+        error_message: str | None = None,
+    ) -> str:
+        entry = LogEntry(
+            action_type=action_type,
+            idempotency_key=idempotency_key,
+            input_text=input_text,
+            action_taken=action_taken,
+            confidence=confidence,
+            entities_affected=entities_affected or [],
+            external_api=external_api,
+            external_resource_id=external_resource_id,
+            error_code=error_code,
+            error_message=error_message,
+        )
+        return await self.create_log_entry(entry)
+
+    async def process_offline_queue(self) -> int:
+        if not OFFLINE_QUEUE_PATH.exists():
+            return 0
+
+        processed = 0
+        failed_entries: list[str] = []
+
+        with open(OFFLINE_QUEUE_PATH) as f:
+            entries = f.readlines()
+
+        for line in entries:
+            try:
+                entry = json.loads(line)
+                await self._request(
+                    entry["method"],
+                    entry["path"],
+                    entry.get("data"),
+                )
+                processed += 1
+            except Exception:
+                failed_entries.append(line)
+
+        if failed_entries:
+            with open(OFFLINE_QUEUE_PATH, "w") as f:
+                f.writelines(failed_entries)
+        else:
+            OFFLINE_QUEUE_PATH.unlink(missing_ok=True)
+
+        return processed
