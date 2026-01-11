@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-2 (Notion + Telegram capture) in progress. T-071 (Places service) completed.
+- Status: Phase 0 complete. Phase 1-2 (Notion + Telegram capture) in progress. T-072 (Projects service) completed. Next: T-073 (Relation linker).
 
 ## Iteration Log
 
@@ -191,4 +191,17 @@
   - Added tests/test_places.py (34 tests)
   - Commands: PYTHONPATH=src python -m pytest tests/test_places.py -v (34 passed)
   - Full test suite: 227 tests pass
+  - Commit: pending
+- Iteration 25 (T-072) - Projects Lookup/Create Service
+  - Created src/assistant/services/projects.py with ProjectsService class
+  - Features: lookup by name/status, lookup_or_create, create (with deadline support), lookup_by_status, lookup_active, lookup_multiple
+  - ProjectMatch dataclass with confidence scoring, active status priority, deadline sorting
+  - ProjectStatus enum: active, paused, completed, cancelled
+  - ProjectType enum: work, personal
+  - Disambiguation logic: active projects with confidence >= 0.7 prioritized (similar to home/office for places)
+  - Confidence scoring: exact name (1.0), name starts with (0.9), name contains (0.7), word boundary match (0.65)
+  - Added NotionClient.query_projects() and create_project() methods
+  - Added tests/test_projects.py (40 tests)
+  - Commands: PYTHONPATH=src python -m pytest tests/test_projects.py -v (40 passed)
+  - Full test suite: 267 tests pass
   - Commit: pending

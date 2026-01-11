@@ -1,4 +1,5 @@
 import pytest
+import pytz
 from datetime import datetime, timedelta
 from assistant.services.parser import Parser, ParsedIntent
 
@@ -44,8 +45,10 @@ class TestParser:
     def test_parse_relative_time(self):
         result = self.parser.parse("Remind me in 2 hours")
         assert result.due_date is not None
-        expected = datetime.now() + timedelta(hours=2)
-        assert abs((result.due_date.replace(tzinfo=None) - expected).total_seconds()) < 60
+        # Use timezone-aware comparison since parser uses configured timezone
+        tz = pytz.timezone("America/Los_Angeles")
+        expected = datetime.now(tz) + timedelta(hours=2)
+        assert abs((result.due_date - expected).total_seconds()) < 60
 
     def test_high_confidence_with_verb_and_time(self):
         result = self.parser.parse("Buy groceries tomorrow at 5pm")

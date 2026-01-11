@@ -444,6 +444,72 @@ class NotionClient:
         )
         return result["id"]
 
+    async def query_projects(
+        self,
+        name: str | None = None,
+        status: str | None = None,
+        include_archived: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Query projects with optional filters.
+
+        Args:
+            name: Filter by project name (partial match)
+            status: Filter by status (active, paused, completed, cancelled)
+            include_archived: Include archived projects
+
+        Returns:
+            List of project results from Notion
+        """
+        filters: list[dict[str, Any]] = []
+
+        if name:
+            filters.append({
+                "property": "name",
+                "title": {"contains": name},
+            })
+
+        if status:
+            filters.append({
+                "property": "status",
+                "select": {"equals": status},
+            })
+
+        if not include_archived:
+            filters.append({
+                "property": "archived",
+                "checkbox": {"equals": False},
+            })
+
+        query_filter = {"and": filters} if len(filters) > 1 else (filters[0] if filters else None)
+
+        result = await self._request(
+            "POST",
+            f"/databases/{settings.notion_projects_db_id}/query",
+            {"filter": query_filter} if query_filter else {},
+        )
+
+        return result.get("results", [])
+
+    async def create_project(self, project: Project) -> str:
+        """Create a new project in Notion.
+
+        Args:
+            project: Project object to create
+
+        Returns:
+            Notion page ID of the created project
+        """
+        properties = self._model_to_notion_properties(project, "projects")
+        result = await self._request(
+            "POST",
+            "/pages",
+            {
+                "parent": {"database_id": settings.notion_projects_db_id},
+                "properties": properties,
+            },
+        )
+        return result["id"]
+
     async def soft_delete(self, page_id: str) -> None:
         await self._request(
             "PATCH",

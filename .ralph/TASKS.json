@@ -450,8 +450,8 @@
         "T-052"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created src/assistant/services/projects.py with ProjectsService class. Features: lookup by name/status, lookup_or_create, create (with deadline support), lookup_by_status, lookup_active, lookup_multiple. ProjectMatch with confidence scoring, active status priority, deadline sorting. ProjectStatus enum (active/paused/completed/cancelled), ProjectType enum (work/personal). Disambiguation: active projects with confidence >= 0.7 prioritized. Added NotionClient.query_projects() and create_project(). Tests in tests/test_projects.py (40 tests pass). Full suite: 267 tests pass.",
       "updated_at": "2026-01-11"
     },
     {
