@@ -38,3 +38,18 @@ out/
 *.egg-info/
 google_credentials.json
 client_secret*.json
+
+# Ralph loop runtime state (should not be committed)
+.call_count
+.circuit_breaker_history
+.circuit_breaker_state
+.claude_session_id
+.exit_signals
+.last_reset
+.ralph_session
+.ralph_session_history
+.response_analysis
+.last_output_length
+logs/
+progress.json
+status.json
