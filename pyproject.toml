@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "second-brain"
-version = "0.4.0"
+version = "0.5.0"
 description = "Personal AI Assistant - Second Brain"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -21,6 +21,9 @@ dependencies = [
     "pydantic-settings>=2.2.0",
     "python-dateutil>=2.8.0",
     "pytz>=2024.1",
+    "google-auth>=2.27.0",
+    "google-auth-oauthlib>=1.2.0",
+    "google-api-python-client>=2.118.0",
 ]
 
 [project.optional-dependencies]

@@ -20,8 +20,10 @@ class Settings(BaseSettings):
 
     google_client_id: str = ""
     google_client_secret: str = ""
+    google_maps_api_key: str = ""
 
     user_timezone: str = "UTC"
+    user_home_address: str = ""
     user_telegram_chat_id: str = ""
 
     confidence_threshold: int = 80
@@ -43,6 +45,10 @@ class Settings(BaseSettings):
     @property
     def has_google(self) -> bool:
         return bool(self.google_client_id and self.google_client_secret)
+
+    @property
+    def has_google_maps(self) -> bool:
+        return bool(self.google_maps_api_key)
 
 
 settings = Settings()
