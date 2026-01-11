@@ -466,8 +466,8 @@
         "T-072"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created src/assistant/services/relations.py with RelationLinker class. Features: link() method takes ExtractedEntities and returns LinkedRelations with Notion page IDs. Supports people (multiple via people_ids), places (via place_ids), and projects (single via project_id). LinkedRelations provides needs_review property for disambiguation flagging, new_entities_created count, and human-readable summary. Tests in tests/test_relations.py (44 tests pass). Full suite: 311 tests pass.",
       "updated_at": "2026-01-11"
     },
     {

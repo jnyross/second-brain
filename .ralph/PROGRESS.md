@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-2 (Notion + Telegram capture) in progress. T-072 (Projects service) completed. Next: T-073 (Relation linker).
+- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. Next: P1 tasks starting with T-080 (Morning briefing generator).
 
 ## Iteration Log
 
@@ -204,4 +204,29 @@
   - Added tests/test_projects.py (40 tests)
   - Commands: PYTHONPATH=src python -m pytest tests/test_projects.py -v (40 passed)
   - Full test suite: 267 tests pass
+  - Commit: pending
+- Iteration 26 (T-073) - Relation Linker Service
+  - Created src/assistant/services/relations.py with RelationLinker class
+  - Core components:
+    - LinkedEntity: dataclass for linked entities with entity_id, entity_type, name, confidence, is_new, needs_disambiguation
+    - LinkedRelations: container with people/places/project lists, convenience properties (people_ids, project_id, place_ids)
+    - RelationLinker: main class that integrates PeopleService, PlacesService, ProjectsService
+  - Features:
+    - link(): takes ExtractedEntities from entity extractor, returns LinkedRelations with Notion page IDs
+    - link_people(): link list of person names to Notion records
+    - link_places(): link list of place names to Notion records
+    - link_project(): link single project name to Notion record
+    - create_missing parameter: controls auto-creation of unknown entities
+  - LinkedRelations properties:
+    - people_ids: list of person page IDs for task.people_ids relation
+    - project_id: single project page ID for task.project_id relation
+    - place_ids: list of place page IDs (for future use)
+    - needs_review: True if any entity needs disambiguation
+    - new_entities_created: count of newly created entities
+    - summary: human-readable description like "with Alice for Beta at Coffee Shop"
+  - Confidence combining: extraction_confidence * match_confidence for final score
+  - Module convenience functions: link_entities(), link_people_by_name(), link_places_by_name(), link_project_by_name()
+  - Added tests/test_relations.py (44 tests)
+  - Commands: PYTHONPATH=src python -m pytest tests/test_relations.py -v (44 passed)
+  - Full test suite: 311 tests pass
   - Commit: pending
