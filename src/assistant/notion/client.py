@@ -281,6 +281,72 @@ class NotionClient:
 
         return result.get("results", [])
 
+    async def query_inbox(
+        self,
+        needs_clarification: bool | None = None,
+        processed: bool | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        """Query inbox items with optional filters.
+
+        Args:
+            needs_clarification: Filter by needs_clarification flag
+            processed: Filter by processed flag
+            limit: Maximum number of results
+
+        Returns:
+            List of inbox item results from Notion
+        """
+        filters: list[dict[str, Any]] = []
+
+        if needs_clarification is not None:
+            filters.append({
+                "property": "needs_clarification",
+                "checkbox": {"equals": needs_clarification},
+            })
+
+        if processed is not None:
+            filters.append({
+                "property": "processed",
+                "checkbox": {"equals": processed},
+            })
+
+        query_filter = {"and": filters} if len(filters) > 1 else (filters[0] if filters else None)
+
+        result = await self._request(
+            "POST",
+            f"/databases/{settings.notion_inbox_db_id}/query",
+            {
+                "filter": query_filter,
+                "page_size": limit,
+                "sorts": [{"property": "timestamp", "direction": "descending"}],
+            } if query_filter else {
+                "page_size": limit,
+                "sorts": [{"property": "timestamp", "direction": "descending"}],
+            },
+        )
+
+        return result.get("results", [])
+
+    async def mark_inbox_processed(
+        self,
+        page_id: str,
+        task_id: str | None = None,
+    ) -> None:
+        """Mark an inbox item as processed.
+
+        Args:
+            page_id: Notion page ID of the inbox item
+            task_id: Optional ID of created task for linking
+        """
+        update: dict[str, Any] = {
+            "properties": {
+                "processed": {"checkbox": True},
+            }
+        }
+
+        await self._request("PATCH", f"/pages/{page_id}", update)
+
     async def query_people(
         self,
         name: str | None = None,
@@ -311,6 +377,72 @@ class NotionClient:
         )
 
         return result.get("results", [])
+
+    async def query_places(
+        self,
+        name: str | None = None,
+        place_type: str | None = None,
+        include_archived: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Query places with optional filters.
+
+        Args:
+            name: Filter by place name (partial match)
+            place_type: Filter by place type (restaurant, cinema, etc.)
+            include_archived: Include archived places
+
+        Returns:
+            List of place results from Notion
+        """
+        filters: list[dict[str, Any]] = []
+
+        if name:
+            filters.append({
+                "property": "name",
+                "title": {"contains": name},
+            })
+
+        if place_type:
+            filters.append({
+                "property": "place_type",
+                "select": {"equals": place_type},
+            })
+
+        if not include_archived:
+            filters.append({
+                "property": "archived",
+                "checkbox": {"equals": False},
+            })
+
+        query_filter = {"and": filters} if len(filters) > 1 else (filters[0] if filters else None)
+
+        result = await self._request(
+            "POST",
+            f"/databases/{settings.notion_places_db_id}/query",
+            {"filter": query_filter} if query_filter else {},
+        )
+
+        return result.get("results", [])
+
+    async def create_place(self, place: Place) -> str:
+        """Create a new place in Notion.
+
+        Args:
+            place: Place object to create
+
+        Returns:
+            Notion page ID of the created place
+        """
+        properties = self._model_to_notion_properties(place, "places")
+        result = await self._request(
+            "POST",
+            "/pages",
+            {
+                "parent": {"database_id": settings.notion_places_db_id},
+                "properties": properties,
+            },
+        )
+        return result["id"]
 
     async def soft_delete(self, page_id: str) -> None:
         await self._request(

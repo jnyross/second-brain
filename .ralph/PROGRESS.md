@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-2 (Notion + Telegram capture) in progress. T-070 (People service) completed.
+- Status: Phase 0 complete. Phase 1-2 (Notion + Telegram capture) in progress. T-071 (Places service) completed.
 
 ## Iteration Log
 
@@ -179,4 +179,16 @@
   - Acceptance tests covered: AT-104 (person linking), AT-105 (person creation), AT-117 (disambiguation)
   - Commands: PYTHONPATH=src python -m pytest tests/test_people.py -v (30 passed)
   - Full test suite: 193 tests pass
+  - Commit: pending
+- Iteration 24 (T-071) - Places Lookup/Create Service
+  - Created src/assistant/services/places.py with PlacesService class
+  - Features: lookup by name/type, lookup_or_create, create, lookup_by_type, lookup_multiple
+  - PlaceMatch dataclass with confidence scoring, recency sorting, rating comparison
+  - PlaceType enum: restaurant, cinema, office, home, venue, other
+  - Disambiguation logic: home/office types prioritized (similar to partner/family for people)
+  - Confidence scoring: exact name (1.0), name starts with (0.9), name contains (0.7), address match (0.6)
+  - Added NotionClient.query_places() and create_place() methods
+  - Added tests/test_places.py (34 tests)
+  - Commands: PYTHONPATH=src python -m pytest tests/test_places.py -v (34 passed)
+  - Full test suite: 227 tests pass
   - Commit: pending

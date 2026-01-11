@@ -435,8 +435,8 @@
         "T-052"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created src/assistant/services/places.py with PlacesService class. Features: lookup by name/type, lookup_or_create, create, lookup_by_type, lookup_multiple. PlaceMatch with confidence scoring, recency sorting, rating comparison. PlaceType enum (restaurant/cinema/office/home/venue/other). Disambiguation: home/office types prioritized. Added NotionClient.query_places() and create_place(). Tests in tests/test_places.py (34 tests pass). Full suite: 227 tests pass.",
       "updated_at": "2026-01-11"
     },
     {
