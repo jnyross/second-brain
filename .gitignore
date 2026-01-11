@@ -36,3 +36,4 @@ out/
 # Second Brain specific
 .second-brain/
 *.egg-info/
+google_credentials.json
