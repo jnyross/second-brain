@@ -797,6 +797,7 @@ class NotionClient:
         self,
         trigger: str | None = None,
         min_confidence: int | None = None,
+        created_after: datetime | None = None,
         limit: int = 100,
     ) -> list[dict[str, Any]]:
         """Query patterns with optional filters.
@@ -804,6 +805,7 @@ class NotionClient:
         Args:
             trigger: Filter by trigger text (partial match)
             min_confidence: Minimum confidence score
+            created_after: Filter to patterns created after this time (for TIL)
             limit: Maximum number of results
 
         Returns:
@@ -827,7 +829,18 @@ class NotionClient:
                 }
             )
 
+        if created_after is not None:
+            filters.append(
+                {
+                    "property": "created_at",
+                    "date": {"on_or_after": created_after.isoformat()},
+                }
+            )
+
         query_filter = {"and": filters} if len(filters) > 1 else (filters[0] if filters else None)
+
+        # Sort by created_at descending if filtering by creation time, else by confidence
+        sort_prop = "created_at" if created_after else "confidence"
 
         result = await self._request(
             "POST",
@@ -835,12 +848,12 @@ class NotionClient:
             {
                 "filter": query_filter,
                 "page_size": limit,
-                "sorts": [{"property": "confidence", "direction": "descending"}],
+                "sorts": [{"property": sort_prop, "direction": "descending"}],
             }
             if query_filter
             else {
                 "page_size": limit,
-                "sorts": [{"property": "confidence", "direction": "descending"}],
+                "sorts": [{"property": sort_prop, "direction": "descending"}],
             },
         )
 

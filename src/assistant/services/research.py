@@ -12,8 +12,6 @@ Per PRD Section 4.10:
 
 from __future__ import annotations
 
-import asyncio
-import base64
 import hashlib
 import logging
 from dataclasses import dataclass, field

@@ -102,6 +102,11 @@ class BriefingGenerator:
                 if week_section:
                     sections.append(week_section)
 
+                # 🧠 TODAY I LEARNED section (patterns learned in last 24 hours)
+                til_section = await self._generate_til_section(today_start)
+                if til_section:
+                    sections.append(til_section)
+
             except Exception as e:
                 sections.append(f"*Could not fetch data from Notion: {str(e)}*\n")
             finally:
@@ -305,6 +310,102 @@ class BriefingGenerator:
             return f"{minutes} minutes ago"
 
         return "just now"
+
+    async def _generate_til_section(
+        self,
+        since: datetime,
+    ) -> str | None:
+        """Generate 'Today I Learned' section with recently learned patterns.
+
+        Per PRD: Include learned patterns in daily briefing.
+
+        Args:
+            since: Only show patterns learned after this time (typically last 24 hours)
+
+        Returns:
+            Formatted TIL section or None if no recent patterns
+        """
+        if not self.notion:
+            return None
+
+        try:
+            # Query patterns learned since yesterday
+            patterns = await self.notion.query_patterns(
+                min_confidence=70,  # Only show patterns we're confident about
+                created_after=since - timedelta(days=1),  # Last 24 hours
+                limit=5,
+            )
+
+            if not patterns:
+                return None
+
+            return self._format_til_section(patterns)
+
+        except Exception as e:
+            logger.exception(f"Failed to fetch recent patterns for TIL: {e}")
+            return None
+
+    def _format_til_section(self, patterns: list[dict[str, Any]]) -> str | None:
+        """Format learned patterns for the TIL section.
+
+        Args:
+            patterns: List of pattern results from Notion
+
+        Returns:
+            Formatted TIL section string or None if no patterns
+        """
+        if not patterns:
+            return None
+
+        lines = ["🧠 **TODAY I LEARNED**"]
+
+        for pattern in patterns[:5]:
+            trigger = self._extract_text(pattern, "trigger") or self._extract_title(pattern)
+            meaning = self._extract_text(pattern, "meaning")
+            pattern_type = self._extract_select(pattern, "type")
+            confidence = self._extract_number(pattern, "confidence")
+
+            if not trigger or not meaning:
+                continue
+
+            # Format: "When you say 'trigger' → you mean 'meaning'"
+            # Truncate if too long
+            trigger_display = trigger[:30] + "..." if len(trigger) > 30 else trigger
+            meaning_display = meaning[:30] + "..." if len(meaning) > 30 else meaning
+
+            line = f'• "{trigger_display}" → "{meaning_display}"'
+
+            # Add pattern type indicator if available
+            type_icons = {
+                "person_alias": "👤",
+                "place_alias": "📍",
+                "project_alias": "📁",
+                "preference": "⚙️",
+            }
+            if pattern_type and pattern_type in type_icons:
+                line = f"{type_icons[pattern_type]} {line}"
+
+            lines.append(line)
+
+        if len(patterns) > 5:
+            lines.append(f"  _...and {len(patterns) - 5} more patterns_")
+
+        lines.append("")
+        return "\n".join(lines)
+
+    def _extract_number(self, page: dict[str, Any], field: str) -> int | None:
+        """Extract number from a number property.
+
+        Args:
+            page: Notion page response
+            field: Property name
+
+        Returns:
+            Number value or None
+        """
+        props = page.get("properties", {})
+        field_prop = props.get(field, {})
+        return field_prop.get("number")
 
     async def _get_tasks_due_today(
         self,

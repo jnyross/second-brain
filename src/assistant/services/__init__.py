@@ -61,6 +61,24 @@ from assistant.services.places import PlacesService
 from assistant.services.processor import MessageProcessor
 from assistant.services.projects import ProjectsService
 from assistant.services.relations import LinkedRelations, RelationLinker
+from assistant.services.research import (
+    ResearchResult,
+    ResearchSource,
+    WebResearcher,
+    close_researcher,
+    get_web_researcher,
+    is_research_available,
+    research,
+    research_cinema,
+)
+from assistant.services.research_formatter import (
+    FormattedResearch,
+    ResearchFormatter,
+    format_research_for_notion,
+    format_research_for_telegram,
+    get_research_formatter,
+    log_research_result,
+)
 from assistant.services.router import ClassificationRouter, RoutingDecision
 from assistant.services.soft_delete import (
     DeletedAction,
@@ -85,16 +103,6 @@ from assistant.services.timezone import (
     parse_time_with_timezone,
     reset_timezone_service,
     today,
-)
-from assistant.services.research import (
-    ResearchResult,
-    ResearchSource,
-    WebResearcher,
-    close_researcher,
-    get_web_researcher,
-    is_research_available,
-    research,
-    research_cinema,
 )
 from assistant.services.whisper import WhisperTranscriber
 
@@ -181,6 +189,13 @@ __all__ = [
     "is_research_available",
     "research",
     "research_cinema",
+    # Research Formatter (T-104)
+    "FormattedResearch",
+    "ResearchFormatter",
+    "format_research_for_notion",
+    "format_research_for_telegram",
+    "get_research_formatter",
+    "log_research_result",
     # Soft Delete (T-115)
     "DeletedAction",
     "DeleteResult",

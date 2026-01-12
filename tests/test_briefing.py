@@ -55,6 +55,27 @@ def make_notion_inbox_item(
     return page
 
 
+def make_notion_pattern(
+    trigger: str,
+    meaning: str,
+    pattern_type: str | None = None,
+    confidence: int = 80,
+) -> dict:
+    """Create a mock Notion pattern page response."""
+    page = {
+        "id": f"pattern-{trigger[:10].replace(' ', '-')}",
+        "properties": {
+            "title": {"title": [{"text": {"content": trigger}}]},
+            "trigger": {"rich_text": [{"text": {"content": trigger}}]},
+            "meaning": {"rich_text": [{"text": {"content": meaning}}]},
+            "confidence": {"number": confidence},
+        },
+    }
+    if pattern_type:
+        page["properties"]["type"] = {"select": {"name": pattern_type}}
+    return page
+
+
 class TestBriefingGeneratorInit:
     """Tests for BriefingGenerator initialization."""
 
@@ -606,3 +627,307 @@ class TestBriefingGeneratorQueries:
             processed=False,
             limit=10,
         )
+
+
+class TestBriefingGeneratorTILSection:
+    """Tests for Today I Learned section (T-111)."""
+
+    def setup_method(self):
+        """Set up test fixtures."""
+        with patch("assistant.services.briefing.settings") as mock_settings:
+            mock_settings.has_notion = False
+            mock_settings.user_timezone = "UTC"
+            self.generator = BriefingGenerator()
+
+    @pytest.mark.asyncio
+    async def test_til_section_no_notion(self):
+        """TIL section returns None without Notion."""
+        now = datetime.now(pytz.UTC)
+        result = await self.generator._generate_til_section(now)
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_til_section_no_patterns(self):
+        """TIL section returns None when no patterns found."""
+        mock_notion = AsyncMock()
+        mock_notion.query_patterns.return_value = []
+
+        with patch("assistant.services.briefing.settings") as mock_settings:
+            mock_settings.has_notion = True
+            mock_settings.user_timezone = "UTC"
+            generator = BriefingGenerator(notion_client=mock_notion)
+            now = datetime.now(pytz.UTC)
+            result = await generator._generate_til_section(now)
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_til_section_with_patterns(self):
+        """TIL section formats patterns correctly."""
+        mock_notion = AsyncMock()
+        mock_notion.query_patterns.return_value = [
+            make_notion_pattern("Jess", "Tess", "person_alias", 85),
+            make_notion_pattern("cafe", "Corner Coffee", "place_alias", 75),
+        ]
+
+        with patch("assistant.services.briefing.settings") as mock_settings:
+            mock_settings.has_notion = True
+            mock_settings.user_timezone = "UTC"
+            generator = BriefingGenerator(notion_client=mock_notion)
+            now = datetime.now(pytz.UTC)
+            result = await generator._generate_til_section(now)
+
+        assert result is not None
+        assert "🧠 **TODAY I LEARNED**" in result
+        assert "Jess" in result
+        assert "Tess" in result
+        assert "cafe" in result
+        assert "Corner Coffee" in result
+        assert "👤" in result  # person_alias icon
+        assert "📍" in result  # place_alias icon
+
+    @pytest.mark.asyncio
+    async def test_til_section_queries_with_correct_filters(self):
+        """TIL section queries patterns with min confidence and created_after."""
+        mock_notion = AsyncMock()
+        mock_notion.query_patterns.return_value = []
+
+        with patch("assistant.services.briefing.settings") as mock_settings:
+            mock_settings.has_notion = True
+            mock_settings.user_timezone = "UTC"
+            generator = BriefingGenerator(notion_client=mock_notion)
+            now = datetime.now(pytz.UTC)
+            await generator._generate_til_section(now)
+
+        mock_notion.query_patterns.assert_called_once()
+        call_kwargs = mock_notion.query_patterns.call_args.kwargs
+        assert call_kwargs["min_confidence"] == 70
+        assert call_kwargs["limit"] == 5
+        # Should query last 24 hours
+        assert "created_after" in call_kwargs
+
+    @pytest.mark.asyncio
+    async def test_til_section_handles_api_error(self):
+        """TIL section handles API errors gracefully."""
+        mock_notion = AsyncMock()
+        mock_notion.query_patterns.side_effect = Exception("API error")
+
+        with patch("assistant.services.briefing.settings") as mock_settings:
+            mock_settings.has_notion = True
+            mock_settings.user_timezone = "UTC"
+            generator = BriefingGenerator(notion_client=mock_notion)
+            now = datetime.now(pytz.UTC)
+            result = await generator._generate_til_section(now)
+
+        assert result is None  # Graceful handling
+
+
+class TestBriefingGeneratorFormatTIL:
+    """Tests for TIL formatting helper."""
+
+    def setup_method(self):
+        """Set up test fixtures."""
+        with patch("assistant.services.briefing.settings") as mock_settings:
+            mock_settings.has_notion = False
+            mock_settings.user_timezone = "UTC"
+            self.generator = BriefingGenerator()
+
+    def test_format_til_empty(self):
+        """_format_til_section returns None for empty list."""
+        result = self.generator._format_til_section([])
+        assert result is None
+
+    def test_format_til_basic(self):
+        """_format_til_section formats patterns with trigger and meaning."""
+        patterns = [make_notion_pattern("mike", "Mike Smith")]
+        result = self.generator._format_til_section(patterns)
+
+        assert "🧠 **TODAY I LEARNED**" in result
+        assert '"mike"' in result
+        assert '"Mike Smith"' in result
+        assert "→" in result
+
+    def test_format_til_truncates_long_trigger(self):
+        """_format_til_section truncates long trigger text."""
+        long_trigger = "a" * 50
+        patterns = [make_notion_pattern(long_trigger, "short")]
+        result = self.generator._format_til_section(patterns)
+
+        # Should be truncated to 30 chars + "..."
+        assert "..." in result
+        assert long_trigger not in result
+
+    def test_format_til_truncates_long_meaning(self):
+        """_format_til_section truncates long meaning text."""
+        long_meaning = "b" * 50
+        patterns = [make_notion_pattern("short", long_meaning)]
+        result = self.generator._format_til_section(patterns)
+
+        assert "..." in result
+        assert long_meaning not in result
+
+    def test_format_til_person_alias_icon(self):
+        """_format_til_section shows person icon for person_alias type."""
+        patterns = [make_notion_pattern("nick", "Nicholas", "person_alias")]
+        result = self.generator._format_til_section(patterns)
+        assert "👤" in result
+
+    def test_format_til_place_alias_icon(self):
+        """_format_til_section shows place icon for place_alias type."""
+        patterns = [make_notion_pattern("work", "Office Building", "place_alias")]
+        result = self.generator._format_til_section(patterns)
+        assert "📍" in result
+
+    def test_format_til_project_alias_icon(self):
+        """_format_til_section shows project icon for project_alias type."""
+        patterns = [make_notion_pattern("sb", "Second Brain", "project_alias")]
+        result = self.generator._format_til_section(patterns)
+        assert "📁" in result
+
+    def test_format_til_preference_icon(self):
+        """_format_til_section shows settings icon for preference type."""
+        patterns = [make_notion_pattern("morning", "9 AM", "preference")]
+        result = self.generator._format_til_section(patterns)
+        assert "⚙️" in result
+
+    def test_format_til_no_icon_for_unknown_type(self):
+        """_format_til_section uses no icon for unknown type."""
+        patterns = [make_notion_pattern("test", "test value", "unknown_type")]
+        result = self.generator._format_til_section(patterns)
+        # Should still format, just without type icon
+        assert "test" in result
+
+    def test_format_til_limits_to_five(self):
+        """_format_til_section limits to 5 patterns and shows more indicator."""
+        patterns = [
+            make_notion_pattern(f"trigger{i}", f"meaning{i}")
+            for i in range(7)
+        ]
+        result = self.generator._format_til_section(patterns)
+
+        # Should show "...and X more"
+        assert "2 more" in result
+
+    def test_format_til_skips_incomplete_patterns(self):
+        """_format_til_section skips patterns without trigger or meaning."""
+        # Pattern with empty meaning
+        incomplete = {
+            "id": "pattern-incomplete",
+            "properties": {
+                "title": {"title": [{"text": {"content": "trigger"}}]},
+                "trigger": {"rich_text": [{"text": {"content": "trigger"}}]},
+                "meaning": {"rich_text": []},  # Empty meaning
+                "confidence": {"number": 80},
+            },
+        }
+        complete = make_notion_pattern("good", "good value")
+        result = self.generator._format_til_section([incomplete, complete])
+
+        # Should still format the complete one
+        assert "good" in result
+
+
+class TestBriefingGeneratorExtractNumber:
+    """Tests for _extract_number helper."""
+
+    def setup_method(self):
+        """Set up test fixtures."""
+        with patch("assistant.services.briefing.settings") as mock_settings:
+            mock_settings.has_notion = False
+            mock_settings.user_timezone = "UTC"
+            self.generator = BriefingGenerator()
+
+    def test_extract_number_present(self):
+        """_extract_number extracts number from Notion page."""
+        page = {"properties": {"confidence": {"number": 85}}}
+        result = self.generator._extract_number(page, "confidence")
+        assert result == 85
+
+    def test_extract_number_missing(self):
+        """_extract_number returns None for missing field."""
+        page = {"properties": {}}
+        result = self.generator._extract_number(page, "confidence")
+        assert result is None
+
+    def test_extract_number_zero(self):
+        """_extract_number correctly returns zero."""
+        page = {"properties": {"count": {"number": 0}}}
+        result = self.generator._extract_number(page, "count")
+        assert result == 0
+
+
+class TestBriefingTILIntegration:
+    """Integration tests for TIL in full briefing."""
+
+    @pytest.mark.asyncio
+    async def test_til_section_included_in_briefing(self):
+        """TIL section is included in full briefing when patterns exist."""
+        mock_notion = AsyncMock()
+        mock_notion.query_tasks.return_value = []
+        mock_notion.query_inbox.return_value = []
+        mock_notion.query_patterns.return_value = [
+            make_notion_pattern("jess", "Tess", "person_alias"),
+        ]
+
+        with patch("assistant.services.briefing.settings") as mock_settings:
+            mock_settings.has_notion = True
+            mock_settings.user_timezone = "UTC"
+            generator = BriefingGenerator(notion_client=mock_notion)
+            result = await generator.generate_morning_briefing()
+
+        assert "🧠 **TODAY I LEARNED**" in result
+        assert "jess" in result
+        assert "Tess" in result
+
+    @pytest.mark.asyncio
+    async def test_til_section_not_included_when_no_patterns(self):
+        """TIL section is omitted when no patterns exist."""
+        mock_notion = AsyncMock()
+        mock_notion.query_tasks.return_value = []
+        mock_notion.query_inbox.return_value = []
+        mock_notion.query_patterns.return_value = []
+
+        with patch("assistant.services.briefing.settings") as mock_settings:
+            mock_settings.has_notion = True
+            mock_settings.user_timezone = "UTC"
+            generator = BriefingGenerator(notion_client=mock_notion)
+            result = await generator.generate_morning_briefing()
+
+        assert "TODAY I LEARNED" not in result
+
+
+class TestT111AcceptanceTest:
+    """Acceptance tests for T-111: Today I Learned summary."""
+
+    @pytest.mark.asyncio
+    async def test_learned_patterns_appear_in_briefing(self):
+        """
+        AT-111: Patterns learned in last 24 hours appear in morning briefing.
+
+        Given: User has corrected "Jess" to "Tess" yesterday
+        And: Pattern was stored with confidence >= 70%
+        When: Morning briefing is generated
+        Then: Briefing includes "Today I Learned" section
+        And: Section shows "Jess" → "Tess" pattern
+        """
+        # Simulate pattern learned yesterday
+        mock_notion = AsyncMock()
+        mock_notion.query_tasks.return_value = []
+        mock_notion.query_inbox.return_value = []
+        mock_notion.query_patterns.return_value = [
+            make_notion_pattern("jess", "Tess", "person_alias", confidence=85),
+        ]
+
+        with patch("assistant.services.briefing.settings") as mock_settings:
+            mock_settings.has_notion = True
+            mock_settings.user_timezone = "UTC"
+            generator = BriefingGenerator(notion_client=mock_notion)
+            result = await generator.generate_morning_briefing()
+
+        # Verify TIL section present
+        assert "🧠 **TODAY I LEARNED**" in result
+        # Verify pattern shown
+        assert "jess" in result.lower()
+        assert "tess" in result.lower()
+        # Verify person icon shown for person_alias type
+        assert "👤" in result
