@@ -955,8 +955,8 @@
       "description": "Script to rollback to previous Docker image on deployment failure.",
       "depends_on": ["T-203"],
       "acceptance_tests": ["AT-205"],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created deploy/scripts/rollback.sh per PRD 12.10. Features: get_available_tags() lists images by creation time, get_previous_tag() finds previous version excluding 'latest', --list/--to/--dry-run/--container/--compose-dir/--repo/--help flags, compose override via docker-compose.rollback.yml, fallback docker run, health-check.sh integration, exit codes 0/1/2/3 for success/fail/args/no-image. AT-205 verified: finds previous image, stops broken container, starts previous version, verifies health, reports success. Tests in tests/test_rollback.py (69 tests pass). Full suite: 1313 tests pass.",
       "updated_at": "2026-01-12"
     },
     {

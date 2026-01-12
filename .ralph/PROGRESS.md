@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phases 1-5 complete. Deployment tasks T-200 through T-205 complete. Next: T-206 (rollback script).
+- Status: Phase 0 complete. Phases 1-5 complete. Deployment tasks T-200 through T-206 complete. Next: T-103 (Playwright integration) or T-207 (systemd timers).
 
 ## Iteration Log
 
@@ -1062,3 +1062,45 @@
   - Commands: python3 -m pytest tests/test_health_check.py -v (52 passed)
   - Full test suite: 1244 tests (all pass)
   - Commit: fd6c85a
+
+- Iteration 36 (T-206): Rollback Script
+  - Task: Create script to rollback to previous Docker image per PRD 12.10 and AT-205
+  - Created deploy/scripts/rollback.sh with:
+    - get_available_tags(): lists local images sorted by creation time
+    - get_current_tag(): uses docker inspect to find current image tag
+    - get_previous_tag(): finds previous version excluding 'latest' and current
+    - CLI flags: --list, --to TAG, --dry-run, --container, --compose-dir, --repo, --help
+    - Docker compose override: creates docker-compose.rollback.yml with target tag
+    - Fallback docker run: if compose file not available
+    - Health check integration: runs health-check.sh after rollback
+    - Exit codes: 0=success, 1=failure, 2=invalid args, 3=no previous image
+  - PRD 12.10 compliance:
+    - Identifies previous image via sorted docker images list
+    - Stops current container with docker compose down
+    - Starts previous image with compose override
+    - Runs health check after rollback
+    - Reports rolled back version
+  - Created tests/test_rollback.py (69 tests):
+    - TestRollbackScriptExists (4): file, executable, shebang, strict mode
+    - TestRollbackConfiguration (5): container, compose dir, registry, repo, colors
+    - TestRollbackCLIFlags (8): list, to, dry-run, container, compose-dir, repo, help, unknown
+    - TestRollbackImageDiscovery (7): available tags, current tag, previous tag, excludes latest
+    - TestRollbackExecution (7): stops container, fallback, override, cleanup, up, run, volumes
+    - TestRollbackHealthCheck (3): runs script, fallback, retries
+    - TestRollbackExitCodes (4): 0, 1, 2, 3
+    - TestRollbackDocumentation (5): header, usage, exit codes, requirements, troubleshooting
+    - TestAT205RollbackWorks (5): acceptance test verification
+    - TestPRD1210Compliance (5): PRD specification compliance
+    - TestRollbackDryRun (3): doesnt execute, shows commands, exits zero
+    - TestRollbackListMode (3): shows versions, marks current, exits zero
+    - TestRollbackErrorHandling (4): docker check, no previous, pull failure, health failure
+    - TestBashBestPractices (3): quotes, local, no injection
+    - TestRollbackIntegration (3): CD pipeline, health check path, compose file
+  - AT-205 Verification:
+    - Given: Current deployment is broken
+    - When: ./scripts/rollback.sh executed
+    - Then: Previous image restored (get_previous_tag, compose override)
+    - And: Container healthy (health-check.sh integration)
+  - Commands: python3 -m pytest tests/test_rollback.py -v (69 passed)
+  - Full test suite: 1313 tests (all pass)
+  - Commit: pending
