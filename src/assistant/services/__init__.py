@@ -7,6 +7,14 @@ confidence scoring, and more.
 from assistant.services.briefing import BriefingGenerator, generate_briefing
 from assistant.services.clarification import ClarificationService
 from assistant.services.confidence import ConfidenceScorer
+from assistant.services.corrections import (
+    CorrectionHandler,
+    CorrectionResult,
+    get_correction_handler,
+    is_correction_message,
+    process_correction,
+    track_created_task,
+)
 from assistant.services.entities import EntityExtractor, ExtractedEntities
 from assistant.services.parser import ParsedIntent, Parser
 from assistant.services.people import PeopleService
@@ -25,6 +33,13 @@ __all__ = [
     "ClarificationService",
     # Confidence
     "ConfidenceScorer",
+    # Corrections
+    "CorrectionHandler",
+    "CorrectionResult",
+    "get_correction_handler",
+    "is_correction_message",
+    "process_correction",
+    "track_created_task",
     # Entities
     "EntityExtractor",
     "ExtractedEntities",

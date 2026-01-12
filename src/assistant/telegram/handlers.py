@@ -19,6 +19,11 @@ from assistant.services.whisper import (
     TranscriptionResult,
     TranscriptionError,
 )
+from assistant.services.corrections import (
+    get_correction_handler,
+    is_correction_message,
+    track_created_task,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -225,6 +230,8 @@ async def handle_text(message: Message) -> None:
     - Parses intent, entities, dates
     - Routes based on confidence
     - Creates tasks or flags for review
+
+    Also handles corrections like "Wrong, I said Tess not Jess".
     """
     text = message.text
     chat_id = str(message.chat.id)
@@ -237,11 +244,38 @@ async def handle_text(message: Message) -> None:
     logger.info(f"Received text message: '{text[:50]}...'")
 
     try:
+        # Check if this is a correction first
+        if is_correction_message(text):
+            handler = get_correction_handler()
+            correction_result = await handler.process_correction(
+                text=text,
+                chat_id=chat_id,
+                message_id=message_id,
+            )
+
+            if correction_result.is_correction:
+                await message.answer(correction_result.message)
+                return
+
+        # Normal message processing
         result = await processor.process(
             text=text,
             chat_id=chat_id,
             message_id=message_id,
         )
+
+        # Track the created task for potential future correction
+        if result.task_id:
+            # Extract the task title from the response
+            # The response format is "Got it. <title>..."
+            task_title = _extract_task_title(result.response)
+            track_created_task(
+                chat_id=chat_id,
+                message_id=message_id,
+                task_id=result.task_id,
+                title=task_title,
+            )
+
         await message.answer(result.response)
 
     except Exception as e:
@@ -250,3 +284,21 @@ async def handle_text(message: Message) -> None:
             "Sorry, something went wrong. Your message has been noted - "
             "I'll process it when I'm back online."
         )
+
+
+def _extract_task_title(response: str) -> str:
+    """Extract the task title from a processor response.
+
+    Response format is typically: "Got it. <title>, <date> with <people> at <place>."
+    We want to extract just the title portion.
+    """
+    # Remove "Got it. " prefix
+    if response.startswith("Got it. "):
+        response = response[8:]
+
+    # Find the first comma or period to get the title
+    for sep in [",", "."]:
+        if sep in response:
+            return response.split(sep)[0].strip()
+
+    return response.strip()

@@ -544,9 +544,9 @@
       "acceptance_tests": [
         "AT-108"
       ],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Created src/assistant/services/corrections.py with CorrectionHandler class. Features: 1) Pattern detection for 'wrong', 'I said X not Y', 'undo', 'cancel that', etc. via compiled regex, 2) Per-chat recent action tracking for context (tracks last 10 actions, 30 min expiry), 3) Correction value extraction from phrases like 'I said Tess not Jess', 4) Entity updates via Notion API (tasks, people, places, projects), 5) Correction logging with correction field for pattern learning (T-091). Updated handlers.py to integrate correction checking before normal processing and track created tasks. Tests in tests/test_corrections.py (66 tests pass) including TestAT108AcceptanceTest verifying full AT-108 flow. Full suite: 499 tests (494 pass, 5 pre-existing timezone flakes).",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-091",

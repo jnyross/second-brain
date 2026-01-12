@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080, T-081, T-082 complete. Next: T-083 (Interactive clarification flow).
+- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-090 complete (Phase 4 Briefings + Phase 5 corrections). Next: T-091 (Build pattern detection).
 
 ## Iteration Log
 
@@ -327,3 +327,54 @@
   - Commands: PYTHONPATH=src python -m pytest tests/test_debrief.py -v (47 passed)
   - Full test suite: 433 tests pass (428 pass, 5 pre-existing timezone failures)
   - Commit: pending
+- Iteration 31 (T-090) - Correction Handler
+  - Created src/assistant/services/corrections.py with CorrectionHandler class
+  - Core components:
+    - RecentAction: dataclass tracking AI actions with 30-min expiry for correction context
+    - CorrectionResult: dataclass for correction processing results
+    - CorrectionHandler: main class with per-chat action tracking, pattern detection, value extraction
+  - Detection patterns (compiled regex):
+    - Direct corrections: "wrong", "that's wrong", "that's not right", "no,", "incorrect", "actually"
+    - Specific corrections: "I said X not Y", "I meant X", "should be X", "it's X not Y", "change X to Y"
+    - Undo requests: "undo", "cancel that", "delete that", "forget it", "nevermind"
+  - Extraction patterns:
+    - Parses "I said Tess not Jess" → correct=Tess, wrong=Jess
+    - Handles quotes, various phrasings
+    - Returns (correct_value, wrong_value) tuple for update
+  - Handler features:
+    - track_action(): stores recent actions per chat (max 10, 30 min expiry)
+    - get_last_action(): retrieves most recent non-expired action
+    - is_correction(): detects correction patterns in text
+    - extract_correction(): extracts corrected value from message
+    - process_correction(): full flow - detect, extract, update, log
+  - Entity updates via Notion API:
+    - _update_task_title(), _update_person_name(), _update_place_name(), _update_project_name()
+    - Sets last_modified_at timestamp
+  - Correction logging:
+    - _log_correction(): creates LogEntry with correction field populated
+    - Enables pattern detection (T-091) by storing original → corrected mappings
+  - Updated src/assistant/telegram/handlers.py:
+    - Imports correction handler functions
+    - handle_text() checks is_correction_message() first, processes via handler
+    - Tracks created tasks via track_created_task() for correction context
+    - Added _extract_task_title() helper to parse titles from responses
+  - Updated src/assistant/services/__init__.py:
+    - Exports CorrectionHandler, CorrectionResult, convenience functions
+  - Added tests/test_corrections.py (66 tests):
+    - TestRecentAction: creation, expiry
+    - TestCorrectionPatternDetection: 24 parametrized tests for detection patterns
+    - TestCorrectionExtraction: 14 parametrized tests for value extraction
+    - TestCorrectionHandlerTrackAction: tracking, multiple actions, per-chat isolation
+    - TestCorrectionHandlerProcessCorrection: full processing scenarios
+    - TestCorrectionHandlerEntityTypes: person/place/project corrections
+    - TestAT108AcceptanceTest: full AT-108 acceptance criteria
+    - TestModuleLevelFunctions: convenience function tests
+    - TestHandlersIntegration: handlers.py integration tests
+  - AT-108 Verification:
+    - Given: AI created task "Call Jess" (tracked via track_action)
+    - When: User replies "Wrong, I said Tess" (detected, extracted)
+    - Then: Task updated via Notion PATCH (title → "Tess")
+    - And: Correction logged with correction field populated
+  - Commands: PYTHONPATH=src python3 -m pytest tests/test_corrections.py -v (66 passed)
+  - Full test suite: 499 tests (494 pass, 5 pre-existing timezone failures)
+  - Commit: 2eb6bfd

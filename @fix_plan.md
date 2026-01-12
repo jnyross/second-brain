@@ -35,7 +35,7 @@ This file tracks the prioritized work items for Ralph autonomous loops. Update a
 - [x] T-081: Create scheduled briefing sender
 - [x] T-082: Implement /debrief command
 - [x] T-083: Build interactive clarification flow
-- [ ] T-090: Implement correction handler
+- [x] T-090: Implement correction handler
 - [ ] T-091: Build pattern detection
 - [ ] T-092: Implement pattern storage
 - [ ] T-093: Apply patterns to new inputs
