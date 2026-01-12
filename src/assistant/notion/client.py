@@ -248,9 +248,25 @@ class NotionClient:
     async def query_tasks(
         self,
         status: str | None = None,
+        exclude_statuses: list[str] | None = None,
         due_before: datetime | None = None,
+        due_after: datetime | None = None,
         include_deleted: bool = False,
+        limit: int = 100,
     ) -> list[dict[str, Any]]:
+        """Query tasks with optional filters.
+
+        Args:
+            status: Filter by specific status
+            exclude_statuses: Exclude tasks with these statuses (e.g., ['done', 'cancelled'])
+            due_before: Tasks due on or before this datetime
+            due_after: Tasks due on or after this datetime
+            include_deleted: Include soft-deleted tasks
+            limit: Maximum number of results
+
+        Returns:
+            List of task results from Notion
+        """
         filters: list[dict[str, Any]] = []
 
         if status:
@@ -259,10 +275,23 @@ class NotionClient:
                 "select": {"equals": status},
             })
 
+        if exclude_statuses:
+            for excluded_status in exclude_statuses:
+                filters.append({
+                    "property": "status",
+                    "select": {"does_not_equal": excluded_status},
+                })
+
         if due_before:
             filters.append({
                 "property": "due_date",
                 "date": {"on_or_before": due_before.isoformat()},
+            })
+
+        if due_after:
+            filters.append({
+                "property": "due_date",
+                "date": {"on_or_after": due_after.isoformat()},
             })
 
         if not include_deleted:
@@ -276,7 +305,14 @@ class NotionClient:
         result = await self._request(
             "POST",
             f"/databases/{settings.notion_tasks_db_id}/query",
-            {"filter": query_filter} if query_filter else {},
+            {
+                "filter": query_filter,
+                "page_size": limit,
+                "sorts": [{"property": "due_date", "direction": "ascending"}],
+            } if query_filter else {
+                "page_size": limit,
+                "sorts": [{"property": "due_date", "direction": "ascending"}],
+            },
         )
 
         return result.get("results", [])

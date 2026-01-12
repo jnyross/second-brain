@@ -480,9 +480,9 @@
         "T-051"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Enhanced src/assistant/services/briefing.py with complete morning briefing format per PRD 5.2. Added sections: ✅ DUE TODAY (tasks due today with priority icons), ⚠️ NEEDS CLARIFICATION (flagged inbox items with interpretations), 📊 THIS WEEK (upcoming tasks grouped by day). Enhanced NotionClient.query_tasks() with due_after, exclude_statuses parameters for date range queries. Added tests/test_briefing.py (54 tests pass). Calendar and email sections return None pending T-102 (Google Calendar) and T-120 (Gmail) implementations.",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-081",

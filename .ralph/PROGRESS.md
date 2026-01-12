@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. Next: P1 tasks starting with T-080 (Morning briefing generator).
+- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 (Morning briefing generator) complete. Next: T-081 (Scheduled briefing sender), T-082 (/debrief command).
 
 ## Iteration Log
 
@@ -229,4 +229,25 @@
   - Added tests/test_relations.py (44 tests)
   - Commands: PYTHONPATH=src python -m pytest tests/test_relations.py -v (44 passed)
   - Full test suite: 311 tests pass
+  - Commit: pending
+- Iteration 27 (T-080) - Morning Briefing Generator
+  - Enhanced src/assistant/services/briefing.py with complete morning briefing format per PRD 5.2
+  - Sections implemented:
+    - ✅ **DUE TODAY**: Tasks due today with priority icons (🔴 urgent, 🟠 high, 💭 someday)
+    - ⚠️ **NEEDS CLARIFICATION**: Flagged inbox items with interpretations, truncated previews
+    - 📊 **THIS WEEK**: Upcoming tasks grouped by relative day (Tomorrow, Friday, In X days)
+  - Calendar (📅 TODAY) and email (📧 EMAIL) sections return None pending T-102/T-120
+  - Enhanced NotionClient.query_tasks() with:
+    - due_after: Filter tasks due on/after datetime
+    - exclude_statuses: Exclude tasks with these statuses (done, cancelled, deleted)
+    - limit: Pagination support
+    - Sorting by due_date ascending
+  - Helper methods:
+    - _extract_title(), _extract_text(), _extract_select(), _extract_date()
+    - _get_priority_icon(): Maps priority to emoji
+    - _format_relative_day(): "Today", "Tomorrow", weekday name, or "In X days"
+    - _format_tasks_due_today(), _format_flagged_items(), _format_this_week()
+  - Added tests/test_briefing.py (54 tests)
+  - Commands: PYTHONPATH=src python -m pytest tests/test_briefing.py -v (54 passed)
+  - Full test suite: 365 tests pass (5 pre-existing flaky timezone tests in test_entities.py/test_parser.py)
   - Commit: pending
