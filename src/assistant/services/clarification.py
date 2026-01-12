@@ -133,6 +133,8 @@ class ClarificationService:
         title: str,
         due_date: Optional[datetime] = None,
         chat_id: Optional[str] = None,
+        people_names: Optional[list[str]] = None,
+        place_names: Optional[list[str]] = None,
     ) -> ClarificationResult:
         """Create a task from an unclear item after clarification.
 
@@ -141,9 +143,13 @@ class ClarificationService:
             title: Clarified task title
             due_date: Optional due date
             chat_id: Telegram chat ID for idempotency
+            people_names: Optional list of people names to link (T-083)
+            place_names: Optional list of place names to link (T-083)
 
         Returns:
             ClarificationResult with created task ID
+
+        T-083: Enhanced to support entity linking during clarification.
         """
         if not self.notion:
             return ClarificationResult(
@@ -153,7 +159,12 @@ class ClarificationService:
             )
 
         try:
-            # Create the task
+            # Link entities if provided (T-083)
+            people_ids = []
+            if people_names:
+                people_ids = await self._link_people_names(people_names)
+
+            # Create the task with linked entities
             task = Task(
                 title=title,
                 due_date=due_date,
@@ -161,6 +172,7 @@ class ClarificationService:
                 source_inbox_item_id=item_id,
                 confidence=100,  # User-clarified = high confidence
                 created_by="user",
+                people_ids=people_ids,  # Empty list is fine - schema uses default_factory
             )
             task_id = await self.notion.create_task(task)
 
@@ -169,13 +181,14 @@ class ClarificationService:
 
             # Log the clarification
             idempotency_key = f"clarify:{item_id}" if chat_id else None
+            entities_affected = [task_id, item_id] + people_ids
             await self.notion.log_action(
                 action_type=ActionType.CLASSIFY,
                 idempotency_key=idempotency_key,
                 input_text=title,
                 action_taken=f"Created task from clarified inbox item",
                 confidence=100,
-                entities_affected=[task_id, item_id],
+                entities_affected=entities_affected,
             )
 
             return ClarificationResult(
@@ -195,6 +208,31 @@ class ClarificationService:
         finally:
             if self.notion:
                 await self.notion.close()
+
+    async def _link_people_names(self, names: list[str]) -> list[str]:
+        """Link people names to Notion records.
+
+        T-083: Entity linking helper for clarification flow.
+        Returns list of Notion page IDs for the people.
+        """
+        from assistant.services.people import PeopleService
+
+        if not self.notion:
+            return []
+
+        people_service = PeopleService(self.notion)
+        people_ids = []
+
+        for name in names:
+            try:
+                result = await people_service.lookup_or_create(name)
+                if result and result.person_id:
+                    people_ids.append(result.person_id)
+            except Exception as e:
+                logger.warning(f"Failed to link person '{name}': {e}")
+                continue
+
+        return people_ids
 
     async def dismiss_item(
         self,

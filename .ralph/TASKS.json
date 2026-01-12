@@ -528,9 +528,9 @@
         "T-082"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Enhanced debrief.py with T-083 features per PRD 5.3: 1) Cancel patterns (cancel/already done/nevermind/forget it) dismiss items, 2) Entity parsing via EntityExtractor extracts people/places/dates from clarification text, 3) Due date follow-up question for actionable items (send/email/call/buy), 4) Entity linking in create_task_from_item passes people_names for PeopleService lookup. Added awaiting_due_date FSM state and handle_due_date_response handler. Tests in test_debrief.py: TestT083CancelPatterns (9 tests), TestT083DueDateFollowUp (4 tests), TestT083EntityHandling (5 tests), TestT083DueDateFormatting (4 tests). All 433 tests pass (26 new tests added).",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-090",

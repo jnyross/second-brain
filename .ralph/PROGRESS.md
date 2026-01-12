@@ -299,3 +299,31 @@
   - Commands: PYTHONPATH=src python -m pytest tests/test_debrief.py tests/test_handlers.py -v (39 passed)
   - Full test suite: 407 tests pass (5 pre-existing flaky timezone tests)
   - Commit: pending
+- Iteration 30 (T-083) - Interactive Clarification Flow
+  - Enhanced src/assistant/telegram/debrief.py with T-083 features per PRD 5.3:
+    - Added awaiting_due_date FSM state for multi-turn due date collection
+    - Added CANCEL_PATTERNS regex list for "cancel that", "already done", etc.
+    - Added _is_cancel_command() for pattern detection
+    - Enhanced handle_debrief_response() to:
+      - Detect cancel patterns and dismiss items
+      - Parse entities via EntityExtractor (people, places, dates)
+      - Ask follow-up due date question for actionable tasks
+    - Added handle_due_date_response() handler for due date FSM state
+    - Added _create_task_with_entities() helper for task creation
+    - Added helper functions: _should_ask_for_due_date, _entities_to_dict, _dict_to_entities, _format_entity_summary, _format_due_date
+  - Enhanced src/assistant/services/clarification.py:
+    - Added people_names and place_names parameters to create_task_from_item()
+    - Added _link_people_names() helper using PeopleService.lookup_or_create()
+    - Entity linking during clarification per T-083 requirements
+  - Added 26 new tests in tests/test_debrief.py:
+    - TestT083CancelPatterns (9 tests): cancel command detection
+    - TestT083DueDateFollowUp (4 tests): multi-turn due date collection
+    - TestT083EntityHandling (5 tests): entity extraction and serialization
+    - TestT083DueDateFormatting (4 tests): date formatting
+  - Updated existing tests to use non-actionable text (avoid triggering due date flow)
+  - Bug fixes during implementation:
+    - Fixed Task.people_ids validation: pass empty list not None
+    - Fixed _is_cancel_command: "done" alone should end session, not cancel
+  - Commands: PYTHONPATH=src python -m pytest tests/test_debrief.py -v (47 passed)
+  - Full test suite: 433 tests pass (428 pass, 5 pre-existing timezone failures)
+  - Commit: pending
