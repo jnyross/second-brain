@@ -1027,4 +1027,4 @@
     - And: fail2ban running (systemctl enable/restart)
   - Commands: python3 -m pytest tests/test_setup_server.py -v (53 passed)
   - Full test suite: 1192 tests (all pass)
-  - Commit: pending
+  - Commit: 409caf9
