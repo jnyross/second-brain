@@ -808,3 +808,516 @@ class TestErrorHandling:
 
         assert result.success is False
         assert "Unexpected error" in result.error
+
+
+# =============================================================================
+# T-102: Calendar Reading Tests
+# =============================================================================
+
+
+class TestCalendarClientListEvents:
+    """Test CalendarClient.list_events method (T-102)."""
+
+    @pytest.mark.asyncio
+    async def test_list_events_not_authenticated(self):
+        """Test list_events returns empty list when not authenticated."""
+        client = CalendarClient()
+        # No credentials loaded
+
+        events = await client.list_events(
+            start_time=datetime(2026, 1, 15, 0, 0),
+            end_time=datetime(2026, 1, 15, 23, 59),
+        )
+
+        assert events == []
+
+    @pytest.mark.asyncio
+    @patch("assistant.google.calendar.google_auth")
+    @patch("assistant.google.calendar.build")
+    @patch("assistant.google.calendar.settings")
+    async def test_list_events_success(self, mock_settings, mock_build, mock_auth):
+        """Test list_events returns events from Google Calendar."""
+        mock_settings.user_timezone = "America/Los_Angeles"
+        mock_auth.credentials = MagicMock()
+        mock_service = MagicMock()
+        mock_build.return_value = mock_service
+
+        # Mock API response with multiple events
+        mock_service.events.return_value.list.return_value.execute = MagicMock(return_value={
+            "items": [
+                {
+                    "id": "event1",
+                    "summary": "Standup with Mike",
+                    "start": {"dateTime": "2026-01-15T09:00:00-08:00", "timeZone": "America/Los_Angeles"},
+                    "end": {"dateTime": "2026-01-15T09:30:00-08:00", "timeZone": "America/Los_Angeles"},
+                },
+                {
+                    "id": "event2",
+                    "summary": "Dentist appointment",
+                    "start": {"dateTime": "2026-01-15T14:00:00-08:00", "timeZone": "America/Los_Angeles"},
+                    "end": {"dateTime": "2026-01-15T15:00:00-08:00", "timeZone": "America/Los_Angeles"},
+                    "location": "123 Main St",
+                },
+            ]
+        })
+
+        client = CalendarClient()
+        events = await client.list_events(
+            start_time=datetime(2026, 1, 15, 0, 0),
+            end_time=datetime(2026, 1, 15, 23, 59),
+        )
+
+        assert len(events) == 2
+        assert events[0].title == "Standup with Mike"
+        assert events[0].event_id == "event1"
+        assert events[1].title == "Dentist appointment"
+        assert events[1].location == "123 Main St"
+
+    @pytest.mark.asyncio
+    @patch("assistant.google.calendar.google_auth")
+    @patch("assistant.google.calendar.build")
+    @patch("assistant.google.calendar.settings")
+    async def test_list_events_all_day_event(self, mock_settings, mock_build, mock_auth):
+        """Test list_events handles all-day events correctly."""
+        mock_settings.user_timezone = "UTC"
+        mock_auth.credentials = MagicMock()
+        mock_service = MagicMock()
+        mock_build.return_value = mock_service
+
+        # All-day event uses "date" instead of "dateTime"
+        mock_service.events.return_value.list.return_value.execute = MagicMock(return_value={
+            "items": [
+                {
+                    "id": "allday1",
+                    "summary": "Jess's Birthday",
+                    "start": {"date": "2026-01-15"},
+                    "end": {"date": "2026-01-16"},
+                },
+            ]
+        })
+
+        client = CalendarClient()
+        events = await client.list_events(
+            start_time=datetime(2026, 1, 15, 0, 0),
+            end_time=datetime(2026, 1, 15, 23, 59),
+        )
+
+        assert len(events) == 1
+        assert events[0].title == "Jess's Birthday"
+        # All-day event starts at midnight
+        assert events[0].start_time.hour == 0
+        assert events[0].start_time.minute == 0
+
+    @pytest.mark.asyncio
+    @patch("assistant.google.calendar.google_auth")
+    @patch("assistant.google.calendar.build")
+    @patch("assistant.google.calendar.settings")
+    async def test_list_events_empty_response(self, mock_settings, mock_build, mock_auth):
+        """Test list_events handles empty calendar."""
+        mock_settings.user_timezone = "UTC"
+        mock_auth.credentials = MagicMock()
+        mock_service = MagicMock()
+        mock_build.return_value = mock_service
+
+        mock_service.events.return_value.list.return_value.execute = MagicMock(return_value={
+            "items": []
+        })
+
+        client = CalendarClient()
+        events = await client.list_events(
+            start_time=datetime(2026, 1, 15, 0, 0),
+            end_time=datetime(2026, 1, 15, 23, 59),
+        )
+
+        assert events == []
+
+    @pytest.mark.asyncio
+    @patch("assistant.google.calendar.google_auth")
+    @patch("assistant.google.calendar.build")
+    @patch("assistant.google.calendar.settings")
+    async def test_list_events_api_error(self, mock_settings, mock_build, mock_auth):
+        """Test list_events handles API errors gracefully."""
+        from googleapiclient.errors import HttpError
+
+        mock_settings.user_timezone = "UTC"
+        mock_auth.credentials = MagicMock()
+        mock_service = MagicMock()
+        mock_build.return_value = mock_service
+
+        mock_resp = MagicMock()
+        mock_resp.status = 500
+        mock_service.events.return_value.list.return_value.execute.side_effect = HttpError(
+            resp=mock_resp, content=b"Server Error"
+        )
+
+        client = CalendarClient()
+        events = await client.list_events(
+            start_time=datetime(2026, 1, 15, 0, 0),
+            end_time=datetime(2026, 1, 15, 23, 59),
+        )
+
+        # Should return empty list, not raise exception
+        assert events == []
+
+    @pytest.mark.asyncio
+    @patch("assistant.google.calendar.google_auth")
+    @patch("assistant.google.calendar.build")
+    @patch("assistant.google.calendar.settings")
+    async def test_list_events_with_attendees(self, mock_settings, mock_build, mock_auth):
+        """Test list_events extracts attendees."""
+        mock_settings.user_timezone = "UTC"
+        mock_auth.credentials = MagicMock()
+        mock_service = MagicMock()
+        mock_build.return_value = mock_service
+
+        mock_service.events.return_value.list.return_value.execute = MagicMock(return_value={
+            "items": [
+                {
+                    "id": "meeting1",
+                    "summary": "Team sync",
+                    "start": {"dateTime": "2026-01-15T10:00:00Z"},
+                    "end": {"dateTime": "2026-01-15T11:00:00Z"},
+                    "attendees": [
+                        {"email": "mike@example.com"},
+                        {"email": "sarah@example.com"},
+                    ],
+                },
+            ]
+        })
+
+        client = CalendarClient()
+        events = await client.list_events(
+            start_time=datetime(2026, 1, 15, 0, 0),
+            end_time=datetime(2026, 1, 15, 23, 59),
+        )
+
+        assert len(events) == 1
+        assert "mike@example.com" in events[0].attendees
+        assert "sarah@example.com" in events[0].attendees
+
+
+class TestListCalendarEventsConvenience:
+    """Test list_calendar_events convenience function."""
+
+    @pytest.mark.asyncio
+    @patch("assistant.google.calendar.get_calendar_client")
+    async def test_list_calendar_events_calls_client(self, mock_get_client):
+        """Test list_calendar_events uses global client."""
+        from assistant.google.calendar import list_calendar_events
+
+        mock_client = AsyncMock()
+        mock_client.list_events.return_value = []
+        mock_get_client.return_value = mock_client
+
+        events = await list_calendar_events(
+            start_time=datetime(2026, 1, 15, 0, 0),
+            end_time=datetime(2026, 1, 15, 23, 59),
+        )
+
+        assert events == []
+        mock_client.list_events.assert_called_once()
+
+
+class TestListTodaysEventsConvenience:
+    """Test list_todays_events convenience function."""
+
+    @pytest.mark.asyncio
+    @patch("assistant.google.calendar.list_calendar_events")
+    @patch("assistant.google.calendar.settings")
+    async def test_list_todays_events_uses_correct_time_range(self, mock_settings, mock_list):
+        """Test list_todays_events queries from midnight to midnight."""
+        from assistant.google.calendar import list_todays_events
+
+        mock_settings.user_timezone = "America/Los_Angeles"
+        mock_list.return_value = []
+
+        await list_todays_events()
+
+        mock_list.assert_called_once()
+        call_args = mock_list.call_args
+
+        # Check start is at midnight
+        start = call_args[1]["start_time"]
+        assert start.hour == 0
+        assert start.minute == 0
+        assert start.second == 0
+
+        # Check end is near midnight
+        end = call_args[1]["end_time"]
+        assert end.hour == 23
+        assert end.minute == 59
+
+
+class TestParseEventResponse:
+    """Test _parse_event_response helper method."""
+
+    def test_parse_timed_event(self):
+        """Test parsing a timed event."""
+        client = CalendarClient()
+        item = {
+            "id": "test123",
+            "summary": "Meeting",
+            "start": {"dateTime": "2026-01-15T14:00:00Z", "timeZone": "UTC"},
+            "end": {"dateTime": "2026-01-15T15:00:00Z", "timeZone": "UTC"},
+            "location": "Office",
+            "description": "Weekly sync",
+            "htmlLink": "https://calendar.google.com/event",
+        }
+
+        event = client._parse_event_response(item, "UTC")
+
+        assert event is not None
+        assert event.event_id == "test123"
+        assert event.title == "Meeting"
+        assert event.location == "Office"
+        assert event.description == "Weekly sync"
+        assert event.html_link == "https://calendar.google.com/event"
+
+    def test_parse_all_day_event(self):
+        """Test parsing an all-day event."""
+        client = CalendarClient()
+        item = {
+            "id": "allday123",
+            "summary": "Holiday",
+            "start": {"date": "2026-01-15"},
+            "end": {"date": "2026-01-16"},
+        }
+
+        event = client._parse_event_response(item, "UTC")
+
+        assert event is not None
+        assert event.event_id == "allday123"
+        assert event.title == "Holiday"
+        assert event.start_time.hour == 0  # Midnight
+
+    def test_parse_missing_summary(self):
+        """Test parsing event without summary gets 'Untitled'."""
+        client = CalendarClient()
+        item = {
+            "id": "nosummary",
+            "start": {"dateTime": "2026-01-15T14:00:00Z"},
+            "end": {"dateTime": "2026-01-15T15:00:00Z"},
+        }
+
+        event = client._parse_event_response(item, "UTC")
+
+        assert event is not None
+        assert event.title == "Untitled"
+
+    def test_parse_invalid_event_returns_none(self):
+        """Test parsing invalid event returns None."""
+        client = CalendarClient()
+        item = {
+            "id": "invalid",
+            "summary": "Missing times",
+            # No start/end
+        }
+
+        event = client._parse_event_response(item, "UTC")
+
+        assert event is None
+
+
+class TestT102BriefingIntegration:
+    """Test T-102 integration with briefing generator."""
+
+    @pytest.mark.asyncio
+    @patch("assistant.google.calendar.google_auth")
+    @patch("assistant.google.calendar.build")
+    @patch("assistant.services.briefing.settings")
+    async def test_briefing_includes_calendar_events(self, mock_settings, mock_build, mock_auth):
+        """Test morning briefing includes calendar events."""
+        from assistant.services.briefing import BriefingGenerator
+        from assistant.google.calendar import CalendarClient
+
+        mock_settings.user_timezone = "America/Los_Angeles"
+        mock_settings.has_notion = False  # Skip Notion
+        mock_auth.credentials = MagicMock()
+        mock_service = MagicMock()
+        mock_build.return_value = mock_service
+
+        # Mock calendar events for today
+        mock_service.events.return_value.list.return_value.execute = MagicMock(return_value={
+            "items": [
+                {
+                    "id": "standup",
+                    "summary": "Standup with Mike",
+                    "start": {"dateTime": "2026-01-15T09:00:00-08:00"},
+                    "end": {"dateTime": "2026-01-15T09:30:00-08:00"},
+                },
+                {
+                    "id": "dentist",
+                    "summary": "Dentist appointment",
+                    "start": {"dateTime": "2026-01-15T14:00:00-08:00"},
+                    "end": {"dateTime": "2026-01-15T15:00:00-08:00"},
+                },
+            ]
+        })
+
+        calendar_client = CalendarClient()
+        generator = BriefingGenerator(notion_client=None, calendar_client=calendar_client)
+
+        section = await generator._generate_calendar_section()
+
+        assert section is not None
+        assert "📅 **TODAY**" in section
+        assert "Standup with Mike" in section
+        assert "Dentist appointment" in section
+
+    @pytest.mark.asyncio
+    @patch("assistant.services.briefing.settings")
+    async def test_briefing_skips_calendar_when_not_authenticated(self, mock_settings):
+        """Test briefing gracefully skips calendar when not authenticated."""
+        from assistant.services.briefing import BriefingGenerator
+        from assistant.google.calendar import CalendarClient
+
+        mock_settings.user_timezone = "America/Los_Angeles"
+        mock_settings.has_notion = False
+
+        # Calendar client without authentication
+        calendar_client = CalendarClient()
+        generator = BriefingGenerator(notion_client=None, calendar_client=calendar_client)
+
+        section = await generator._generate_calendar_section()
+
+        # Should return None, not error
+        assert section is None
+
+    @pytest.mark.asyncio
+    @patch("assistant.google.calendar.google_auth")
+    @patch("assistant.google.calendar.build")
+    @patch("assistant.services.briefing.settings")
+    async def test_briefing_calendar_event_formatting(self, mock_settings, mock_build, mock_auth):
+        """Test calendar events are formatted correctly in briefing."""
+        from assistant.services.briefing import BriefingGenerator
+        from assistant.google.calendar import CalendarClient
+
+        mock_settings.user_timezone = "America/Los_Angeles"
+        mock_settings.has_notion = False
+        mock_auth.credentials = MagicMock()
+        mock_service = MagicMock()
+        mock_build.return_value = mock_service
+
+        mock_service.events.return_value.list.return_value.execute = MagicMock(return_value={
+            "items": [
+                {
+                    "id": "cinema",
+                    "summary": "Cinema with Jess",
+                    "start": {"dateTime": "2026-01-15T20:00:00-08:00"},
+                    "end": {"dateTime": "2026-01-15T22:00:00-08:00"},
+                    "location": "Everyman Cinema",
+                },
+            ]
+        })
+
+        calendar_client = CalendarClient()
+        generator = BriefingGenerator(notion_client=None, calendar_client=calendar_client)
+
+        section = await generator._generate_calendar_section()
+
+        assert section is not None
+        # Should show time in HH:MM format
+        assert "20:00" in section
+        # Should show event title
+        assert "Cinema with Jess" in section
+        # Should show location in parentheses
+        assert "Everyman Cinema" in section
+
+    @pytest.mark.asyncio
+    @patch("assistant.google.calendar.google_auth")
+    @patch("assistant.google.calendar.build")
+    @patch("assistant.services.briefing.settings")
+    async def test_briefing_all_day_event_formatting(self, mock_settings, mock_build, mock_auth):
+        """Test all-day events show 'All day' instead of time."""
+        from assistant.services.briefing import BriefingGenerator
+        from assistant.google.calendar import CalendarClient
+
+        mock_settings.user_timezone = "UTC"
+        mock_settings.has_notion = False
+        mock_auth.credentials = MagicMock()
+        mock_service = MagicMock()
+        mock_build.return_value = mock_service
+
+        mock_service.events.return_value.list.return_value.execute = MagicMock(return_value={
+            "items": [
+                {
+                    "id": "birthday",
+                    "summary": "Jess's Birthday",
+                    "start": {"date": "2026-01-15"},
+                    "end": {"date": "2026-01-16"},
+                },
+            ]
+        })
+
+        calendar_client = CalendarClient()
+        generator = BriefingGenerator(notion_client=None, calendar_client=calendar_client)
+
+        section = await generator._generate_calendar_section()
+
+        assert section is not None
+        assert "All day" in section
+        assert "Jess's Birthday" in section
+
+
+class TestT102PRDBriefingFormat:
+    """Test T-102 matches PRD Section 5.2 briefing format."""
+
+    @pytest.mark.asyncio
+    @patch("assistant.google.calendar.google_auth")
+    @patch("assistant.google.calendar.build")
+    @patch("assistant.services.briefing.settings")
+    async def test_prd_example_format(self, mock_settings, mock_build, mock_auth):
+        """Test briefing matches PRD Section 5.2 example format.
+
+        PRD shows:
+        📅 TODAY
+        • 9:00 - Standup with Mike
+        • 14:00 - Dentist appointment
+        • 20:00 - Cinema with Jess (Everyman)
+        """
+        from assistant.services.briefing import BriefingGenerator
+        from assistant.google.calendar import CalendarClient, CalendarEvent
+        from zoneinfo import ZoneInfo
+
+        mock_settings.user_timezone = "America/Los_Angeles"
+        mock_settings.has_notion = False
+
+        # Create mock events matching PRD example
+        events = [
+            CalendarEvent(
+                event_id="1",
+                title="Standup with Mike",
+                start_time=datetime(2026, 1, 15, 9, 0, tzinfo=ZoneInfo("America/Los_Angeles")),
+                end_time=datetime(2026, 1, 15, 9, 30, tzinfo=ZoneInfo("America/Los_Angeles")),
+                timezone="America/Los_Angeles",
+                attendees=[],
+            ),
+            CalendarEvent(
+                event_id="2",
+                title="Dentist appointment",
+                start_time=datetime(2026, 1, 15, 14, 0, tzinfo=ZoneInfo("America/Los_Angeles")),
+                end_time=datetime(2026, 1, 15, 15, 0, tzinfo=ZoneInfo("America/Los_Angeles")),
+                timezone="America/Los_Angeles",
+                attendees=[],
+            ),
+            CalendarEvent(
+                event_id="3",
+                title="Cinema with Jess",
+                start_time=datetime(2026, 1, 15, 20, 0, tzinfo=ZoneInfo("America/Los_Angeles")),
+                end_time=datetime(2026, 1, 15, 22, 0, tzinfo=ZoneInfo("America/Los_Angeles")),
+                timezone="America/Los_Angeles",
+                attendees=[],
+                location="Everyman",
+            ),
+        ]
+
+        generator = BriefingGenerator(notion_client=None, calendar_client=None)
+        section = generator._format_calendar_events(events)
+
+        assert section is not None
+        # Check header
+        assert "📅 **TODAY**" in section
+        # Check format: "• HH:MM - Title"
+        assert "• 09:00 - Standup with Mike" in section
+        assert "• 14:00 - Dentist appointment" in section
+        assert "• 20:00 - Cinema with Jess (Everyman)" in section

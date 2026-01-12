@@ -10,6 +10,8 @@ from assistant.google.calendar import (
     create_calendar_event,
     delete_calendar_event,
     calendar_event_exists,
+    list_calendar_events,
+    list_todays_events,
     DEFAULT_EVENT_DURATION_MINUTES,
     UNDO_WINDOW_MINUTES,
 )
@@ -30,6 +32,8 @@ __all__ = [
     "create_calendar_event",
     "delete_calendar_event",
     "calendar_event_exists",
+    "list_calendar_events",
+    "list_todays_events",
     "DEFAULT_EVENT_DURATION_MINUTES",
     "UNDO_WINDOW_MINUTES",
 ]

@@ -1,19 +1,23 @@
 """Morning briefing generator for Second Brain.
 
 Generates a comprehensive morning briefing including:
-- Today's calendar events (requires Google Calendar integration)
+- Today's calendar events (from Google Calendar)
 - Emails needing attention (requires Gmail integration)
 - Tasks due today
 - Items needing clarification
 - This week's upcoming tasks and deadlines
 """
 
+import logging
 from datetime import datetime, timedelta
 from typing import Any
 import pytz
 
 from assistant.config import settings
 from assistant.notion import NotionClient
+from assistant.google.calendar import CalendarClient, CalendarEvent, get_calendar_client
+
+logger = logging.getLogger(__name__)
 
 
 class BriefingGenerator:
@@ -27,16 +31,23 @@ class BriefingGenerator:
     - 📊 THIS WEEK - Upcoming tasks and deadlines
     """
 
-    def __init__(self, notion_client: NotionClient | None = None):
+    def __init__(
+        self,
+        notion_client: NotionClient | None = None,
+        calendar_client: CalendarClient | None = None,
+    ):
         """Initialize briefing generator.
 
         Args:
             notion_client: Optional NotionClient instance. If not provided,
                            creates one if Notion is configured.
+            calendar_client: Optional CalendarClient instance. If not provided,
+                             uses the global singleton if Google OAuth is configured.
         """
         self.notion = notion_client if notion_client is not None else (
             NotionClient() if settings.has_notion else None
         )
+        self.calendar = calendar_client if calendar_client is not None else get_calendar_client()
         self.timezone = pytz.timezone(settings.user_timezone)
 
     async def generate_morning_briefing(self) -> str:
@@ -96,15 +107,89 @@ class BriefingGenerator:
         return "\n".join(sections)
 
     async def _generate_calendar_section(self) -> str | None:
-        """Generate calendar section.
+        """Generate calendar section with today's events from Google Calendar.
 
         Returns:
-            Formatted calendar section or None if not available.
-            Currently returns None as Google Calendar integration (T-102) is pending.
+            Formatted calendar section or None if not available or no events.
         """
-        # TODO: Implement when Google Calendar integration is complete (T-102)
-        # This will query Google Calendar for today's events and format them
-        return None
+        if not self.calendar or not self.calendar.is_authenticated():
+            logger.debug("Google Calendar not authenticated - skipping calendar section")
+            return None
+
+        try:
+            # Get today's events
+            now = datetime.now(self.timezone)
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+            events = await self.calendar.list_events(
+                start_time=today_start,
+                end_time=today_end,
+                timezone=settings.user_timezone,
+            )
+
+            if not events:
+                return None
+
+            return self._format_calendar_events(events)
+
+        except Exception as e:
+            logger.exception(f"Failed to fetch calendar events: {e}")
+            return None
+
+    def _format_calendar_events(self, events: list[CalendarEvent]) -> str | None:
+        """Format calendar events for the briefing.
+
+        Args:
+            events: List of CalendarEvent objects from Google Calendar
+
+        Returns:
+            Formatted calendar section string or None if no events
+        """
+        if not events:
+            return None
+
+        lines = ["📅 **TODAY**"]
+
+        for event in events[:10]:  # Limit to 10 events
+            # Format start time in user's timezone
+            start_time = event.start_time
+            if start_time.tzinfo is not None:
+                # Convert to user's timezone for display
+                try:
+                    start_time = start_time.astimezone(self.timezone)
+                except Exception:
+                    pass
+
+            # Check if this is an all-day event (starts at midnight with no time component)
+            is_all_day = (
+                start_time.hour == 0
+                and start_time.minute == 0
+                and event.end_time.hour == 0
+                and event.end_time.minute == 0
+            )
+
+            if is_all_day:
+                time_str = "All day"
+            else:
+                time_str = start_time.strftime("%H:%M")
+
+            # Build event line
+            line = f"• {time_str} - {event.title}"
+
+            # Add location if present
+            if event.location:
+                # Truncate location if too long
+                loc = event.location[:30] + "..." if len(event.location) > 30 else event.location
+                line += f" ({loc})"
+
+            lines.append(line)
+
+        if len(events) > 10:
+            lines.append(f"  _...and {len(events) - 10} more events_")
+
+        lines.append("")
+        return "\n".join(lines)
 
     async def _generate_email_section(self) -> str | None:
         """Generate email section.

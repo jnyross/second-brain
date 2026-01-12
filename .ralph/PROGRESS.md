@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-093 complete (Phase 4 Briefings + Phase 5 corrections/patterns fully complete). T-100 complete (Google Calendar OAuth). T-101 complete (Calendar event creator with undo support). Next: T-102 (Implement calendar reading).
+- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-093 complete (Phase 4 Briefings + Phase 5 corrections/patterns fully complete). T-100 complete (Google Calendar OAuth). T-101 complete (Calendar event creator with undo support). T-102 complete (Calendar reading for briefings). Next: T-110 (Implement comprehensive audit logging).
 
 ## Iteration Log
 
@@ -556,3 +556,28 @@
   - Commands: PYTHONPATH=src python3 -m pytest tests/test_calendar.py -v (38 passed)
   - Full test suite: 680 tests (675 pass, 5 pre-existing timezone failures)
   - Commit: 31eaad8
+- Iteration 37 (T-102) - Calendar Reading for Briefings
+  - Task: Read upcoming calendar events for morning briefings per PRD Section 4.4
+  - Enhanced src/assistant/google/calendar.py:
+    - CalendarClient.list_events(): query events in time range with timezone, max_results, singleEvents=True (expands recurring)
+    - CalendarClient._parse_event_response(): parses Google API response into CalendarEvent, handles both dateTime and date (all-day) formats
+    - Module-level list_calendar_events(): convenience wrapper using global client
+    - Module-level list_todays_events(): queries from midnight to midnight in user timezone
+  - Updated src/assistant/google/__init__.py with list_calendar_events, list_todays_events exports
+  - Enhanced src/assistant/services/briefing.py:
+    - BriefingGenerator now accepts optional calendar_client parameter
+    - _generate_calendar_section(): queries today's events via CalendarClient.list_events(), returns None if unauthenticated or no events
+    - _format_calendar_events(): formats events per PRD 5.2 format ("📅 **TODAY**", "• HH:MM - Title (location)")
+    - All-day events show "All day" instead of time
+    - Location truncated to 30 chars with "..." if too long
+    - Max 10 events shown with "+X more" indicator
+  - Added T-102 tests to tests/test_calendar.py (17 new tests, 55 total):
+    - TestCalendarClientListEvents: not authenticated, success, all-day events, empty response, API error, with attendees
+    - TestListCalendarEventsConvenience: calls client correctly
+    - TestListTodaysEventsConvenience: uses correct time range (midnight to midnight)
+    - TestParseEventResponse: timed event, all-day event, missing summary, invalid returns None
+    - TestT102BriefingIntegration: includes events, skips when unauthenticated, event formatting, all-day formatting
+    - TestT102PRDBriefingFormat: matches PRD 5.2 example (09:00 - Standup, 14:00 - Dentist, 20:00 - Cinema (Everyman))
+  - Commands: PYTHONPATH=src python3 -m pytest tests/test_calendar.py -v (55 passed)
+  - Full test suite: 702 tests (697 pass, 5 pre-existing timezone failures in test_entities.py)
+  - Commit: pending

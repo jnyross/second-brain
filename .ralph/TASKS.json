@@ -632,9 +632,9 @@
         "T-100"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Added CalendarClient.list_events() and _parse_event_response() to calendar.py. Added list_calendar_events() and list_todays_events() convenience functions. Updated BriefingGenerator._generate_calendar_section() and added _format_calendar_events() to integrate calendar events in morning briefing. Format matches PRD 5.2: '📅 TODAY' header with '• HH:MM - Title (location)' format, 'All day' for all-day events. Tests in tests/test_calendar.py: TestCalendarClientListEvents (6 tests), TestListCalendarEventsConvenience (1 test), TestListTodaysEventsConvenience (1 test), TestParseEventResponse (4 tests), TestT102BriefingIntegration (4 tests), TestT102PRDBriefingFormat (1 test). All 55 calendar tests pass. Full suite: 697 tests (5 pre-existing timezone flakes in test_entities.py).",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-103",
