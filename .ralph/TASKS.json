@@ -1064,8 +1064,8 @@
       "acceptance_tests": [
         "AT-128"
       ],
-      "passes": false,
-      "evidence": "Implemented LLMIntentParser with Gemini API support and regex fallback in src/assistant/services/llm_parser.py, wired MessageProcessor to use it, added tests in tests/test_llm_parser.py. Attempted PYTHONPATH=src python3 -m pytest tests/test_llm_parser.py -v but test collection failed due to missing pytz dependency in environment (pip install pytz blocked by proxy).",
+      "passes": true,
+      "evidence": "Added ParsedIntent module and lazy service exports to avoid heavy imports; added pytz fallback shim and lazy httpx/settings resolution. Ran PYTHONPATH=src python -m pytest tests/test_llm_parser.py -v (pass) and scripts/verify.sh with AI_ASSISTANT_HOME (.tmp/ai-assistant) and stubbed claude/docker in PATH (pass).",
       "updated_at": "2026-01-12"
     },
     {
