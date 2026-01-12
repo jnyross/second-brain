@@ -20,6 +20,13 @@ Pattern stored:
 - correction: priority = low
 - confidence: 80% (will increase with confirmation)
 ```
+
+T-092: Pattern Storage
+- Patterns are automatically stored to Notion when:
+  1. Detected (>= MIN_PATTERN_OCCURRENCES corrections)
+  2. Confidence >= PATTERN_CONFIDENCE_THRESHOLD (70%)
+- Duplicate patterns are checked before storage
+- Existing patterns have their confidence updated on reconfirmation
 """
 
 import logging
@@ -140,6 +147,115 @@ class PatternDetector:
 
         # Check if this correction forms a new pattern
         return self._detect_patterns_for(normalized_original, normalized_corrected)
+
+    async def add_correction_and_store(
+        self,
+        record: CorrectionRecord,
+    ) -> tuple[list[DetectedPattern], list[str]]:
+        """Add a correction, check for patterns, and auto-store if threshold met.
+
+        This is the main entry point for T-092 pattern storage. It:
+        1. Adds the correction to history
+        2. Detects any new patterns
+        3. Automatically stores patterns that meet both thresholds:
+           - Occurrences >= MIN_PATTERN_OCCURRENCES (3)
+           - Confidence >= PATTERN_CONFIDENCE_THRESHOLD (70%)
+
+        Args:
+            record: The correction record to add
+
+        Returns:
+            Tuple of (detected patterns, stored pattern IDs)
+        """
+        # Add correction and detect patterns
+        detected = self.add_correction(record)
+
+        # Auto-store patterns that meet thresholds
+        stored_ids = []
+        for pattern in detected:
+            if pattern.is_ready_for_storage and pattern.is_auto_applicable:
+                try:
+                    # Check if pattern already exists in Notion
+                    existing = await self._find_existing_pattern(pattern)
+                    if existing:
+                        # Update existing pattern's confidence
+                        await self._update_existing_pattern(existing, pattern)
+                        logger.info(
+                            f"Updated existing pattern confidence: '{pattern.trigger}' → "
+                            f"'{pattern.meaning}' (page_id: {existing})"
+                        )
+                    else:
+                        # Store new pattern
+                        page_id = await self.store_pattern(pattern)
+                        stored_ids.append(page_id)
+                        logger.info(
+                            f"Auto-stored new pattern: '{pattern.trigger}' → "
+                            f"'{pattern.meaning}' (page_id: {page_id})"
+                        )
+                except Exception as e:
+                    logger.exception(f"Failed to auto-store pattern: {e}")
+
+        return detected, stored_ids
+
+    async def _find_existing_pattern(self, pattern: DetectedPattern) -> Optional[str]:
+        """Check if a pattern already exists in Notion.
+
+        Args:
+            pattern: Pattern to check
+
+        Returns:
+            Notion page ID if exists, None otherwise
+        """
+        try:
+            results = await self.notion.query_patterns(
+                trigger=pattern.trigger,
+                limit=10,
+            )
+
+            for result in results:
+                # Extract trigger and meaning from Notion result
+                props = result.get("properties", {})
+                trigger_prop = props.get("trigger", {})
+                meaning_prop = props.get("meaning", {})
+
+                # Get title text
+                trigger_title = trigger_prop.get("title", [])
+                meaning_text = meaning_prop.get("rich_text", [])
+
+                existing_trigger = ""
+                if trigger_title:
+                    existing_trigger = trigger_title[0].get("text", {}).get("content", "")
+
+                existing_meaning = ""
+                if meaning_text:
+                    existing_meaning = meaning_text[0].get("text", {}).get("content", "")
+
+                # Check if it's the same pattern (normalized comparison)
+                if (self._normalize(existing_trigger) == self._normalize(pattern.trigger) and
+                    self._normalize(existing_meaning) == self._normalize(pattern.meaning)):
+                    return result.get("id")
+
+            return None
+        except Exception as e:
+            logger.warning(f"Error checking for existing pattern: {e}")
+            return None
+
+    async def _update_existing_pattern(
+        self,
+        page_id: str,
+        pattern: DetectedPattern,
+    ) -> None:
+        """Update an existing pattern's confidence and confirmation count.
+
+        Args:
+            page_id: Notion page ID of existing pattern
+            pattern: New pattern data with updated stats
+        """
+        await self.notion.update_pattern_confidence(
+            page_id=page_id,
+            times_confirmed=pattern.occurrences,
+            confidence=pattern.confidence,
+        )
 
     def _normalize(self, text: str) -> str:
         """Normalize text for pattern comparison.
@@ -490,6 +606,35 @@ async def store_pending_patterns() -> list[str]:
     Convenience function that uses the global detector.
     """
     return await get_pattern_detector().store_pending_patterns()
+
+
+async def add_correction_and_store(
+    original_value: str,
+    corrected_value: str,
+    context: str = "",
+    entity_type: str = "",
+) -> tuple[list[DetectedPattern], list[str]]:
+    """Add a correction, detect patterns, and auto-store if threshold met.
+
+    This is the primary entry point for T-092 pattern storage. Use this
+    instead of add_correction() when you want automatic Notion persistence.
+
+    Args:
+        original_value: The original (wrong) value
+        corrected_value: The corrected (right) value
+        context: Additional context (e.g., "task title")
+        entity_type: Type of entity ("task", "person", "place", "project")
+
+    Returns:
+        Tuple of (detected patterns, stored pattern Notion page IDs)
+    """
+    record = CorrectionRecord(
+        original_value=original_value,
+        corrected_value=corrected_value,
+        context=context,
+        entity_type=entity_type,
+    )
+    return await get_pattern_detector().add_correction_and_store(record)
 
 
 async def load_and_analyze_patterns(since_days: int = 7) -> list[DetectedPattern]:

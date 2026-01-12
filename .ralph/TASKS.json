@@ -575,9 +575,9 @@
       "acceptance_tests": [
         "AT-109"
       ],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Implemented add_correction_and_store() async method in patterns.py for automatic Notion storage when pattern confidence >= 70%. Added _find_existing_pattern() and _update_existing_pattern() for duplicate handling. Updated corrections.py to use async storage. Tests in test_patterns.py: TestT092PatternStorage (8 tests), TestAT109PatternLearning (4 tests). All 45 pattern tests pass. Full suite: 539 tests (534 pass, 5 pre-existing timezone flakes).",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-093",

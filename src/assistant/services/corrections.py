@@ -432,9 +432,9 @@ class CorrectionHandler:
                 corrected_value=correct_value,
             )
 
-            # Track this correction for pattern detection
-            from assistant.services.patterns import add_correction as add_pattern_correction
-            detected_patterns = add_pattern_correction(
+            # Track this correction for pattern detection AND auto-store (T-092)
+            from assistant.services.patterns import add_correction_and_store
+            detected_patterns, stored_pattern_ids = await add_correction_and_store(
                 original_value=original_value,
                 corrected_value=correct_value,
                 entity_type=entity_type,
@@ -443,19 +443,35 @@ class CorrectionHandler:
             # If patterns detected, notify in message
             if detected_patterns:
                 pattern = detected_patterns[0]
-                return CorrectionResult(
-                    is_correction=True,
-                    original_value=original_value,
-                    corrected_value=correct_value,
-                    correction_type="title",
-                    entity_id=action.entity_id,
-                    success=True,
-                    message=(
-                        f"Fixed. Changed \"{original_value}\" to \"{correct_value}\".\n\n"
-                        f"I've noticed you correct '{pattern.trigger}' to '{pattern.meaning}' "
-                        f"frequently ({pattern.occurrences} times). I'll remember this!"
-                    ),
-                )
+                # Check if pattern was stored (confidence >= 70%)
+                if stored_pattern_ids:
+                    return CorrectionResult(
+                        is_correction=True,
+                        original_value=original_value,
+                        corrected_value=correct_value,
+                        correction_type="title",
+                        entity_id=action.entity_id,
+                        success=True,
+                        message=(
+                            f"Fixed. Changed \"{original_value}\" to \"{correct_value}\".\n\n"
+                            f"I've learned this pattern! When you say '{pattern.trigger}', "
+                            f"I'll now use '{pattern.meaning}' automatically."
+                        ),
+                    )
+                else:
+                    return CorrectionResult(
+                        is_correction=True,
+                        original_value=original_value,
+                        corrected_value=correct_value,
+                        correction_type="title",
+                        entity_id=action.entity_id,
+                        success=True,
+                        message=(
+                            f"Fixed. Changed \"{original_value}\" to \"{correct_value}\".\n\n"
+                            f"I've noticed you correct '{pattern.trigger}' to '{pattern.meaning}' "
+                            f"frequently ({pattern.occurrences} times). I'll remember this!"
+                        ),
+                    )
 
             # Update our tracked action with the new title
             action.title = correct_value

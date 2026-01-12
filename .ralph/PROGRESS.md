@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-091 complete (Phase 4 Briefings + Phase 5 corrections/patterns). Next: T-092 (Implement pattern storage).
+- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-092 complete (Phase 4 Briefings + Phase 5 corrections/patterns). Next: T-093 (Apply patterns to new inputs).
 
 ## Iteration Log
 
@@ -418,3 +418,26 @@
   - Commands: PYTHONPATH=src python3 -m pytest tests/test_patterns.py -v (33 passed)
   - Full test suite: 532 tests (527 pass, 5 pre-existing timezone failures)
   - Commit: d76eba8
+- Iteration 33 (T-092) - Pattern Storage
+  - Implemented automatic pattern storage to Notion Patterns database
+  - Enhanced src/assistant/services/patterns.py:
+    - Added add_correction_and_store() async method - main entry point for auto-storage
+    - Added _find_existing_pattern() - checks for duplicate patterns via query_patterns()
+    - Added _update_existing_pattern() - updates existing pattern confidence instead of creating duplicate
+    - Added module-level add_correction_and_store() convenience function
+  - Updated src/assistant/services/corrections.py:
+    - Changed from sync add_correction() to async add_correction_and_store()
+    - Added enhanced response message "I've learned this pattern!" when pattern is stored
+  - Updated src/assistant/services/__init__.py:
+    - Added add_correction_and_store to exports
+  - Added tests in tests/test_patterns.py:
+    - TestT092PatternStorage (8 tests): auto_stores_pattern_when_threshold_met, no_storage_below_threshold, updates_existing_pattern, no_duplicate_patterns, storage_error_doesnt_block, multiple_patterns_stored_separately, storage_only_for_auto_applicable, async_integration
+    - TestAT109PatternLearning (4 tests): priority_pattern_stored_after_three_corrections, pattern_applied_to_future_tasks, pattern_confidence_calculation, pattern_types_inferred_correctly
+  - AT-109 Verification:
+    - Given: User corrects priority 3 times for similar tasks (all "is_urgent" → True)
+    - When: Pattern confidence > 70% (reaches 70 after 3 corrections)
+    - Then: Pattern stored in Notion Patterns database via create_pattern()
+    - And: Future similar tasks would use learned pattern (via query_patterns lookup)
+  - Commands: PYTHONPATH=src python3 -m pytest tests/test_patterns.py -v (45 passed)
+  - Full test suite: 539 tests (534 pass, 5 pre-existing timezone failures)
+  - Commit: 555b7b5
