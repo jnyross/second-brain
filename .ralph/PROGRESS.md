@@ -1104,3 +1104,59 @@
   - Commands: python3 -m pytest tests/test_rollback.py -v (69 passed)
   - Full test suite: 1313 tests (all pass)
   - Commit: 11c5aa0
+
+- Iteration 37 (T-103): Playwright Web Research Integration
+  - Task: Implement Playwright-based web research with screenshot evidence per PRD 4.10 and AT-112
+  - Created src/assistant/services/research.py with WebResearcher class:
+    - ResearchSource dataclass: url, title, snippet, timestamp
+    - ResearchResult dataclass: success, query, summary, sources[], screenshot_path, error
+    - WebResearcher class with Playwright browser automation:
+      - __init__(): accepts headless mode (default True for production)
+      - _ensure_browser(): lazy browser initialization with async context management
+      - close(): cleanup browser and context resources
+      - research_query(): main entry point, routes to specialized research methods based on query content
+      - research_cinema(): specialized cinema research for AT-112 (Everyman schedules)
+      - _search_google(): general search implementation
+      - _take_screenshot(): captures page state with timestamp naming
+      - _extract_search_results(): parses Google search results
+      - _hash_content(): SHA-256 content hashing for deduplication
+    - Module-level singleton pattern:
+      - _researcher: global WebResearcher instance
+      - get_web_researcher(): returns/creates singleton
+      - research(): convenience wrapper for research_query()
+      - research_cinema(): convenience wrapper for cinema research
+      - close_researcher(): cleanup global instance
+      - is_research_available(): checks if Playwright is installed
+    - Screenshot storage at ~/.second-brain/research/screenshots/
+  - Updated pyproject.toml:
+    - Added playwright>=1.40.0 to dependencies
+  - Updated src/assistant/services/__init__.py:
+    - Exported: ResearchResult, ResearchSource, WebResearcher, close_researcher, get_web_researcher, is_research_available, research, research_cinema
+  - Created tests/test_research.py (48 tests):
+    - TestResearchSource (4): creation, required fields, optional fields, timestamp default
+    - TestResearchResult (13): creation, success/error, empty sources, screenshot, repr
+    - TestWebResearcherInit (3): default headless, explicit settings, config override
+    - TestWebResearcherLifecycle (3): close, close without browser, reuse after close
+    - TestWebResearcherCinemaResearch (4): AT-112 cinema query, Everyman, screenshot capture
+    - TestWebResearcherQueryRouting (3): routes to cinema, general query, URL detection
+    - TestWebResearcherURLResearch (2): direct URL fetch, invalid URL handling
+    - TestModuleLevelFunctions (4): get_web_researcher singleton, research(), research_cinema(), close_researcher()
+    - TestIsResearchAvailable (1): Playwright detection
+    - TestConstants (3): screenshot dir, timeout, max results
+    - TestAT112WebResearch (4): acceptance test for cinema research flow
+    - TestPRDSection410Compliance (6): PRD requirements verification
+    - TestHashContent (2): deterministic hashing, different content
+  - Test fixes during implementation:
+    - Fixed module import issue: `import assistant.services.research as research_module` imports the function, not the module
+    - Solution: Use `importlib.import_module("assistant.services.research")` to get actual module
+    - This allows proper injection of mock `_researcher` for singleton tests
+  - AT-112 Verification:
+    - Given: User sends "What's on at Everyman this Friday?"
+    - When: research_cinema() is invoked
+    - Then: Playwright browser navigates to Everyman website
+    - And: Screenshot captured with timestamp naming
+    - And: Movie listings extracted as ResearchResult with sources
+  - Commands: python3 -m pytest tests/test_research.py -v (48 passed)
+  - Verification: scripts/verify.sh (8/8 checks pass)
+  - Full test suite: 1361 tests (all pass)
+  - Commit: pending

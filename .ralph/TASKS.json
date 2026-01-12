@@ -646,9 +646,9 @@
       "acceptance_tests": [
         "AT-112"
       ],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Created src/assistant/services/research.py with WebResearcher class. Features: 1) Playwright browser automation with headless mode, 2) research_cinema() for AT-112 cinema queries with screenshot capture, 3) research_query() routes to specialized methods based on query content, 4) ResearchResult and ResearchSource dataclasses for structured output, 5) Screenshot storage at ~/.second-brain/research/screenshots/, 6) Content hashing for deduplication, 7) Module-level singleton via get_web_researcher(). Added playwright>=1.40.0 to pyproject.toml. Updated services/__init__.py exports. Tests in tests/test_research.py (48 tests pass): TestResearchSource (4), TestResearchResult (13), TestWebResearcherInit (3), TestWebResearcherLifecycle (3), TestWebResearcherCinemaResearch (4), TestWebResearcherQueryRouting (3), TestWebResearcherURLResearch (2), TestModuleLevelFunctions (4), TestIsResearchAvailable (1), TestConstants (3), TestAT112WebResearch (4), TestPRDSection410Compliance (6), TestHashContent (2). scripts/verify.sh passes (8/8).",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-104",
