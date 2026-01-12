@@ -11,7 +11,7 @@ from assistant.google.auth import google_auth
 
 logger = logging.getLogger(__name__)
 
-FOLDER_STRUCTURE: dict[str, dict[str, dict[str, dict]]] = {
+FOLDER_STRUCTURE: dict[str, dict[str, Any]] = {
     "Second Brain": {
         "Research": {"General": {}},
         "Meeting Notes": {},
@@ -50,13 +50,13 @@ class DriveFile:
 
 
 class DriveClient:
-    def __init__(self):
-        self._drive_service = None
-        self._docs_service = None
-        self._sheets_service = None
+    def __init__(self) -> None:
+        self._drive_service: Any = None
+        self._docs_service: Any = None
+        self._sheets_service: Any = None
         self._folder_cache: dict[str, str] = {}
 
-    def _get_drive_service(self):
+    def _get_drive_service(self) -> Any:
         if not google_auth.is_authenticated():
             if not google_auth.load_saved_credentials():
                 raise RuntimeError("Google Drive not authenticated. Run /setup_google first.")
@@ -65,7 +65,7 @@ class DriveClient:
             self._drive_service = build("drive", "v3", credentials=google_auth.credentials)
         return self._drive_service
 
-    def _get_docs_service(self):
+    def _get_docs_service(self) -> Any:
         if not google_auth.is_authenticated():
             if not google_auth.load_saved_credentials():
                 raise RuntimeError("Google Docs not authenticated. Run /setup_google first.")
@@ -74,7 +74,7 @@ class DriveClient:
             self._docs_service = build("docs", "v1", credentials=google_auth.credentials)
         return self._docs_service
 
-    def _get_sheets_service(self):
+    def _get_sheets_service(self) -> Any:
         if not google_auth.is_authenticated():
             if not google_auth.load_saved_credentials():
                 raise RuntimeError("Google Sheets not authenticated. Run /setup_google first.")
@@ -116,7 +116,7 @@ class DriveClient:
             files = results.get("files", [])
 
             if files:
-                return files[0]["id"]
+                return str(files[0]["id"])
 
             file_metadata: dict[str, Any] = {
                 "name": name,
@@ -127,7 +127,7 @@ class DriveClient:
 
             folder = service.files().create(body=file_metadata, fields="id").execute()
             logger.info(f"Created folder: {name}")
-            return folder["id"]
+            return str(folder["id"])
         except HttpError as e:
             logger.error(f"Failed to find/create folder '{name}': {e}")
             raise

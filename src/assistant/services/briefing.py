@@ -597,7 +597,8 @@ class BriefingGenerator:
         title_prop = props.get("title", {})
         title_list = title_prop.get("title", [])
         if title_list:
-            return title_list[0].get("text", {}).get("content", "Untitled")
+            text_dict: dict[str, Any] = title_list[0].get("text", {})
+            return str(text_dict.get("content", "Untitled"))
         return "Untitled"
 
     def _extract_text(self, page: dict[str, Any], field: str) -> str:
@@ -614,7 +615,8 @@ class BriefingGenerator:
         field_prop = props.get(field, {})
         text_list = field_prop.get("rich_text", [])
         if text_list:
-            return text_list[0].get("text", {}).get("content", "")
+            text_dict: dict[str, Any] = text_list[0].get("text", {})
+            return str(text_dict.get("content", ""))
         return ""
 
     def _extract_select(self, page: dict[str, Any], field: str) -> str | None:
@@ -629,9 +631,10 @@ class BriefingGenerator:
         """
         props = page.get("properties", {})
         field_prop = props.get(field, {})
-        select_value = field_prop.get("select")
+        select_value: dict[str, Any] | None = field_prop.get("select")
         if select_value:
-            return select_value.get("name")
+            name = select_value.get("name")
+            return str(name) if name is not None else None
         return None
 
     def _extract_date(self, page: dict[str, Any], field: str) -> datetime | None:

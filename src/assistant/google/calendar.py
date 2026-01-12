@@ -11,7 +11,7 @@ Per PRD Section 4.4 and AT-110/AT-116:
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from zoneinfo import ZoneInfo
 
 from googleapiclient.discovery import build
@@ -75,12 +75,12 @@ class CalendarClient:
     - Calendar availability check (future)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the calendar client."""
-        self._service = None
+        self._service: Any = None
 
     @property
-    def service(self):
+    def service(self) -> Any:
         """Get or create the Calendar API service.
 
         Returns:
@@ -413,8 +413,8 @@ class CalendarClient:
             loop = asyncio.get_event_loop()
 
             # Build the request
-            def do_list():
-                return (
+            def do_list() -> dict[str, Any]:
+                return cast(dict[str, Any], (
                     self.service.events()
                     .list(
                         calendarId=calendar_id,
@@ -425,7 +425,7 @@ class CalendarClient:
                         orderBy="startTime",
                     )
                     .execute()
-                )
+                ))
 
             result = await loop.run_in_executor(None, do_list)
 

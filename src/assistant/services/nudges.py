@@ -108,7 +108,8 @@ def load_sent_nudges() -> dict[str, str]:
         return {}
     try:
         with open(path) as f:
-            return json.load(f)
+            result: dict[str, str] = json.load(f)
+            return result
     except (json.JSONDecodeError, OSError):
         return {}
 

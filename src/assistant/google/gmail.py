@@ -27,7 +27,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from email.utils import parseaddr
-from typing import Any
+from typing import Any, cast
 from zoneinfo import ZoneInfo
 
 from googleapiclient.discovery import build
@@ -158,13 +158,13 @@ class GmailClient:
     - Reply to threads (with learned patterns)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Gmail client."""
-        self._service = None
+        self._service: Any = None
         self._action_patterns = [re.compile(p, re.IGNORECASE) for p in ACTION_PATTERNS]
 
     @property
-    def service(self):
+    def service(self) -> Any:
         """Get or create the Gmail API service.
 
         Returns:
@@ -216,7 +216,7 @@ class GmailClient:
             loop = asyncio.get_event_loop()
 
             # Build list request
-            def do_list():
+            def do_list() -> dict[str, Any]:
                 kwargs: dict[str, Any] = {
                     "userId": "me",
                     "maxResults": max_results,
@@ -229,7 +229,7 @@ class GmailClient:
                 else:
                     kwargs["labelIds"] = ["INBOX"]
 
-                return self.service.users().messages().list(**kwargs).execute()
+                return cast(dict[str, Any], self.service.users().messages().list(**kwargs).execute())
 
             result = await loop.run_in_executor(None, do_list)
 
@@ -284,13 +284,13 @@ class GmailClient:
 
             loop = asyncio.get_event_loop()
 
-            def do_get():
-                return (
+            def do_get() -> dict[str, Any]:
+                return cast(dict[str, Any], (
                     self.service.users()
                     .messages()
                     .get(userId="me", id=message_id, format="metadata")
                     .execute()
-                )
+                ))
 
             msg = await loop.run_in_executor(None, do_get)
             return self._parse_message(msg)
@@ -591,8 +591,8 @@ class GmailClient:
             if thread_id:
                 draft_body["message"]["threadId"] = thread_id
 
-            def do_create():
-                return self.service.users().drafts().create(userId="me", body=draft_body).execute()
+            def do_create() -> dict[str, Any]:
+                return cast(dict[str, Any], self.service.users().drafts().create(userId="me", body=draft_body).execute())
 
             result = await loop.run_in_executor(None, do_create)
 
@@ -652,13 +652,13 @@ class GmailClient:
 
             loop = asyncio.get_event_loop()
 
-            def do_get():
-                return (
+            def do_get() -> dict[str, Any]:
+                return cast(dict[str, Any], (
                     self.service.users()
                     .drafts()
                     .get(userId="me", id=draft_id, format="full")
                     .execute()
-                )
+                ))
 
             result = await loop.run_in_executor(None, do_get)
 
@@ -735,10 +735,10 @@ class GmailClient:
 
             loop = asyncio.get_event_loop()
 
-            def do_send():
-                return (
+            def do_send() -> dict[str, Any]:
+                return cast(dict[str, Any], (
                     self.service.users().drafts().send(userId="me", body={"id": draft_id}).execute()
-                )
+                ))
 
             result = await loop.run_in_executor(None, do_send)
 
@@ -785,7 +785,7 @@ class GmailClient:
 
             loop = asyncio.get_event_loop()
 
-            def do_delete():
+            def do_delete() -> None:
                 self.service.users().drafts().delete(userId="me", id=draft_id).execute()
 
             await loop.run_in_executor(None, do_delete)
@@ -862,8 +862,8 @@ class GmailClient:
             if thread_id:
                 send_body["threadId"] = thread_id
 
-            def do_send():
-                return self.service.users().messages().send(userId="me", body=send_body).execute()
+            def do_send() -> dict[str, Any]:
+                return cast(dict[str, Any], self.service.users().messages().send(userId="me", body=send_body).execute())
 
             result = await loop.run_in_executor(None, do_send)
 

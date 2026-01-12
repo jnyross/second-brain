@@ -386,7 +386,9 @@ async def handle_voice(message: Message, bot: Bot) -> None:
     3. Process transcription like text message
     4. Store audio reference for debugging
     """
-    voice: Voice = message.voice
+    voice: Voice | None = message.voice
+    if voice is None:
+        return
     chat_id = str(message.chat.id)
     message_id = str(message.message_id)
 
@@ -402,13 +404,20 @@ async def handle_voice(message: Message, bot: Bot) -> None:
     try:
         # Download voice file from Telegram
         file = await bot.get_file(voice.file_id)
+        if file.file_path is None:
+            await message.answer("Sorry, I couldn't get the voice file. Please try again.")
+            return
         file_data = await bot.download_file(file.file_path)
 
         # Read bytes from BytesIO
+        audio_bytes: bytes
         if isinstance(file_data, BytesIO):
             audio_bytes = file_data.read()
+        elif file_data is not None:
+            audio_bytes = file_data  # type: ignore[assignment]
         else:
-            audio_bytes = file_data
+            await message.answer("Sorry, I couldn't download the voice file. Please try again.")
+            return
 
         # Transcribe using Whisper
         transcriber = get_transcriber()

@@ -18,6 +18,7 @@ Uses aiogram FSM (Finite State Machine) for multi-turn conversation flow.
 import logging
 import re
 from datetime import datetime
+from typing import Any
 
 from aiogram import Dispatcher, F, Router
 from aiogram.filters import Command
@@ -134,7 +135,8 @@ async def handle_debrief_response(message: Message, state: FSMContext) -> None:
     - Ask for due date if not specified
     - Handle cancel patterns
     """
-    response = message.text.strip().lower()
+    text = message.text or ""
+    response = text.strip().lower()
     data = await state.get_data()
 
     items_data = data.get("items", [])
@@ -187,7 +189,7 @@ async def handle_debrief_response(message: Message, state: FSMContext) -> None:
 
     # Handle clarification - parse for entities and create task
     # Use the original case for the task title
-    task_title = message.text.strip()
+    task_title = (message.text or "").strip()
 
     # Parse clarification text for entities (T-083)
     extractor = EntityExtractor()
@@ -239,7 +241,7 @@ async def handle_due_date_response(message: Message, state: FSMContext) -> None:
     - Type 'skip' or 'no' to create task without due date
     - Type 'cancel' to cancel task creation
     """
-    response = message.text.strip().lower()
+    response = (message.text or "").strip().lower()
     data = await state.get_data()
 
     pending_title = data.get("pending_task_title")
@@ -276,7 +278,7 @@ async def handle_due_date_response(message: Message, state: FSMContext) -> None:
     if response not in ("skip", "no", "none", "no due date"):
         # Try to parse the date
         extractor = EntityExtractor()
-        date_entities = extractor.extract_dates(message.text.strip())
+        date_entities = extractor.extract_dates((message.text or "").strip())
         if date_entities:
             due_date = date_entities[0].datetime_value
         else:

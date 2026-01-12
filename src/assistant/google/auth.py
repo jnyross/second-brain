@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 from google.auth.transport.requests import Request
@@ -46,7 +47,7 @@ def extract_oauth_code(text: str) -> str | None:
 
 
 class GoogleAuth:
-    def __init__(self):
+    def __init__(self) -> None:
         self._credentials: Credentials | None = None
 
     @property
@@ -102,10 +103,10 @@ class GoogleAuth:
 
         TOKEN_PATH.parent.mkdir(parents=True, exist_ok=True)
         with open(TOKEN_PATH, "w") as f:
-            f.write(self._credentials.to_json())
+            f.write(cast(str, self._credentials.to_json()))
 
     def _get_redirect_uri(self, flow: InstalledAppFlow) -> str | None:
-        client_config = flow.client_config or {}
+        client_config: dict[str, Any] = flow.client_config or {}
 
         redirect_uris = client_config.get("redirect_uris")
         if isinstance(redirect_uris, str) and redirect_uris:
@@ -142,7 +143,7 @@ class GoogleAuth:
                 prompt="consent",
                 access_type="offline",
             )
-            return auth_url
+            return cast(str, auth_url)
         except Exception as e:
             logger.error(f"Failed to generate auth URL: {e}")
             return None

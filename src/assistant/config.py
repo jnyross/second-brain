@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     confidence_threshold: int = 80
     morning_briefing_hour: int = 7
     log_level: str = "INFO"
+    data_dir: str = "~/.second-brain"
 
     @property
     def has_telegram(self) -> bool:

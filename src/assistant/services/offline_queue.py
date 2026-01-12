@@ -376,7 +376,8 @@ class OfflineQueue:
                 needs_clarification=data.get("needs_clarification", True),
                 interpretation=data.get("interpretation"),
             )
-            return await client.create_inbox_item(item)
+            inbox_id: str = await client.create_inbox_item(item)
+            return inbox_id
 
         elif action.action_type == QueuedActionType.CREATE_TASK:
             # Parse priority enum
@@ -407,7 +408,8 @@ class OfflineQueue:
                 priority=priority,
                 created_by=data.get("created_by", "ai"),
             )
-            return await client.create_task(task)
+            task_id: str = await client.create_task(task)
+            return task_id
 
         else:
             raise NotImplementedError(f"Action type {action.action_type.value} not implemented")

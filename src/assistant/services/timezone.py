@@ -332,7 +332,7 @@ class TimezoneService:
 
         if include_timezone:
             # Get timezone abbreviation
-            tz: tzinfo
+            tz: ZoneInfo | tzinfo
             if isinstance(dt, TimezoneAwareDateTime):
                 tz = ZoneInfo(dt.timezone_name)
             elif dt_value.tzinfo:

@@ -2,7 +2,7 @@ import hashlib
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 import httpx
 from pydantic import BaseModel
@@ -76,7 +76,7 @@ class NotionClient:
                     continue
 
                 response.raise_for_status()
-                return response.json()
+                return cast(dict[str, Any], response.json())
 
             except httpx.HTTPStatusError as e:
                 last_error = e
@@ -225,7 +225,7 @@ class NotionClient:
                 "properties": properties,
             },
         )
-        return result["id"]
+        return cast(str, result["id"])
 
     async def create_task(self, task: Task) -> str:
         properties = self._model_to_notion_properties(task, "tasks")
@@ -237,7 +237,7 @@ class NotionClient:
                 "properties": properties,
             },
         )
-        return result["id"]
+        return cast(str, result["id"])
 
     async def create_person(self, person: Person) -> str:
         if person.email:
@@ -252,7 +252,7 @@ class NotionClient:
                 "properties": properties,
             },
         )
-        return result["id"]
+        return cast(str, result["id"])
 
     async def create_log_entry(self, entry: LogEntry) -> str:
         if entry.idempotency_key:
@@ -269,7 +269,7 @@ class NotionClient:
                 "properties": properties,
             },
         )
-        return result["id"]
+        return cast(str, result["id"])
 
     async def _check_dedupe(self, db_type: str, key: str) -> str | None:
         db_id_map = {
@@ -295,7 +295,7 @@ class NotionClient:
         )
 
         if result.get("results"):
-            return result["results"][0]["id"]
+            return cast(str, result["results"][0]["id"])
         return None
 
     async def query_tasks(
@@ -380,7 +380,7 @@ class NotionClient:
             },
         )
 
-        return result.get("results", [])
+        return cast(list[dict[str, Any]], result.get("results", []))
 
     async def query_inbox(
         self,
@@ -433,7 +433,7 @@ class NotionClient:
             },
         )
 
-        return result.get("results", [])
+        return cast(list[dict[str, Any]], result.get("results", []))
 
     async def mark_inbox_processed(
         self,
@@ -487,7 +487,7 @@ class NotionClient:
             {"filter": query_filter} if query_filter else {},
         )
 
-        return result.get("results", [])
+        return cast(list[dict[str, Any]], result.get("results", []))
 
     async def query_places(
         self,
@@ -539,7 +539,7 @@ class NotionClient:
             {"filter": query_filter} if query_filter else {},
         )
 
-        return result.get("results", [])
+        return cast(list[dict[str, Any]], result.get("results", []))
 
     async def create_place(self, place: Place) -> str:
         """Create a new place in Notion.
@@ -559,7 +559,7 @@ class NotionClient:
                 "properties": properties,
             },
         )
-        return result["id"]
+        return cast(str, result["id"])
 
     async def query_projects(
         self,
@@ -611,7 +611,7 @@ class NotionClient:
             {"filter": query_filter} if query_filter else {},
         )
 
-        return result.get("results", [])
+        return cast(list[dict[str, Any]], result.get("results", []))
 
     async def create_project(self, project: Project) -> str:
         """Create a new project in Notion.
@@ -631,7 +631,7 @@ class NotionClient:
                 "properties": properties,
             },
         )
-        return result["id"]
+        return cast(str, result["id"])
 
     async def soft_delete(self, page_id: str) -> None:
         await self._request(
@@ -791,7 +791,7 @@ class NotionClient:
                 "properties": properties,
             },
         )
-        return result["id"]
+        return cast(str, result["id"])
 
     async def query_patterns(
         self,
@@ -857,7 +857,7 @@ class NotionClient:
             },
         )
 
-        return result.get("results", [])
+        return cast(list[dict[str, Any]], result.get("results", []))
 
     async def update_pattern_confidence(
         self,
