@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phases 1-5 complete. Deployment tasks T-200 through T-204 complete. Next: T-205 (health check script) or T-206 (rollback script).
+- Status: Phase 0 complete. Phases 1-5 complete. Deployment tasks T-200 through T-205 complete. Next: T-206 (rollback script).
 
 ## Iteration Log
 
@@ -1028,3 +1028,37 @@
   - Commands: python3 -m pytest tests/test_setup_server.py -v (53 passed)
   - Full test suite: 1192 tests (all pass)
   - Commit: 409caf9
+
+- Iteration 35 (T-205): Health Check Script
+  - Task: Create script to verify container is healthy after deployment per AT-202 and PRD 12.8
+  - Created deploy/scripts/health-check.sh with:
+    - Retry loop: MAX_RETRIES=10, RETRY_INTERVAL=3 (30s max wait < AT-202's 60s threshold)
+    - Container checks: docker ps -a (exists), docker ps (running)
+    - Health verification: `docker exec $CONTAINER python -c "import assistant; print('ok')"`
+    - CLI check: `python -m assistant check` (additional verification)
+    - Docker health status: `docker inspect --format='{{.State.Health.Status}}'`
+    - CLI flags: --quick, --retries N, --interval N, --container NAME, --help
+    - Color output: GREEN (success), RED (failure), YELLOW (waiting/warning)
+    - Error handling: validates docker available, container exists/running, argument validation
+    - Exit codes: 0=healthy, 1=unhealthy, 2=invalid args
+    - Troubleshooting tips on failure (docker logs, inspect, env file check)
+  - Created tests/test_health_check.py (52 tests):
+    - TestHealthCheckScriptExists (4): file, executable, shebang, strict mode
+    - TestHealthCheckConfiguration (8): MAX_RETRIES, RETRY_INTERVAL, container name, flags
+    - TestHealthCheckLogic (6): docker exec, import check, retry loop, sleep, container checks
+    - TestHealthCheckOutput (4): success/failure messages, colors, progress
+    - TestHealthCheckExitCodes (3): exit 0/1/2
+    - TestHealthCheckDocumentation (4): header, usage, exit codes, troubleshooting
+    - TestHealthCheckErrorHandling (4): docker check, argument validation, unknown options
+    - TestHealthCheckAdditionalChecks (2): CLI command, Docker health status
+    - TestAT202ContainerStartsHealthy (5): acceptance test verification
+    - TestPRDSection128Compliance (6): PRD 12.8 specification compliance
+    - TestBashBestPractices (3): quoting, uppercase vars, no injection
+    - TestHealthCheckIntegration (3): CD pipeline, docker-compose, manual use
+  - AT-202 Verification:
+    - Given: Valid .env file present
+    - When: docker compose up -d runs
+    - Then: Container reaches healthy state within 60s (script waits max 30s)
+  - Commands: python3 -m pytest tests/test_health_check.py -v (52 passed)
+  - Full test suite: 1244 tests (all pass)
+  - Commit: pending

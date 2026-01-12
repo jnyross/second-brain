@@ -943,8 +943,8 @@
       "description": "Script to verify container is healthy after deployment.",
       "depends_on": ["T-201"],
       "acceptance_tests": ["AT-202"],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created deploy/scripts/health-check.sh per PRD 12.8. Features: retry loop (10 retries, 3s interval), docker container checks, python import verification, CLI check, Docker health status, color output, --quick/--retries/--interval/--container/--help flags. AT-202 verified: max wait 30s < 60s threshold, verifies container health via python import. Tests in tests/test_health_check.py (52 tests pass). Full suite: 1244 tests pass.",
       "updated_at": "2026-01-12"
     },
     {
