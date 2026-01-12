@@ -87,12 +87,14 @@ CORRECTION_EXTRACTION_PATTERNS = [
     ),
     # "should be Tess not Jess"
     re.compile(
-        r"should (?:be|have been)\s+['\"]?([^'\"]+?)['\"]?\s+not\s+['\"]?([^'\"]+?)['\"]?(?:\s|$|\.)",
+        r"should (?:be|have been)\s+['\"]?([^'\"]+?)['\"]?\s+not\s+"
+        r"['\"]?([^'\"]+?)['\"]?(?:\s|$|\.)",
         re.IGNORECASE,
     ),
     # "it's Tess not Jess" or "that was Tess not Jess"
     re.compile(
-        r"(?:it'?s|it was|that'?s|that was)\s+['\"]?([^'\"]+?)['\"]?\s+not\s+['\"]?([^'\"]+?)['\"]?(?:\s|$|\.)",
+        r"(?:it'?s|it was|that'?s|that was)\s+['\"]?([^'\"]+?)['\"]?\s+not\s+"
+        r"['\"]?([^'\"]+?)['\"]?(?:\s|$|\.)",
         re.IGNORECASE,
     ),
     # "Wrong, I said Tess" - just extracts the correct value

@@ -9,8 +9,8 @@ T-104: Build research result formatter
 """
 
 import logging
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 from assistant.notion.schemas import ActionType
@@ -120,7 +120,7 @@ class ResearchFormatter:
             return FormattedResearch(
                 success=False,
                 telegram_message=f"❌ Research failed: {result.error}",
-                telegram_brief=f"❌ Research failed",
+                telegram_brief="❌ Research failed",
                 log_summary=f"Research failed: {result.error}",
                 error=result.error,
             )
@@ -320,7 +320,7 @@ class ResearchFormatter:
             AuditEntry for the research
         """
         # Generate idempotency key
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if chat_id and message_id:
             idempotency_key = f"research:telegram:{chat_id}:{message_id}"
         elif task_id:
@@ -402,9 +402,13 @@ class ResearchFormatter:
 
         # Metadata
         lines.append("### Metadata")
-        lines.append(f"- Duration: {result.duration_seconds:.1f}s" if result.duration_seconds else "- Duration: N/A")
+        if result.duration_seconds:
+            lines.append(f"- Duration: {result.duration_seconds:.1f}s")
+        else:
+            lines.append("- Duration: N/A")
         lines.append(f"- Started: {result.started_at.isoformat()}")
-        lines.append(f"- Completed: {result.completed_at.isoformat() if result.completed_at else 'N/A'}")
+        completed = result.completed_at.isoformat() if result.completed_at else "N/A"
+        lines.append(f"- Completed: {completed}")
 
         return "\n".join(lines)
 
@@ -429,14 +433,14 @@ class ResearchFormatter:
         note_content = self.format_for_notion_note(result)
 
         try:
+            # Notion rich_text content limit is 2000 chars
+            truncated = note_content[:2000]
             await self._notion._request(
                 "PATCH",
                 f"/pages/{task_id}",
                 {
                     "properties": {
-                        "notes": {
-                            "rich_text": [{"text": {"content": note_content[:2000]}}]  # Notion limit
-                        }
+                        "notes": {"rich_text": [{"text": {"content": truncated}}]}
                     }
                 },
             )

@@ -91,23 +91,20 @@ class MessageProcessor:
                 # Update people list with corrected names
                 if result.corrected_people != result.original_people:
                     parsed.people = result.corrected_people
-                    logger.info(
-                        f"Pattern corrected people: {result.original_people} → {result.corrected_people}"
-                    )
+                    orig, corr = result.original_people, result.corrected_people
+                    logger.info(f"Pattern corrected people: {orig} → {corr}")
 
                 # Update places list with corrected names
                 if result.corrected_places != result.original_places:
                     parsed.places = result.corrected_places
-                    logger.info(
-                        f"Pattern corrected places: {result.original_places} → {result.corrected_places}"
-                    )
+                    orig, corr = result.original_places, result.corrected_places
+                    logger.info(f"Pattern corrected places: {orig} → {corr}")
 
                 # Update title with corrected names
                 if result.corrected_title != result.original_title:
                     parsed.title = result.corrected_title
-                    logger.info(
-                        f"Pattern corrected title: '{result.original_title}' → '{result.corrected_title}'"
-                    )
+                    orig, corr = result.original_title, result.corrected_title
+                    logger.info(f"Pattern corrected title: '{orig}' → '{corr}'")
 
             return result
 

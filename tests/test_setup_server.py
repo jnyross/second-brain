@@ -252,7 +252,9 @@ class TestAT208SecurityHardening:
         """AT-208: fail2ban should be configured and enabled."""
         # Then: fail2ban running
         assert "systemctl enable fail2ban" in setup_script
-        assert "systemctl restart fail2ban" in setup_script or "systemctl start fail2ban" in setup_script
+        has_restart = "systemctl restart fail2ban" in setup_script
+        has_start = "systemctl start fail2ban" in setup_script
+        assert has_restart or has_start
 
     def test_at208_deploy_user_no_password(self, setup_script):
         """AT-208: Deploy user should use SSH keys, not password."""

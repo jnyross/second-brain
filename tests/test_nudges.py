@@ -532,8 +532,8 @@ class TestModuleLevelFunctions:
     @pytest.mark.asyncio
     async def test_run_nudges_function(self, mock_settings):
         """Test run_nudges convenience function."""
-        with patch("assistant.services.nudges.NudgeService") as MockService:
-            mock_instance = MockService.return_value
+        with patch("assistant.services.nudges.NudgeService") as mock_service_cls:
+            mock_instance = mock_service_cls.return_value
             mock_instance.run = AsyncMock(return_value=NudgeReport(nudges_sent=2))
 
             report = await run_nudges()
@@ -543,8 +543,8 @@ class TestModuleLevelFunctions:
     @pytest.mark.asyncio
     async def test_get_pending_nudges_function(self, mock_settings):
         """Test get_pending_nudges convenience function."""
-        with patch("assistant.services.nudges.NudgeService") as MockService:
-            mock_instance = MockService.return_value
+        with patch("assistant.services.nudges.NudgeService") as mock_service_cls:
+            mock_instance = mock_service_cls.return_value
             mock_instance.get_nudge_candidates = AsyncMock(return_value=[])
             mock_instance.filter_candidates = AsyncMock(return_value=[])
             mock_instance.notion = MagicMock()

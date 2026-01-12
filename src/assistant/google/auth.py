@@ -133,7 +133,8 @@ class GoogleAuth:
             redirect_uri = self._get_redirect_uri(flow)
             if not redirect_uri:
                 logger.error(
-                    "No redirect_uris found in google_credentials.json (top-level or under 'installed'/'web')."
+                    "No redirect_uris found in google_credentials.json "
+                    "(top-level or under 'installed'/'web')."
                 )
                 return None
             flow.redirect_uri = redirect_uri
@@ -155,7 +156,8 @@ class GoogleAuth:
             redirect_uri = self._get_redirect_uri(flow)
             if not redirect_uri:
                 logger.error(
-                    "No redirect_uris found in google_credentials.json (top-level or under 'installed'/'web')."
+                    "No redirect_uris found in google_credentials.json "
+                    "(top-level or under 'installed'/'web')."
                 )
                 return False
             flow.redirect_uri = redirect_uri

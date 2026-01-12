@@ -363,7 +363,7 @@ class BriefingGenerator:
             trigger = self._extract_text(pattern, "trigger") or self._extract_title(pattern)
             meaning = self._extract_text(pattern, "meaning")
             pattern_type = self._extract_select(pattern, "type")
-            confidence = self._extract_number(pattern, "confidence")
+            _confidence = self._extract_number(pattern, "confidence")  # noqa: F841
 
             if not trigger or not meaning:
                 continue

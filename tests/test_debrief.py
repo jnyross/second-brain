@@ -41,10 +41,10 @@ class TestDebriefCommand:
         message.chat.id = 12345
         state = AsyncMock()
 
-        with patch("assistant.telegram.debrief.ClarificationService") as MockService:
+        with patch("assistant.telegram.debrief.ClarificationService") as mock_service_cls:
             mock_service = AsyncMock()
             mock_service.get_unclear_items.return_value = []
-            MockService.return_value = mock_service
+            mock_service_cls.return_value = mock_service
 
             await cmd_debrief(message, state)
 
@@ -72,10 +72,10 @@ class TestDebriefCommand:
             )
         ]
 
-        with patch("assistant.telegram.debrief.ClarificationService") as MockService:
+        with patch("assistant.telegram.debrief.ClarificationService") as mock_service_cls:
             mock_service = AsyncMock()
             mock_service.get_unclear_items.return_value = items
-            MockService.return_value = mock_service
+            mock_service_cls.return_value = mock_service
 
             await cmd_debrief(message, state)
 
@@ -114,10 +114,10 @@ class TestDebriefCommand:
             for i in range(5)
         ]
 
-        with patch("assistant.telegram.debrief.ClarificationService") as MockService:
+        with patch("assistant.telegram.debrief.ClarificationService") as mock_service_cls:
             mock_service = AsyncMock()
             mock_service.get_unclear_items.return_value = items
-            MockService.return_value = mock_service
+            mock_service_cls.return_value = mock_service
 
             await cmd_debrief(message, state)
 
@@ -191,13 +191,13 @@ class TestDebriefResponse:
             "stats": {"clarified": 0, "skipped": 0, "dismissed": 0},
         }
 
-        with patch("assistant.telegram.debrief.ClarificationService") as MockService:
+        with patch("assistant.telegram.debrief.ClarificationService") as mock_service_cls:
             mock_service = AsyncMock()
             mock_service.dismiss_item.return_value = ClarificationResult(
                 item_id="page-1",
                 action="dismissed",
             )
-            MockService.return_value = mock_service
+            mock_service_cls.return_value = mock_service
 
             await handle_debrief_response(self.message, self.state)
 
@@ -230,7 +230,7 @@ class TestDebriefResponse:
             "stats": {"clarified": 0, "skipped": 0, "dismissed": 0},
         }
 
-        with patch("assistant.telegram.debrief.ClarificationService") as MockService:
+        with patch("assistant.telegram.debrief.ClarificationService") as mock_service_cls:
             mock_service = AsyncMock()
             mock_service.create_task_from_item.return_value = ClarificationResult(
                 item_id="page-1",
@@ -238,7 +238,7 @@ class TestDebriefResponse:
                 task_id="task-123",
                 message="Created task: Groceries from the store",
             )
-            MockService.return_value = mock_service
+            mock_service_cls.return_value = mock_service
 
             await handle_debrief_response(self.message, self.state)
 
@@ -267,7 +267,7 @@ class TestDebriefResponse:
         }
 
         with (
-            patch("assistant.telegram.debrief.ClarificationService") as MockService,
+            patch("assistant.telegram.debrief.ClarificationService") as mock_service_cls,
             patch("assistant.telegram.debrief._get_remaining_count") as mock_count,
         ):
             mock_service = AsyncMock()
@@ -276,7 +276,7 @@ class TestDebriefResponse:
                 action="created_task",
                 task_id="task-123",
             )
-            MockService.return_value = mock_service
+            mock_service_cls.return_value = mock_service
             mock_count.return_value = 0
 
             await handle_debrief_response(self.message, self.state)
@@ -312,14 +312,14 @@ class TestDebriefResponse:
             "stats": {"clarified": 0, "skipped": 0, "dismissed": 0},
         }
 
-        with patch("assistant.telegram.debrief.ClarificationService") as MockService:
+        with patch("assistant.telegram.debrief.ClarificationService") as mock_service_cls:
             mock_service = AsyncMock()
             mock_service.create_task_from_item.return_value = ClarificationResult(
                 item_id="page-1",
                 action="error",
                 message="API error",
             )
-            MockService.return_value = mock_service
+            mock_service_cls.return_value = mock_service
 
             await handle_debrief_response(self.message, self.state)
 
@@ -568,10 +568,10 @@ class TestAT107:
         ]
 
         # Step 1: Start debrief
-        with patch("assistant.telegram.debrief.ClarificationService") as MockService:
+        with patch("assistant.telegram.debrief.ClarificationService") as mock_service_cls:
             mock_service = AsyncMock()
             mock_service.get_unclear_items.return_value = items
-            MockService.return_value = mock_service
+            mock_service_cls.return_value = mock_service
 
             await cmd_debrief(message, state)
 
@@ -592,14 +592,14 @@ class TestAT107:
             "stats": {"clarified": 0, "skipped": 0, "dismissed": 0},
         }
 
-        with patch("assistant.telegram.debrief.ClarificationService") as MockService:
+        with patch("assistant.telegram.debrief.ClarificationService") as mock_service_cls:
             mock_service = AsyncMock()
             mock_service.create_task_from_item.return_value = ClarificationResult(
                 item_id="page-1",
                 action="created_task",
                 task_id="task-1",
             )
-            MockService.return_value = mock_service
+            mock_service_cls.return_value = mock_service
 
             await handle_debrief_response(message, state)
 
@@ -622,7 +622,7 @@ class TestAT107:
         }
 
         with (
-            patch("assistant.telegram.debrief.ClarificationService") as MockService,
+            patch("assistant.telegram.debrief.ClarificationService") as mock_service_cls,
             patch("assistant.telegram.debrief._get_remaining_count") as mock_count,
         ):
             mock_service = AsyncMock()
@@ -630,7 +630,7 @@ class TestAT107:
                 item_id="page-2",
                 action="dismissed",
             )
-            MockService.return_value = mock_service
+            mock_service_cls.return_value = mock_service
             mock_count.return_value = 0
 
             await handle_debrief_response(message, state)
@@ -717,7 +717,7 @@ class TestT083CancelPatterns:
         }
 
         with (
-            patch("assistant.telegram.debrief.ClarificationService") as MockService,
+            patch("assistant.telegram.debrief.ClarificationService") as mock_service_cls,
             patch("assistant.telegram.debrief._get_remaining_count") as mock_count,
         ):
             mock_service = AsyncMock()
@@ -725,7 +725,7 @@ class TestT083CancelPatterns:
                 item_id="page-1",
                 action="dismissed",
             )
-            MockService.return_value = mock_service
+            mock_service_cls.return_value = mock_service
             mock_count.return_value = 0
 
             await handle_debrief_response(message, state)
