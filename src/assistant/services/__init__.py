@@ -16,6 +16,7 @@ from assistant.services.corrections import (
     track_created_task,
 )
 from assistant.services.entities import EntityExtractor, ExtractedDate, ExtractedEntities
+from assistant.services.llm_parser import LLMIntentParser, get_intent_parser
 from assistant.services.nudges import (
     NudgeCandidate,
     NudgeReport,
@@ -164,6 +165,8 @@ __all__ = [
     # Parser
     "ParsedIntent",
     "Parser",
+    "LLMIntentParser",
+    "get_intent_parser",
     # People
     "PeopleService",
     # Places

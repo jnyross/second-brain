@@ -20,7 +20,8 @@ from assistant.notion.schemas import (
     Task,
     TaskSource,
 )
-from assistant.services.parser import ParsedIntent, Parser
+from assistant.services.llm_parser import get_intent_parser
+from assistant.services.parser import ParsedIntent
 from assistant.services.pattern_applicator import (
     AppliedPattern,
     PatternApplicationResult,
@@ -42,7 +43,7 @@ class ProcessResult:
 
 class MessageProcessor:
     def __init__(self) -> None:
-        self.parser = Parser()
+        self.parser = get_intent_parser()
         self.notion = NotionClient() if settings.has_notion else None
         self.pattern_applicator = PatternApplicator(notion_client=self.notion)
 
