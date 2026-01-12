@@ -1,0 +1,71 @@
+# Systemd service unit for Second Brain Telegram bot
+# This is the main long-running service for the bot
+#
+# Installation:
+#   1. Copy to /etc/systemd/system/
+#   2. Edit paths and user as needed
+#   3. sudo systemctl daemon-reload
+#   4. sudo systemctl enable --now second-brain.service
+#
+# Status check:
+#   sudo systemctl status second-brain.service
+#
+# Logs:
+#   journalctl -u second-brain.service -f
+
+[Unit]
+Description=Second Brain Personal Assistant Telegram Bot
+Documentation=https://github.com/your-org/second-brain
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=second-brain
+Group=second-brain
+
+# Start the Docker container
+ExecStartPre=/usr/bin/docker pull second-brain:latest
+ExecStart=/usr/bin/docker run --rm \
+    --name second-brain \
+    --env-file /etc/second-brain.env \
+    -v /var/lib/second-brain/tokens:/app/tokens:rw \
+    -v /var/lib/second-brain/cache:/app/cache:rw \
+    second-brain:latest \
+    python -m assistant run
+
+# Stop the container gracefully
+ExecStop=/usr/bin/docker stop -t 30 second-brain
+
+# Restart policy - always restart on failure
+Restart=always
+RestartSec=10
+
+# Environment
+EnvironmentFile=/etc/second-brain.env
+
+# Timeout
+TimeoutStartSec=120
+TimeoutStopSec=30
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=second-brain
+
+# Resource limits
+MemoryMax=512M
+CPUQuota=50%
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+[Install]
+WantedBy=multi-user.target

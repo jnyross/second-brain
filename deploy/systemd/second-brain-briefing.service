@@ -1,0 +1,58 @@
+# Systemd service unit for Second Brain morning briefing
+# This service is triggered by second-brain-briefing.timer at 7am
+#
+# Installation:
+#   1. Copy to /etc/systemd/system/
+#   2. Edit paths and user as needed
+#   3. sudo systemctl daemon-reload
+#   4. Enable the timer: sudo systemctl enable second-brain-briefing.timer
+#
+# Manual test:
+#   sudo systemctl start second-brain-briefing.service
+
+[Unit]
+Description=Second Brain Morning Briefing
+Documentation=https://github.com/your-org/second-brain
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=second-brain
+Group=second-brain
+
+# Run the briefing command
+# Option 1: Direct Python invocation (without Docker)
+# ExecStart=/opt/second-brain/venv/bin/python -m assistant briefing
+
+# Option 2: Docker invocation (recommended for production)
+ExecStart=/usr/bin/docker exec second-brain python -m assistant briefing
+
+# Environment file with secrets
+EnvironmentFile=/etc/second-brain.env
+
+# Working directory
+WorkingDirectory=/opt/second-brain
+
+# Restart policy - don't restart oneshot service
+Restart=no
+
+# Timeout - briefing should complete within 60 seconds
+TimeoutStartSec=60
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=second-brain-briefing
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,36 @@
+# Systemd timer unit for Second Brain morning briefing
+# Runs the briefing service at 7:00 AM every day
+#
+# Installation:
+#   1. Copy to /etc/systemd/system/
+#   2. sudo systemctl daemon-reload
+#   3. sudo systemctl enable --now second-brain-briefing.timer
+#
+# Check timer status:
+#   systemctl list-timers second-brain-briefing.timer
+#
+# Force immediate run:
+#   sudo systemctl start second-brain-briefing.service
+
+[Unit]
+Description=Second Brain Morning Briefing Timer
+Documentation=https://github.com/your-org/second-brain
+
+[Timer]
+# Run at 7:00 AM local time every day
+OnCalendar=*-*-* 07:00:00
+
+# Add randomized delay up to 5 minutes to avoid thundering herd
+RandomizedDelaySec=300
+
+# If the timer was missed (system was off), run when it comes back online
+Persistent=true
+
+# Accuracy - wake up within 1 minute of scheduled time
+AccuracySec=1min
+
+# The service to trigger
+Unit=second-brain-briefing.service
+
+[Install]
+WantedBy=timers.target

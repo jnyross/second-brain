@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 (Morning briefing generator) complete. Next: T-081 (Scheduled briefing sender), T-082 (/debrief command).
+- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 (Morning briefing generator) and T-081 (Scheduled briefing sender) complete. Next: T-082 (/debrief command).
 
 ## Iteration Log
 
@@ -250,4 +250,28 @@
   - Added tests/test_briefing.py (54 tests)
   - Commands: PYTHONPATH=src python -m pytest tests/test_briefing.py -v (54 passed)
   - Full test suite: 365 tests pass (5 pre-existing flaky timezone tests in test_entities.py/test_parser.py)
+  - Commit: pending
+- Iteration 28 (T-081) - Scheduled Briefing Sender
+  - Created deploy/systemd/ directory with systemd unit files:
+    - second-brain.service: Main Telegram bot service (Type=simple, Restart=always)
+    - second-brain-briefing.service: Oneshot service for sending briefing
+    - second-brain-briefing.timer: Timer scheduled for OnCalendar=*-*-* 07:00:00
+  - Timer features:
+    - Persistent=true: Catches up on missed runs if system was off at 7am
+    - RandomizedDelaySec=300: Avoids thundering herd
+    - AccuracySec=1min: Wakes within 1 minute of scheduled time
+  - Created deploy/systemd/install.sh: Installation script that:
+    - Creates second-brain user/group
+    - Creates /var/lib/second-brain directories
+    - Generates /etc/second-brain.env template
+    - Copies and enables systemd units
+  - Created deploy/README.md: Deployment documentation
+  - Updated src/assistant/services/__init__.py: Added exports for all service classes
+  - Added tests/test_scheduled_briefing.py (27 tests):
+    - TestSystemdFiles: Validates unit file contents
+    - TestInstallScript: Validates bash script
+    - TestBriefingCLI: Tests CLI command
+    - TestAT106: Acceptance test for morning briefing delivery
+  - Commands: PYTHONPATH=src python -m pytest tests/test_scheduled_briefing.py -v (27 passed)
+  - Full test suite: 387 tests pass (5 pre-existing flaky timezone tests)
   - Commit: pending

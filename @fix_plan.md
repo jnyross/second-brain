@@ -10,29 +10,29 @@ This file tracks the prioritized work items for Ralph autonomous loops. Update a
 ## High Priority (P0 - Must Complete)
 
 ### Core NLP Pipeline
-- [ ] T-052: Create entity extraction service
-- [ ] T-053: Implement confidence scoring
-- [ ] T-054: Build classification router
+- [x] T-052: Create entity extraction service
+- [x] T-053: Implement confidence scoring
+- [x] T-054: Build classification router
 
 ### Voice Processing
-- [ ] T-062: Integrate Whisper transcription
-- [ ] T-063: Implement voice message handler
+- [x] T-062: Integrate Whisper transcription
+- [x] T-063: Implement voice message handler
 
 ### Entity Management
-- [ ] T-070: Implement People lookup/create
-- [ ] T-071: Implement Places lookup/create
-- [ ] T-072: Implement Projects lookup
-- [ ] T-073: Build relation linker
+- [x] T-070: Implement People lookup/create
+- [x] T-071: Implement Places lookup/create
+- [x] T-072: Implement Projects lookup
+- [x] T-073: Build relation linker
 
 ### Response Handling
-- [ ] T-065: Implement low-confidence flagging
+- [x] T-065: Implement low-confidence flagging
 
 ---
 
 ## Medium Priority (P1 - Should Complete)
 
-- [ ] T-080: Implement morning briefing generator
-- [ ] T-081: Create scheduled briefing sender
+- [x] T-080: Implement morning briefing generator
+- [x] T-081: Create scheduled briefing sender
 - [ ] T-082: Implement /debrief command
 - [ ] T-083: Build interactive clarification flow
 - [ ] T-090: Implement correction handler

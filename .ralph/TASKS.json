@@ -497,9 +497,9 @@
       "acceptance_tests": [
         "AT-106"
       ],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Created deploy/systemd/ with: second-brain.service (main bot), second-brain-briefing.service (oneshot for briefing), second-brain-briefing.timer (OnCalendar=07:00:00, Persistent=true). Created install.sh script. Updated src/assistant/services/__init__.py to export BriefingGenerator. Tests in tests/test_scheduled_briefing.py (27 tests pass). AT-106 verified: timer scheduled for 7am, persistent for missed runs, triggers python -m assistant briefing.",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-082",
