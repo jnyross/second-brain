@@ -1103,4 +1103,4 @@
     - And: Container healthy (health-check.sh integration)
   - Commands: python3 -m pytest tests/test_rollback.py -v (69 passed)
   - Full test suite: 1313 tests (all pass)
-  - Commit: pending
+  - Commit: 11c5aa0
