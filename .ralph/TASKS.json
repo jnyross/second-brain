@@ -883,8 +883,8 @@
       "description": "Multi-stage Dockerfile for production deployment with minimal image size.",
       "depends_on": [],
       "acceptance_tests": ["AT-201"],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created Dockerfile (multi-stage: builder+runtime, python:3.12-slim, non-root user, healthcheck, OCI labels) and .dockerignore. Tests in tests/test_dockerfile.py (36 tests pass). Full suite: 1015 tests pass.",
       "updated_at": "2026-01-12"
     },
     {

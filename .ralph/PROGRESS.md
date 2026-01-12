@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-093 complete (Phase 4 Briefings + Phase 5 corrections/patterns fully complete). T-100 through T-102 complete (Google Calendar). T-110 complete (Audit logging). T-114 complete (Offline queue). T-115 complete (Soft delete). T-116 complete (Timezone handling). All P1 tasks done. T-120 complete (Gmail read integration). T-121 complete (Gmail draft creation). T-130 complete (Proactive nudges). Next: P2 tasks (T-131 always-on listening, T-140 WhatsApp) or review remaining P1 incomplete tasks.
+- Status: Phase 0 complete. Phases 1-5 complete. T-200 complete (Dockerfile multi-stage). Next: T-201 (docker-compose.yml) or T-202 (GitHub Actions CI) - both are P0 with T-202 having no dependencies.
 
 ## Iteration Log
 
@@ -836,3 +836,31 @@
   - Commands: python3 -m pytest tests/test_nudges.py -v (49 passed)
   - Full test suite: 979 tests (all pass)
   - Commit: 701d87a
+
+- Iteration 30 (T-200): Create Dockerfile (multi-stage)
+  - Task: Create multi-stage Dockerfile for production deployment per PRD 1.2 and AT-201
+  - Created Dockerfile with two-stage build:
+    - Stage 1 (builder): python:3.12-slim, installs deps in venv, builds wheel
+    - Stage 2 (runtime): python:3.12-slim, copies venv from builder, minimal image
+  - Security features:
+    - Non-root user (secondbrain:secondbrain, UID/GID 1000)
+    - Creates /var/lib/second-brain directories per PRD 1.2
+    - PYTHONDONTWRITEBYTECODE=1, PYTHONUNBUFFERED=1
+    - pip --no-cache-dir, apt rm -rf /var/lib/apt/lists
+  - Production features:
+    - HEALTHCHECK using "python -m assistant check"
+    - Default CMD runs Telegram bot
+    - OCI labels for container metadata
+    - TZ environment variable for timezone
+  - Created .dockerignore:
+    - Excludes .git, .venv, tests/, .env, credentials, logs, scripts
+    - Keeps build context minimal
+  - Created tests/test_dockerfile.py (36 tests):
+    - TestDockerfileStructure (15): Python 3.12, slim, multi-stage, user, healthcheck, venv
+    - TestDockerfileSecurityPractices (5): no secrets, cleanup, app directories
+    - TestDockerignore (7): excludes git, venv, tests, env, credentials
+    - TestAT201MultiStageDockerfile (5): multiple FROM, builder deps, runtime copies venv
+    - TestDockerBuildValidation (4): syntax, FROM format, COPY format, no ADD
+  - Commands: python3 -m pytest tests/test_dockerfile.py -v (36 passed)
+  - Full test suite: 1015 tests (all pass)
+  - Commit: 40bc35f

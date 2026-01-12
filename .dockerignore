@@ -1,0 +1,77 @@
+# =============================================================================
+# Docker Ignore - Keep build context minimal
+# =============================================================================
+
+# Git
+.git/
+.gitignore
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Test and development
+tests/
+*.test.py
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDE and editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build artifacts
+build/
+dist/
+*.whl
+
+# Documentation (not needed in runtime)
+docs/
+*.md
+!README.md
+
+# Local config and secrets
+.env
+.env.*
+*.local
+google_credentials.json
+client_secret_*.json
+
+# Ralph loop state (not needed in container)
+.ralph/
+.worktrees/
+logs/
+*.log
+
+# Development scripts
+scripts/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# Schema definitions (not needed at runtime)
+schemas/
+
+# Legacy files
+run_bot.py
