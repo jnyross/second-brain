@@ -1265,3 +1265,28 @@
   - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_handlers.py -v (48 passed)
   - Full test suite: 1458 tests (all pass)
   - Commit: pending
+- Iteration 51 (T-117) - Implement Whisper confidence handling (AT-120)
+  - Task: Flag low-confidence transcriptions for review with audio reference
+  - Updated src/assistant/services/processor.py:
+    - Extended process() to accept voice_file_id, transcript_confidence, language parameters
+    - Added force_low_confidence logic: if transcript_confidence < 80, always flag for review
+    - Updated _handle_low_confidence() to include voice metadata in InboxItem:
+      - source=TELEGRAM_VOICE (vs TELEGRAM_TEXT for text messages)
+      - transcript_confidence field populated
+      - voice_file_id field populated
+      - language field populated
+  - Updated src/assistant/telegram/handlers.py:
+    - _process_voice_transcription() now passes voice metadata to processor.process()
+    - voice_file_id, transcript_confidence, language passed for all voice messages
+  - AT-120 Verification:
+    - Given: Voice memo with low confidence (e.g., background noise)
+    - When: Whisper returns transcript with confidence < 80%
+    - Then: Inbox item created with needs_clarification=true
+    - And: transcript_confidence field populated with Whisper's confidence score
+    - And: Voice file reference stored in voice_file_id field
+  - Added tests in tests/test_handlers.py:
+    - TestT117WhisperConfidenceHandling (2 tests): voice_metadata_passed_to_processor, low_confidence_passes_metadata
+    - TestAT120WhisperLowConfidence (3 tests): low_confidence_creates_flagged_inbox_item, high_confidence_processes_normally, borderline_confidence_flags
+  - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_handlers.py -v (53 passed)
+  - Full test suite: 1463 tests (all pass)
+  - Commit: pending

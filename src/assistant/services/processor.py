@@ -51,16 +51,46 @@ class MessageProcessor:
         text: str,
         chat_id: str,
         message_id: str,
+        voice_file_id: str | None = None,
+        transcript_confidence: int | None = None,
+        language: str | None = None,
     ) -> ProcessResult:
+        """Process an incoming message.
+
+        Args:
+            text: Message text (or transcription for voice)
+            chat_id: Telegram chat ID
+            message_id: Telegram message ID
+            voice_file_id: Telegram voice file ID (for voice messages)
+            transcript_confidence: Whisper confidence 0-100 (for voice messages)
+            language: Detected language (for voice messages)
+
+        Returns:
+            ProcessResult with response and metadata
+        """
         parsed = self.parser.parse(text)
         idempotency_key = f"telegram:{chat_id}:{message_id}"
 
         # T-093: Apply stored patterns before further processing
         pattern_result = await self._apply_patterns(parsed)
 
-        if parsed.confidence < settings.confidence_threshold:
+        # T-117: For low-confidence Whisper transcriptions, always flag for review
+        # regardless of parser confidence
+        force_low_confidence = (
+            transcript_confidence is not None
+            and transcript_confidence < 80
+        )
+
+        if parsed.confidence < settings.confidence_threshold or force_low_confidence:
             return await self._handle_low_confidence(
-                parsed, chat_id, message_id, idempotency_key, pattern_result
+                parsed,
+                chat_id,
+                message_id,
+                idempotency_key,
+                pattern_result,
+                voice_file_id=voice_file_id,
+                transcript_confidence=transcript_confidence,
+                language=language,
             )
 
         return await self._handle_high_confidence(
@@ -125,19 +155,30 @@ class MessageProcessor:
         message_id: str,
         idempotency_key: str,
         pattern_result: PatternApplicationResult,
+        voice_file_id: str | None = None,
+        transcript_confidence: int | None = None,
+        language: str | None = None,
     ) -> ProcessResult:
         inbox_id = None
+
+        # T-117: Determine source type based on whether this is a voice message
+        is_voice = voice_file_id is not None
+        source = InboxSource.TELEGRAM_VOICE if is_voice else InboxSource.TELEGRAM_TEXT
 
         if self.notion:
             try:
                 item = InboxItem(
                     raw_input=parsed.raw_text,
-                    source=InboxSource.TELEGRAM_TEXT,
+                    source=source,
                     telegram_chat_id=chat_id,
                     telegram_message_id=message_id,
                     confidence=parsed.confidence,
                     needs_clarification=True,
                     interpretation=f"Possibly a {parsed.intent_type}: {parsed.title}",
+                    # T-117: Include voice metadata for Whisper transcriptions
+                    voice_file_id=voice_file_id,
+                    transcript_confidence=transcript_confidence,
+                    language=language,
                 )
                 inbox_id = await self.notion.create_inbox_item(item)
 

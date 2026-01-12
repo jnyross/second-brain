@@ -822,3 +822,197 @@ class TestProcessVoiceTranscription:
 
             call_args = mock_processor.process.call_args
             assert call_args.kwargs["message_id"] == "456_voice"
+
+
+class TestT117WhisperConfidenceHandling:
+    """Tests for T-117: Whisper confidence handling (AT-120)."""
+
+    @pytest.mark.asyncio
+    async def test_voice_metadata_passed_to_processor(self):
+        """Voice transcription should pass metadata to processor."""
+        message = AsyncMock()
+        transcription = TranscriptionResult(
+            text="Test message",
+            confidence=95,
+            language="en",
+            duration_seconds=1.0,
+            is_low_confidence=False,
+        )
+
+        with patch("assistant.telegram.handlers.processor") as mock_processor:
+            mock_result = MagicMock()
+            mock_result.response = "Got it."
+            mock_processor.process = AsyncMock(return_value=mock_result)
+
+            await _process_voice_transcription(
+                message=message,
+                transcription=transcription,
+                chat_id="123",
+                message_id="456",
+                audio_file_id="voice_file_abc",
+            )
+
+            # Verify voice metadata was passed
+            call_kwargs = mock_processor.process.call_args.kwargs
+            assert call_kwargs["voice_file_id"] == "voice_file_abc"
+            assert call_kwargs["transcript_confidence"] == 95
+            assert call_kwargs["language"] == "en"
+
+    @pytest.mark.asyncio
+    async def test_low_confidence_passes_metadata(self):
+        """Low confidence transcription should still pass all metadata."""
+        message = AsyncMock()
+        transcription = TranscriptionResult(
+            text="Unclear message",
+            confidence=55,
+            language="es",
+            duration_seconds=3.0,
+            is_low_confidence=True,
+        )
+
+        with patch("assistant.telegram.handlers.processor") as mock_processor:
+            mock_result = MagicMock()
+            mock_result.response = "Added to inbox."
+            mock_processor.process = AsyncMock(return_value=mock_result)
+
+            await _process_voice_transcription(
+                message=message,
+                transcription=transcription,
+                chat_id="chat1",
+                message_id="msg1",
+                audio_file_id="voice_xyz",
+            )
+
+            call_kwargs = mock_processor.process.call_args.kwargs
+            assert call_kwargs["voice_file_id"] == "voice_xyz"
+            assert call_kwargs["transcript_confidence"] == 55
+            assert call_kwargs["language"] == "es"
+
+
+class TestAT120WhisperLowConfidence:
+    """Acceptance tests for AT-120: Whisper Low Confidence Handling.
+
+    Given: User sends voice memo with background noise
+    When: Whisper returns transcript with low confidence
+    Then: Inbox item created with needs_clarification=true
+    And: transcript_confidence field populated
+    And: Voice file reference stored
+    """
+
+    @pytest.mark.asyncio
+    async def test_at120_low_confidence_creates_flagged_inbox_item(self):
+        """Low confidence whisper should create flagged inbox item."""
+        from assistant.notion.schemas import InboxSource
+        from assistant.services.processor import MessageProcessor
+
+        with patch("assistant.services.processor.NotionClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client_cls.return_value = mock_client
+            mock_client.create_inbox_item = AsyncMock(return_value="inbox_123")
+            mock_client.log_action = AsyncMock()
+
+            processor = MessageProcessor()
+            processor.notion = mock_client
+
+            # Simulate low-confidence Whisper transcription
+            _result = await processor.process(
+                text="something unclear",
+                chat_id="123",
+                message_id="456_voice",
+                voice_file_id="voice_abc123",
+                transcript_confidence=50,  # Low confidence
+                language="en",
+            )
+
+            # Verify inbox item was created
+            mock_client.create_inbox_item.assert_called_once()
+            item = mock_client.create_inbox_item.call_args[0][0]
+
+            # AT-120 assertions
+            assert item.needs_clarification is True
+            assert item.transcript_confidence == 50
+            assert item.voice_file_id == "voice_abc123"
+            assert item.source == InboxSource.TELEGRAM_VOICE
+            assert item.language == "en"
+
+    @pytest.mark.asyncio
+    async def test_at120_high_confidence_processes_normally(self):
+        """High confidence whisper should process normally (not flagged)."""
+        from assistant.services.pattern_applicator import PatternApplicationResult
+        from assistant.services.processor import MessageProcessor
+
+        with (
+            patch("assistant.services.processor.NotionClient") as mock_client_cls,
+            patch("assistant.services.processor.settings") as mock_settings,
+            patch("assistant.services.processor.PatternApplicator") as mock_pattern_cls,
+        ):
+            mock_settings.confidence_threshold = 80
+            mock_settings.has_notion = True
+
+            mock_client = AsyncMock()
+            mock_client_cls.return_value = mock_client
+            mock_client.query_people = AsyncMock(return_value=[])
+            mock_client.create_person = AsyncMock(return_value="person_1")
+            mock_client.create_task = AsyncMock(return_value="task_123")
+            mock_client.log_action = AsyncMock()
+
+            # Mock pattern applicator to return no corrections
+            mock_pattern = AsyncMock()
+            mock_pattern_cls.return_value = mock_pattern
+            mock_pattern.apply_patterns = AsyncMock(
+                return_value=PatternApplicationResult(
+                    original_text="Buy groceries tomorrow",
+                    original_people=[],
+                    original_places=[],
+                    original_title="Buy groceries",
+                )
+            )
+
+            processor = MessageProcessor()
+            processor.notion = mock_client
+
+            # Simulate high-confidence Whisper transcription
+            # Note: "Buy groceries tomorrow" has 95% parser confidence
+            result = await processor.process(
+                text="Buy groceries tomorrow",
+                chat_id="123",
+                message_id="456_voice",
+                voice_file_id="voice_def456",
+                transcript_confidence=95,  # High confidence
+                language="en",
+            )
+
+            # Task created, not inbox item
+            mock_client.create_task.assert_called_once()
+            mock_client.create_inbox_item.assert_not_called()
+            assert result.task_id == "task_123"
+
+    @pytest.mark.asyncio
+    async def test_at120_borderline_confidence_flags(self):
+        """Borderline whisper confidence (< 80) should flag for review."""
+        from assistant.services.processor import MessageProcessor
+
+        with patch("assistant.services.processor.NotionClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client_cls.return_value = mock_client
+            mock_client.create_inbox_item = AsyncMock(return_value="inbox_456")
+            mock_client.log_action = AsyncMock()
+
+            processor = MessageProcessor()
+            processor.notion = mock_client
+
+            # Borderline confidence (79% whisper, but parser might be higher)
+            _result = await processor.process(
+                text="Something",
+                chat_id="123",
+                message_id="789_voice",
+                voice_file_id="voice_ghi789",
+                transcript_confidence=79,  # Just below 80%
+                language="en",
+            )
+
+            # Should be flagged due to low transcript confidence
+            mock_client.create_inbox_item.assert_called_once()
+            item = mock_client.create_inbox_item.call_args[0][0]
+            assert item.needs_clarification is True
+            assert item.transcript_confidence == 79

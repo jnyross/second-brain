@@ -460,7 +460,9 @@ async def _process_voice_transcription(
 ) -> None:
     """Process transcribed voice message.
 
-    Low-confidence transcriptions are flagged for review with audio reference.
+    T-117: Low-confidence transcriptions are flagged for review with audio reference.
+    Voice metadata (file_id, transcript_confidence, language) is passed to processor
+    so it can be stored in inbox items for later review.
     """
     # If transcription confidence is low, warn user
     if transcription.needs_review:
@@ -471,11 +473,15 @@ async def _process_voice_transcription(
     else:
         prefix = ""
 
-    # Process through standard pipeline
+    # T-117: Process through pipeline with voice metadata
+    # This ensures inbox items include transcript_confidence and voice_file_id
     result = await processor.process(
         text=transcription.text,
         chat_id=chat_id,
         message_id=f"{message_id}_voice",  # Distinguish from text messages
+        voice_file_id=audio_file_id,
+        transcript_confidence=transcription.confidence,
+        language=transcription.language,
     )
 
     # Add transcription info to response
