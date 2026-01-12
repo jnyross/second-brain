@@ -1062,10 +1062,10 @@
       "description": "Replace regex-based parser with LLM-powered intent detection using Gemini 2.5 Flash-Lite or similar cheap/fast model. Enables semantic understanding of ambiguous input, better entity extraction, and contextual confidence scoring. Keep regex as fallback for offline/API-failure scenarios.",
       "depends_on": [],
       "acceptance_tests": [
-        "AT-107"
+        "AT-128"
       ],
       "passes": false,
-      "evidence": null,
+      "evidence": "Implemented LLMIntentParser with Gemini API support and regex fallback in src/assistant/services/llm_parser.py, wired MessageProcessor to use it, added tests in tests/test_llm_parser.py. Attempted PYTHONPATH=src python3 -m pytest tests/test_llm_parser.py -v but test collection failed due to missing pytz dependency in environment (pip install pytz blocked by proxy).",
       "updated_at": "2026-01-12"
     },
     {

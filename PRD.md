@@ -1,6 +1,6 @@
 # PRD.md — Product Requirements Document (Project-Specific)
 
-**PRD version:** 0.6.0
+**PRD version:** 0.6.1
 **Status:** Draft
 **Last updated:** 2026-01-12
 **Completion promise (must match Prompt.md):** `<promise>COMPLETE</promise>`
@@ -1282,6 +1282,13 @@ When models are more capable:
 - **Then:** Response lists nearby tasks with distances
 - **Pass condition:** Response includes all 3 tasks with distance estimates
 
+### AT-128 — LLM Intent Parsing with Fallback
+- **Given:** LLM API key configured for intent parsing
+- **When:** User sends an ambiguous message ("need to sort plans with Alex next Friday")
+- **Then:** LLM parser returns structured intent with extracted people, dates, and confidence
+- **And:** If the LLM API is unavailable, the regex parser is used instead
+- **Pass condition:** Parsed intent includes structured fields and fallback path is exercised on API failure
+
 ---
 
 ## 9. Task Backlog (Revised)
@@ -1868,6 +1875,9 @@ ssh deploy@droplet "cd /opt/second-brain && ./scripts/rollback.sh"
 ---
 
 ## 13. Changelog
+
+- 0.6.1 (2026-01-12): LLM intent parsing acceptance test
+  - Added AT-128 for LLM intent parsing with fallback behavior
 
 - 0.6.0 (2026-01-12): Deployment & Operations
   - Added Section 12: Deployment & Operations (DigitalOcean, Docker, CI/CD)

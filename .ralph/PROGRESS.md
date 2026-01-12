@@ -1290,3 +1290,8 @@
   - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_handlers.py -v (53 passed)
   - Full test suite: 1463 tests (all pass)
   - Commit: pending
+
+- Iteration 52 (T-212)
+  - Commands: scripts/verify.sh (fail: missing bootstrap artifacts, claude/docker, git), python3 -m pytest tests/test_llm_parser.py -v (fail: missing assistant module), PYTHONPATH=src python3 -m pytest tests/test_llm_parser.py -v (fail: missing pytz), python3 -m pip install pytz (fail: proxy 403)
+  - Results: Added LLMIntentParser with Gemini API support and regex fallback, wired MessageProcessor to use it, added LLM parser tests, added AT-128 to PRD. Tests blocked by missing pytz dependency in environment; task remains incomplete.
+  - Commit: pending
