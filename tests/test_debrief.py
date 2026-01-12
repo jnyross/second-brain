@@ -27,7 +27,6 @@ from assistant.telegram.debrief import (
     _should_ask_for_due_date,
     cmd_debrief,
     handle_debrief_response,
-    handle_due_date_response,
     setup_debrief_handlers,
 )
 
@@ -203,9 +202,7 @@ class TestDebriefResponse:
             await handle_debrief_response(self.message, self.state)
 
             # Should dismiss the item
-            mock_service.dismiss_item.assert_called_once_with(
-                "page-1", reason="Skipped in debrief"
-            )
+            mock_service.dismiss_item.assert_called_once_with("page-1", reason="Skipped in debrief")
 
             # Should show skip message
             calls = self.message.answer.call_args_list
@@ -213,9 +210,7 @@ class TestDebriefResponse:
 
             # Should advance to next item
             state_calls = self.state.update_data.call_args_list
-            assert any(
-                call[1].get("current_index") == 1 for call in state_calls
-            ) or any(
+            assert any(call[1].get("current_index") == 1 for call in state_calls) or any(
                 len(call[0]) > 0 and call[0][0] == 1 for call in state_calls
             )
 
@@ -271,8 +266,10 @@ class TestDebriefResponse:
             "stats": {"clarified": 0, "skipped": 0, "dismissed": 0},
         }
 
-        with patch("assistant.telegram.debrief.ClarificationService") as MockService, \
-             patch("assistant.telegram.debrief._get_remaining_count") as mock_count:
+        with (
+            patch("assistant.telegram.debrief.ClarificationService") as MockService,
+            patch("assistant.telegram.debrief._get_remaining_count") as mock_count,
+        ):
             mock_service = AsyncMock()
             mock_service.create_task_from_item.return_value = ClarificationResult(
                 item_id="page-1",
@@ -624,8 +621,10 @@ class TestAT107:
             "stats": {"clarified": 1, "skipped": 0, "dismissed": 0},
         }
 
-        with patch("assistant.telegram.debrief.ClarificationService") as MockService, \
-             patch("assistant.telegram.debrief._get_remaining_count") as mock_count:
+        with (
+            patch("assistant.telegram.debrief.ClarificationService") as MockService,
+            patch("assistant.telegram.debrief._get_remaining_count") as mock_count,
+        ):
             mock_service = AsyncMock()
             mock_service.dismiss_item.return_value = ClarificationResult(
                 item_id="page-2",
@@ -717,8 +716,10 @@ class TestT083CancelPatterns:
             "stats": {"clarified": 0, "skipped": 0, "dismissed": 0},
         }
 
-        with patch("assistant.telegram.debrief.ClarificationService") as MockService, \
-             patch("assistant.telegram.debrief._get_remaining_count") as mock_count:
+        with (
+            patch("assistant.telegram.debrief.ClarificationService") as MockService,
+            patch("assistant.telegram.debrief._get_remaining_count") as mock_count,
+        ):
             mock_service = AsyncMock()
             mock_service.dismiss_item.return_value = ClarificationResult(
                 item_id="page-1",
@@ -854,20 +855,22 @@ class TestT083EntityHandling:
     def test_entities_roundtrip_serialization(self):
         """Should maintain entity data through serialization roundtrip."""
         from assistant.services.entities import (
+            ExtractedDate,
             ExtractedEntities,
             ExtractedPerson,
             ExtractedPlace,
-            ExtractedDate,
         )
 
         original = ExtractedEntities(
             people=[ExtractedPerson(name="Sarah", confidence=85, context="with Sarah")],
             places=[ExtractedPlace(name="Office", confidence=90, context="at Office")],
-            dates=[ExtractedDate(
-                datetime_value=datetime(2026, 1, 15, 14, 0),
-                confidence=95,
-                original_text="tomorrow",
-            )],
+            dates=[
+                ExtractedDate(
+                    datetime_value=datetime(2026, 1, 15, 14, 0),
+                    confidence=95,
+                    original_text="tomorrow",
+                )
+            ],
             raw_text="Meet with Sarah at Office tomorrow",
         )
 
@@ -899,6 +902,7 @@ class TestT083DueDateFormatting:
     def test_format_due_date_tomorrow(self):
         """Should format tomorrow's date."""
         from datetime import timedelta
+
         tomorrow = datetime.now() + timedelta(days=1)
         result = _format_due_date(tomorrow)
         assert result == "Tomorrow"
@@ -906,6 +910,7 @@ class TestT083DueDateFormatting:
     def test_format_due_date_weekday(self):
         """Should format near-future date as weekday name."""
         from datetime import timedelta
+
         # 3 days from now
         future = datetime.now() + timedelta(days=3)
         result = _format_due_date(future)
@@ -916,10 +921,24 @@ class TestT083DueDateFormatting:
     def test_format_due_date_distant(self):
         """Should format distant date with month and day."""
         from datetime import timedelta
+
         distant = datetime.now() + timedelta(days=30)
         result = _format_due_date(distant)
         # Should contain month name
-        assert any(m in result for m in [
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December"
-        ])
+        assert any(
+            m in result
+            for m in [
+                "January",
+                "February",
+                "March",
+                "April",
+                "May",
+                "June",
+                "July",
+                "August",
+                "September",
+                "October",
+                "November",
+                "December",
+            ]
+        )

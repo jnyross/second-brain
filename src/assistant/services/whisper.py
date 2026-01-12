@@ -7,7 +7,6 @@ Returns transcription with confidence score for quality assessment.
 import asyncio
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, BinaryIO
 
 import httpx
 
@@ -61,7 +60,7 @@ class WhisperTranscriber:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         model: str = DEFAULT_MODEL,
         timeout_seconds: float = 30.0,
     ):
@@ -80,7 +79,7 @@ class WhisperTranscriber:
         self,
         audio_data: bytes,
         filename: str = "audio.ogg",
-        language: Optional[str] = None,
+        language: str | None = None,
     ) -> TranscriptionResult:
         """Transcribe audio data.
 
@@ -106,7 +105,7 @@ class WhisperTranscriber:
             )
 
         # Attempt transcription with retries
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
         for attempt in range(self.MAX_RETRIES):
             try:
                 return await self._transcribe_request(audio_data, filename, language)
@@ -115,12 +114,14 @@ class WhisperTranscriber:
                 if attempt < self.MAX_RETRIES - 1:
                     await asyncio.sleep(self.RETRY_DELAY_SECONDS * (attempt + 1))
 
-        raise TranscriptionError(f"Transcription failed after {self.MAX_RETRIES} attempts: {last_error}")
+        raise TranscriptionError(
+            f"Transcription failed after {self.MAX_RETRIES} attempts: {last_error}"
+        )
 
     async def transcribe_file(
         self,
         file_path: str | Path,
-        language: Optional[str] = None,
+        language: str | None = None,
     ) -> TranscriptionResult:
         """Transcribe an audio file.
 
@@ -142,7 +143,7 @@ class WhisperTranscriber:
         self,
         audio_data: bytes,
         filename: str,
-        language: Optional[str],
+        language: str | None,
     ) -> TranscriptionResult:
         """Make the actual API request."""
         headers = {
@@ -207,11 +208,7 @@ class WhisperTranscriber:
             return 50  # No segments = uncertain
 
         # Collect avg_logprob from all segments
-        logprobs = [
-            seg.get("avg_logprob", -1.0)
-            for seg in segments
-            if "avg_logprob" in seg
-        ]
+        logprobs = [seg.get("avg_logprob", -1.0) for seg in segments if "avg_logprob" in seg]
 
         if not logprobs:
             return 50
@@ -256,8 +253,8 @@ class TranscriptionError(Exception):
 async def transcribe_audio(
     audio_data: bytes,
     filename: str = "audio.ogg",
-    language: Optional[str] = None,
-    api_key: Optional[str] = None,
+    language: str | None = None,
+    api_key: str | None = None,
 ) -> TranscriptionResult:
     """Convenience function to transcribe audio.
 

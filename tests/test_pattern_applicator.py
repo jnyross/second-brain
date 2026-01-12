@@ -4,14 +4,14 @@ Tests for T-093: Apply patterns to new inputs - checks patterns before
 classification and applies learned behaviors to correct likely errors.
 """
 
+from unittest.mock import AsyncMock
+
 import pytest
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from assistant.services.pattern_applicator import (
     AppliedPattern,
-    PatternApplicator,
     PatternApplicationResult,
+    PatternApplicator,
     apply_patterns,
     get_pattern_applicator,
     load_patterns,
@@ -205,16 +205,18 @@ class TestPatternApplicatorLoadPatterns:
     async def test_load_patterns_success(self):
         """Test successful pattern loading."""
         mock_notion = AsyncMock()
-        mock_notion.query_patterns = AsyncMock(return_value=[
-            {
-                "id": "pattern-123",
-                "properties": {
-                    "trigger": {"title": [{"text": {"content": "Jess"}}]},
-                    "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
-                    "confidence": {"number": 80},
-                },
-            }
-        ])
+        mock_notion.query_patterns = AsyncMock(
+            return_value=[
+                {
+                    "id": "pattern-123",
+                    "properties": {
+                        "trigger": {"title": [{"text": {"content": "Jess"}}]},
+                        "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
+                        "confidence": {"number": 80},
+                    },
+                }
+            ]
+        )
 
         applicator = PatternApplicator(notion_client=mock_notion)
 
@@ -261,25 +263,27 @@ class TestPatternApplicatorLoadPatterns:
     async def test_load_patterns_filters_invalid(self):
         """Test that invalid patterns are filtered out."""
         mock_notion = AsyncMock()
-        mock_notion.query_patterns = AsyncMock(return_value=[
-            {
-                "id": "valid",
-                "properties": {
-                    "trigger": {"title": [{"text": {"content": "Jess"}}]},
-                    "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
-                    "confidence": {"number": 80},
+        mock_notion.query_patterns = AsyncMock(
+            return_value=[
+                {
+                    "id": "valid",
+                    "properties": {
+                        "trigger": {"title": [{"text": {"content": "Jess"}}]},
+                        "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
+                        "confidence": {"number": 80},
+                    },
                 },
-            },
-            {
-                # Invalid: missing meaning
-                "id": "invalid",
-                "properties": {
-                    "trigger": {"title": [{"text": {"content": "Bob"}}]},
-                    "meaning": {"rich_text": []},
-                    "confidence": {"number": 70},
+                {
+                    # Invalid: missing meaning
+                    "id": "invalid",
+                    "properties": {
+                        "trigger": {"title": [{"text": {"content": "Bob"}}]},
+                        "meaning": {"rich_text": []},
+                        "confidence": {"number": 70},
+                    },
                 },
-            },
-        ])
+            ]
+        )
 
         applicator = PatternApplicator(notion_client=mock_notion)
 
@@ -300,7 +304,7 @@ class TestPatternApplicatorApplyPatterns:
         applicator = PatternApplicator(notion_client=mock_notion)
         assert not applicator._cache_loaded
 
-        result = await applicator.apply_patterns(
+        await applicator.apply_patterns(
             text="Call Jess",
             people=["Jess"],
         )
@@ -312,16 +316,18 @@ class TestPatternApplicatorApplyPatterns:
     async def test_apply_patterns_corrects_person(self):
         """Test pattern corrects person name."""
         mock_notion = AsyncMock()
-        mock_notion.query_patterns = AsyncMock(return_value=[
-            {
-                "id": "pattern-123",
-                "properties": {
-                    "trigger": {"title": [{"text": {"content": "Jess"}}]},
-                    "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
-                    "confidence": {"number": 80},
-                },
-            }
-        ])
+        mock_notion.query_patterns = AsyncMock(
+            return_value=[
+                {
+                    "id": "pattern-123",
+                    "properties": {
+                        "trigger": {"title": [{"text": {"content": "Jess"}}]},
+                        "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
+                        "confidence": {"number": 80},
+                    },
+                }
+            ]
+        )
 
         applicator = PatternApplicator(notion_client=mock_notion)
         await applicator.load_patterns()
@@ -343,16 +349,18 @@ class TestPatternApplicatorApplyPatterns:
     async def test_apply_patterns_corrects_place(self):
         """Test pattern corrects place name."""
         mock_notion = AsyncMock()
-        mock_notion.query_patterns = AsyncMock(return_value=[
-            {
-                "id": "pattern-456",
-                "properties": {
-                    "trigger": {"title": [{"text": {"content": "Starbucks"}}]},
-                    "meaning": {"rich_text": [{"text": {"content": "Starbucks Reserve"}}]},
-                    "confidence": {"number": 75},
-                },
-            }
-        ])
+        mock_notion.query_patterns = AsyncMock(
+            return_value=[
+                {
+                    "id": "pattern-456",
+                    "properties": {
+                        "trigger": {"title": [{"text": {"content": "Starbucks"}}]},
+                        "meaning": {"rich_text": [{"text": {"content": "Starbucks Reserve"}}]},
+                        "confidence": {"number": 75},
+                    },
+                }
+            ]
+        )
 
         applicator = PatternApplicator(notion_client=mock_notion)
         await applicator.load_patterns()
@@ -371,16 +379,18 @@ class TestPatternApplicatorApplyPatterns:
     async def test_apply_patterns_no_match(self):
         """Test no patterns applied when no match."""
         mock_notion = AsyncMock()
-        mock_notion.query_patterns = AsyncMock(return_value=[
-            {
-                "id": "pattern-123",
-                "properties": {
-                    "trigger": {"title": [{"text": {"content": "Jess"}}]},
-                    "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
-                    "confidence": {"number": 80},
-                },
-            }
-        ])
+        mock_notion.query_patterns = AsyncMock(
+            return_value=[
+                {
+                    "id": "pattern-123",
+                    "properties": {
+                        "trigger": {"title": [{"text": {"content": "Jess"}}]},
+                        "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
+                        "confidence": {"number": 80},
+                    },
+                }
+            ]
+        )
 
         applicator = PatternApplicator(notion_client=mock_notion)
         await applicator.load_patterns()
@@ -399,16 +409,18 @@ class TestPatternApplicatorApplyPatterns:
     async def test_apply_patterns_multiple_people(self):
         """Test pattern applies to one person in a list."""
         mock_notion = AsyncMock()
-        mock_notion.query_patterns = AsyncMock(return_value=[
-            {
-                "id": "pattern-123",
-                "properties": {
-                    "trigger": {"title": [{"text": {"content": "Jess"}}]},
-                    "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
-                    "confidence": {"number": 80},
-                },
-            }
-        ])
+        mock_notion.query_patterns = AsyncMock(
+            return_value=[
+                {
+                    "id": "pattern-123",
+                    "properties": {
+                        "trigger": {"title": [{"text": {"content": "Jess"}}]},
+                        "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
+                        "confidence": {"number": 80},
+                    },
+                }
+            ]
+        )
 
         applicator = PatternApplicator(notion_client=mock_notion)
         await applicator.load_patterns()
@@ -426,17 +438,19 @@ class TestPatternApplicatorApplyPatterns:
     async def test_apply_patterns_title_only(self):
         """Test pattern detected in title without entity extraction."""
         mock_notion = AsyncMock()
-        mock_notion.query_patterns = AsyncMock(return_value=[
-            {
-                "id": "priority-pattern",
-                "properties": {
-                    "trigger": {"title": [{"text": {"content": "shopping"}}]},
-                    "meaning": {"rich_text": [{"text": {"content": "low priority"}}]},
-                    "confidence": {"number": 80},
-                    "pattern_type": {"select": {"name": "priority"}},
-                },
-            }
-        ])
+        mock_notion.query_patterns = AsyncMock(
+            return_value=[
+                {
+                    "id": "priority-pattern",
+                    "properties": {
+                        "trigger": {"title": [{"text": {"content": "shopping"}}]},
+                        "meaning": {"rich_text": [{"text": {"content": "low priority"}}]},
+                        "confidence": {"number": 80},
+                        "pattern_type": {"select": {"name": "priority"}},
+                    },
+                }
+            ]
+        )
 
         applicator = PatternApplicator(notion_client=mock_notion)
         await applicator.load_patterns()
@@ -491,9 +505,7 @@ class TestPatternApplicatorUpdateUsage:
     async def test_update_pattern_usage_error_handling(self):
         """Test graceful error handling."""
         mock_notion = AsyncMock()
-        mock_notion.update_pattern_confidence = AsyncMock(
-            side_effect=Exception("API error")
-        )
+        mock_notion.update_pattern_confidence = AsyncMock(side_effect=Exception("API error"))
 
         applicator = PatternApplicator(notion_client=mock_notion)
 
@@ -539,16 +551,18 @@ class TestModuleLevelFunctions:
         import assistant.services.pattern_applicator as module
 
         mock_notion = AsyncMock()
-        mock_notion.query_patterns = AsyncMock(return_value=[
-            {
-                "id": "p1",
-                "properties": {
-                    "trigger": {"title": [{"text": {"content": "Test"}}]},
-                    "meaning": {"rich_text": [{"text": {"content": "Result"}}]},
-                    "confidence": {"number": 80},
-                },
-            }
-        ])
+        mock_notion.query_patterns = AsyncMock(
+            return_value=[
+                {
+                    "id": "p1",
+                    "properties": {
+                        "trigger": {"title": [{"text": {"content": "Test"}}]},
+                        "meaning": {"rich_text": [{"text": {"content": "Result"}}]},
+                        "confidence": {"number": 80},
+                    },
+                }
+            ]
+        )
 
         module._applicator = PatternApplicator(notion_client=mock_notion)
 
@@ -569,17 +583,19 @@ class TestT093Integration:
         System should correct to "Call Tess tomorrow".
         """
         mock_notion = AsyncMock()
-        mock_notion.query_patterns = AsyncMock(return_value=[
-            {
-                "id": "jess-tess-pattern",
-                "properties": {
-                    "trigger": {"title": [{"text": {"content": "Jess"}}]},
-                    "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
-                    "confidence": {"number": 85},
-                    "pattern_type": {"select": {"name": "person"}},
-                },
-            }
-        ])
+        mock_notion.query_patterns = AsyncMock(
+            return_value=[
+                {
+                    "id": "jess-tess-pattern",
+                    "properties": {
+                        "trigger": {"title": [{"text": {"content": "Jess"}}]},
+                        "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
+                        "confidence": {"number": 85},
+                        "pattern_type": {"select": {"name": "person"}},
+                    },
+                }
+            ]
+        )
         mock_notion.update_pattern_confidence = AsyncMock()
 
         applicator = PatternApplicator(notion_client=mock_notion)
@@ -615,17 +631,19 @@ class TestT093Integration:
         PRD 5.7 example: shopping tasks should be low priority.
         """
         mock_notion = AsyncMock()
-        mock_notion.query_patterns = AsyncMock(return_value=[
-            {
-                "id": "shopping-priority-pattern",
-                "properties": {
-                    "trigger": {"title": [{"text": {"content": "shopping"}}]},
-                    "meaning": {"rich_text": [{"text": {"content": "priority=low"}}]},
-                    "confidence": {"number": 80},
-                    "pattern_type": {"select": {"name": "priority"}},
-                },
-            }
-        ])
+        mock_notion.query_patterns = AsyncMock(
+            return_value=[
+                {
+                    "id": "shopping-priority-pattern",
+                    "properties": {
+                        "trigger": {"title": [{"text": {"content": "shopping"}}]},
+                        "meaning": {"rich_text": [{"text": {"content": "priority=low"}}]},
+                        "confidence": {"number": 80},
+                        "pattern_type": {"select": {"name": "priority"}},
+                    },
+                }
+            ]
+        )
 
         applicator = PatternApplicator(notion_client=mock_notion)
         await applicator.load_patterns()
@@ -640,32 +658,33 @@ class TestT093Integration:
         # Pattern should be detected (though title may not change for priority patterns)
         assert result.has_corrections
         assert any(
-            p.trigger == "shopping" and p.meaning == "priority=low"
-            for p in result.patterns_applied
+            p.trigger == "shopping" and p.meaning == "priority=low" for p in result.patterns_applied
         )
 
     @pytest.mark.asyncio
     async def test_t093_multiple_patterns_applied(self):
         """Test T-093: Multiple patterns can apply to one message."""
         mock_notion = AsyncMock()
-        mock_notion.query_patterns = AsyncMock(return_value=[
-            {
-                "id": "jess-tess",
-                "properties": {
-                    "trigger": {"title": [{"text": {"content": "Jess"}}]},
-                    "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
-                    "confidence": {"number": 80},
+        mock_notion.query_patterns = AsyncMock(
+            return_value=[
+                {
+                    "id": "jess-tess",
+                    "properties": {
+                        "trigger": {"title": [{"text": {"content": "Jess"}}]},
+                        "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
+                        "confidence": {"number": 80},
+                    },
                 },
-            },
-            {
-                "id": "starbucks-reserve",
-                "properties": {
-                    "trigger": {"title": [{"text": {"content": "Starbucks"}}]},
-                    "meaning": {"rich_text": [{"text": {"content": "Starbucks Reserve"}}]},
-                    "confidence": {"number": 75},
+                {
+                    "id": "starbucks-reserve",
+                    "properties": {
+                        "trigger": {"title": [{"text": {"content": "Starbucks"}}]},
+                        "meaning": {"rich_text": [{"text": {"content": "Starbucks Reserve"}}]},
+                        "confidence": {"number": 75},
+                    },
                 },
-            },
-        ])
+            ]
+        )
 
         applicator = PatternApplicator(notion_client=mock_notion)
         await applicator.load_patterns()
@@ -743,17 +762,19 @@ class TestAT109Integration:
         """
         mock_notion = AsyncMock()
         # Simulate a stored pattern from previous corrections
-        mock_notion.query_patterns = AsyncMock(return_value=[
-            {
-                "id": "learned-pattern-123",
-                "properties": {
-                    "trigger": {"title": [{"text": {"content": "high"}}]},
-                    "meaning": {"rich_text": [{"text": {"content": "low"}}]},
-                    "confidence": {"number": 80},  # > 70% as required by AT-109
-                    "pattern_type": {"select": {"name": "priority"}},
-                },
-            }
-        ])
+        mock_notion.query_patterns = AsyncMock(
+            return_value=[
+                {
+                    "id": "learned-pattern-123",
+                    "properties": {
+                        "trigger": {"title": [{"text": {"content": "high"}}]},
+                        "meaning": {"rich_text": [{"text": {"content": "low"}}]},
+                        "confidence": {"number": 80},  # > 70% as required by AT-109
+                        "pattern_type": {"select": {"name": "priority"}},
+                    },
+                }
+            ]
+        )
         mock_notion.update_pattern_confidence = AsyncMock()
 
         applicator = PatternApplicator(notion_client=mock_notion)
@@ -769,9 +790,6 @@ class TestAT109Integration:
 
         # Pattern should be detected in title
         assert result.has_corrections
-        assert any(
-            p.trigger == "high" and p.meaning == "low"
-            for p in result.patterns_applied
-        )
+        assert any(p.trigger == "high" and p.meaning == "low" for p in result.patterns_applied)
 
         # This satisfies AT-109: "Future similar tasks use learned pattern"

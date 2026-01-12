@@ -1,14 +1,14 @@
 from assistant.notion.client import NotionClient
 from assistant.notion.schemas import (
+    Email,
     InboxItem,
-    Task,
+    LogEntry,
+    Pattern,
     Person,
-    Project,
     Place,
     Preference,
-    Pattern,
-    Email,
-    LogEntry,
+    Project,
+    Task,
 )
 
 __all__ = [

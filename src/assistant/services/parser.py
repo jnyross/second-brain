@@ -1,8 +1,7 @@
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Optional
-from dateutil import parser as date_parser
+
 import pytz
 
 from assistant.config import settings
@@ -13,8 +12,8 @@ class ParsedIntent:
     intent_type: str
     title: str
     confidence: int
-    due_date: Optional[datetime] = None
-    due_timezone: Optional[str] = None
+    due_date: datetime | None = None
+    due_timezone: str | None = None
     people: list[str] = field(default_factory=list)
     places: list[str] = field(default_factory=list)
     raw_text: str = ""
@@ -38,9 +37,25 @@ class Parser:
     ]
 
     TASK_INDICATORS = [
-        "buy", "call", "email", "send", "book", "schedule", "meet",
-        "remind", "pick up", "drop off", "finish", "complete", "do",
-        "make", "get", "check", "review", "prepare", "write",
+        "buy",
+        "call",
+        "email",
+        "send",
+        "book",
+        "schedule",
+        "meet",
+        "remind",
+        "pick up",
+        "drop off",
+        "finish",
+        "complete",
+        "do",
+        "make",
+        "get",
+        "check",
+        "review",
+        "prepare",
+        "write",
     ]
 
     def __init__(self, timezone: str | None = None):
@@ -104,7 +119,7 @@ class Parser:
 
         return max(0, min(100, confidence))
 
-    def _extract_datetime(self, text: str) -> tuple[Optional[datetime], Optional[str]]:
+    def _extract_datetime(self, text: str) -> tuple[datetime | None, str | None]:
         now = datetime.now(self.timezone)
 
         if "tomorrow" in text:
@@ -124,8 +139,13 @@ class Parser:
             return date, str(self.timezone)
 
         weekdays = {
-            "monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
-            "friday": 4, "saturday": 5, "sunday": 6,
+            "monday": 0,
+            "tuesday": 1,
+            "wednesday": 2,
+            "thursday": 3,
+            "friday": 4,
+            "saturday": 5,
+            "sunday": 6,
         }
         for day_name, day_num in weekdays.items():
             if day_name in text:
@@ -165,7 +185,7 @@ class Parser:
 
         return None, None
 
-    def _extract_time(self, text: str) -> Optional[tuple[int, int]]:
+    def _extract_time(self, text: str) -> tuple[int, int] | None:
         match = re.search(r"(\d{1,2})\s*(?::|\.)\s*(\d{2})\s*(am|pm)?", text)
         if match:
             hour = int(match.group(1))
@@ -199,12 +219,28 @@ class Parser:
 
         for i, word in enumerate(words):
             if word[0].isupper() and len(word) > 1:
-                if i > 0 and words[i-1].lower() not in ["i", "the", "a", "an", "at", "on", "in"]:
-                    if word.lower() not in ["monday", "tuesday", "wednesday", "thursday", 
-                                           "friday", "saturday", "sunday", "january", 
-                                           "february", "march", "april", "may", "june",
-                                           "july", "august", "september", "october",
-                                           "november", "december"]:
+                if i > 0 and words[i - 1].lower() not in ["i", "the", "a", "an", "at", "on", "in"]:
+                    if word.lower() not in [
+                        "monday",
+                        "tuesday",
+                        "wednesday",
+                        "thursday",
+                        "friday",
+                        "saturday",
+                        "sunday",
+                        "january",
+                        "february",
+                        "march",
+                        "april",
+                        "may",
+                        "june",
+                        "july",
+                        "august",
+                        "september",
+                        "october",
+                        "november",
+                        "december",
+                    ]:
                         if word not in people:
                             people.append(word)
 

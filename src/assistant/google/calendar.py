@@ -11,14 +11,14 @@ Per PRD Section 4.4 and AT-110/AT-116:
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Optional, Any
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from assistant.google.auth import google_auth
 from assistant.config import settings
+from assistant.google.auth import google_auth
 
 logger = logging.getLogger(__name__)
 
@@ -39,9 +39,9 @@ class CalendarEvent:
     end_time: datetime
     timezone: str
     attendees: list[str]  # email addresses
-    location: Optional[str] = None
-    description: Optional[str] = None
-    html_link: Optional[str] = None
+    location: str | None = None
+    description: str | None = None
+    html_link: str | None = None
 
 
 @dataclass
@@ -49,11 +49,11 @@ class EventCreationResult:
     """Result of creating a calendar event."""
 
     success: bool
-    event_id: Optional[str] = None
-    event: Optional[CalendarEvent] = None
-    html_link: Optional[str] = None
-    error: Optional[str] = None
-    undo_available_until: Optional[datetime] = None
+    event_id: str | None = None
+    event: CalendarEvent | None = None
+    html_link: str | None = None
+    error: str | None = None
+    undo_available_until: datetime | None = None
 
 
 @dataclass
@@ -61,8 +61,8 @@ class EventDeletionResult:
     """Result of deleting a calendar event."""
 
     success: bool
-    event_id: Optional[str] = None
-    error: Optional[str] = None
+    event_id: str | None = None
+    error: str | None = None
 
 
 class CalendarClient:
@@ -107,10 +107,10 @@ class CalendarClient:
         title: str,
         start_time: datetime,
         duration_minutes: int = DEFAULT_EVENT_DURATION_MINUTES,
-        timezone: Optional[str] = None,
-        attendees: Optional[list[str]] = None,
-        location: Optional[str] = None,
-        description: Optional[str] = None,
+        timezone: str | None = None,
+        attendees: list[str] | None = None,
+        location: str | None = None,
+        description: str | None = None,
         calendar_id: str = "primary",
     ) -> EventCreationResult:
         """Create a calendar event.
@@ -174,6 +174,7 @@ class CalendarClient:
         try:
             # Use synchronous API call (wrapped for async context)
             import asyncio
+
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
                 None,
@@ -244,6 +245,7 @@ class CalendarClient:
 
         try:
             import asyncio
+
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(
                 None,
@@ -285,7 +287,7 @@ class CalendarClient:
         self,
         event_id: str,
         calendar_id: str = "primary",
-    ) -> Optional[CalendarEvent]:
+    ) -> CalendarEvent | None:
         """Get a calendar event by ID.
 
         Args:
@@ -300,6 +302,7 @@ class CalendarClient:
 
         try:
             import asyncio
+
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
                 None,
@@ -314,27 +317,19 @@ class CalendarClient:
 
             # Handle dateTime or date formats
             if "dateTime" in start_info:
-                start_time = datetime.fromisoformat(
-                    start_info["dateTime"].replace("Z", "+00:00")
-                )
+                start_time = datetime.fromisoformat(start_info["dateTime"].replace("Z", "+00:00"))
             else:
                 start_time = datetime.fromisoformat(start_info.get("date", ""))
 
             if "dateTime" in end_info:
-                end_time = datetime.fromisoformat(
-                    end_info["dateTime"].replace("Z", "+00:00")
-                )
+                end_time = datetime.fromisoformat(end_info["dateTime"].replace("Z", "+00:00"))
             else:
                 end_time = datetime.fromisoformat(end_info.get("date", ""))
 
             timezone = start_info.get("timeZone", "UTC")
 
             # Extract attendees
-            attendees = [
-                a.get("email", "")
-                for a in result.get("attendees", [])
-                if a.get("email")
-            ]
+            attendees = [a.get("email", "") for a in result.get("attendees", []) if a.get("email")]
 
             return CalendarEvent(
                 event_id=result.get("id", ""),
@@ -378,7 +373,7 @@ class CalendarClient:
         self,
         start_time: datetime,
         end_time: datetime,
-        timezone: Optional[str] = None,
+        timezone: str | None = None,
         calendar_id: str = "primary",
         max_results: int = 50,
     ) -> list[CalendarEvent]:
@@ -414,6 +409,7 @@ class CalendarClient:
 
         try:
             import asyncio
+
             loop = asyncio.get_event_loop()
 
             # Build the request
@@ -439,9 +435,7 @@ class CalendarClient:
                 if event:
                     events.append(event)
 
-            logger.info(
-                f"Listed {len(events)} calendar events from {start_time} to {end_time}"
-            )
+            logger.info(f"Listed {len(events)} calendar events from {start_time} to {end_time}")
             return events
 
         except HttpError as e:
@@ -455,7 +449,7 @@ class CalendarClient:
         self,
         item: dict[str, Any],
         default_timezone: str,
-    ) -> Optional[CalendarEvent]:
+    ) -> CalendarEvent | None:
         """Parse a Google Calendar event response into a CalendarEvent.
 
         Args:
@@ -471,10 +465,7 @@ class CalendarClient:
 
             # Handle dateTime (timed events) or date (all-day events)
             if "dateTime" in start_info:
-                start_time = datetime.fromisoformat(
-                    start_info["dateTime"].replace("Z", "+00:00")
-                )
-                is_all_day = False
+                start_time = datetime.fromisoformat(start_info["dateTime"].replace("Z", "+00:00"))
             elif "date" in start_info:
                 # All-day event: date string like "2026-01-12"
                 start_time = datetime.strptime(start_info["date"], "%Y-%m-%d")
@@ -482,14 +473,11 @@ class CalendarClient:
                     start_time = start_time.replace(tzinfo=ZoneInfo(default_timezone))
                 except Exception:
                     start_time = start_time.replace(tzinfo=ZoneInfo("UTC"))
-                is_all_day = True
             else:
                 return None
 
             if "dateTime" in end_info:
-                end_time = datetime.fromisoformat(
-                    end_info["dateTime"].replace("Z", "+00:00")
-                )
+                end_time = datetime.fromisoformat(end_info["dateTime"].replace("Z", "+00:00"))
             elif "date" in end_info:
                 end_time = datetime.strptime(end_info["date"], "%Y-%m-%d")
                 try:
@@ -502,11 +490,7 @@ class CalendarClient:
             timezone = start_info.get("timeZone", default_timezone)
 
             # Extract attendees
-            attendees = [
-                a.get("email", "")
-                for a in item.get("attendees", [])
-                if a.get("email")
-            ]
+            attendees = [a.get("email", "") for a in item.get("attendees", []) if a.get("email")]
 
             return CalendarEvent(
                 event_id=item.get("id", ""),
@@ -526,7 +510,7 @@ class CalendarClient:
 
 
 # Module-level singleton instance
-_calendar_client: Optional[CalendarClient] = None
+_calendar_client: CalendarClient | None = None
 
 
 def get_calendar_client() -> CalendarClient:
@@ -541,10 +525,10 @@ async def create_calendar_event(
     title: str,
     start_time: datetime,
     duration_minutes: int = DEFAULT_EVENT_DURATION_MINUTES,
-    timezone: Optional[str] = None,
-    attendees: Optional[list[str]] = None,
-    location: Optional[str] = None,
-    description: Optional[str] = None,
+    timezone: str | None = None,
+    attendees: list[str] | None = None,
+    location: str | None = None,
+    description: str | None = None,
 ) -> EventCreationResult:
     """Create a calendar event.
 
@@ -580,7 +564,7 @@ async def calendar_event_exists(event_id: str) -> bool:
 async def list_calendar_events(
     start_time: datetime,
     end_time: datetime,
-    timezone: Optional[str] = None,
+    timezone: str | None = None,
     max_results: int = 50,
 ) -> list[CalendarEvent]:
     """List calendar events in a time range.
@@ -604,7 +588,7 @@ async def list_calendar_events(
     )
 
 
-async def list_todays_events(timezone: Optional[str] = None) -> list[CalendarEvent]:
+async def list_todays_events(timezone: str | None = None) -> list[CalendarEvent]:
     """List today's calendar events.
 
     Convenience function for briefings - gets events from midnight to midnight.

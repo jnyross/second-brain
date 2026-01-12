@@ -11,12 +11,13 @@ Generates a comprehensive morning briefing including:
 import logging
 from datetime import datetime, timedelta
 from typing import Any
+
 import pytz
 
 from assistant.config import settings
-from assistant.notion import NotionClient
 from assistant.google.calendar import CalendarClient, CalendarEvent, get_calendar_client
-from assistant.google.gmail import GmailClient, EmailMessage, get_gmail_client
+from assistant.google.gmail import EmailMessage, GmailClient, get_gmail_client
+from assistant.notion import NotionClient
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +49,10 @@ class BriefingGenerator:
             gmail_client: Optional GmailClient instance. If not provided,
                           uses the global singleton if Google OAuth is configured.
         """
-        self.notion = notion_client if notion_client is not None else (
-            NotionClient() if settings.has_notion else None
+        self.notion = (
+            notion_client
+            if notion_client is not None
+            else (NotionClient() if settings.has_notion else None)
         )
         self.calendar = calendar_client if calendar_client is not None else get_calendar_client()
         self.gmail = gmail_client if gmail_client is not None else get_gmail_client()
@@ -249,7 +252,9 @@ class BriefingGenerator:
 
             # Build email line
             # Format: sender (context) - "subject snippet" - time ago
-            subject_preview = email.subject[:40] + "..." if len(email.subject) > 40 else email.subject
+            subject_preview = (
+                email.subject[:40] + "..." if len(email.subject) > 40 else email.subject
+            )
 
             # Priority indicator
             priority_marker = ""
@@ -258,7 +263,7 @@ class BriefingGenerator:
             elif email.needs_response:
                 priority_marker = " - needs response"
 
-            line = f"• {email.sender_name}{priority_marker} - \"{subject_preview}\" - {time_ago}"
+            line = f'• {email.sender_name}{priority_marker} - "{subject_preview}" - {time_ago}'
             lines.append(line)
 
         lines.append("")
@@ -413,11 +418,13 @@ class BriefingGenerator:
 
             # Show truncated raw input
             preview = text[:50] + "..." if len(text) > 50 else text
-            lines.append(f"• \"{preview}\"")
+            lines.append(f'• "{preview}"')
 
             # If we have an interpretation, show it
             if interpretation:
-                interp_preview = interpretation[:40] + "..." if len(interpretation) > 40 else interpretation
+                interp_preview = (
+                    interpretation[:40] + "..." if len(interpretation) > 40 else interpretation
+                )
                 lines.append(f"  _→ {interp_preview}_")
 
         if len(items) > 3:

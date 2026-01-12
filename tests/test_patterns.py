@@ -4,24 +4,22 @@ Tests for T-091: Build pattern detection - detects repeated corrections
 and builds patterns that can be applied to future inputs.
 """
 
-import pytest
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import datetime
+from unittest.mock import AsyncMock
 
+import pytest
+
+from assistant.notion.schemas import ActionType, LogEntry, Pattern
 from assistant.services.patterns import (
+    INITIAL_PATTERN_CONFIDENCE,
+    MIN_PATTERN_OCCURRENCES,
+    PATTERN_CONFIDENCE_THRESHOLD,
     CorrectionRecord,
     DetectedPattern,
     PatternDetector,
     add_correction,
     get_pattern_detector,
-    store_pending_patterns,
-    load_and_analyze_patterns,
-    MIN_PATTERN_OCCURRENCES,
-    PATTERN_CONFIDENCE_THRESHOLD,
-    INITIAL_PATTERN_CONFIDENCE,
-    CONFIDENCE_BOOST_PER_CONFIRMATION,
 )
-from assistant.notion.schemas import LogEntry, ActionType, Pattern
 
 
 class TestCorrectionRecord:
@@ -495,9 +493,7 @@ class TestPatternDetectorClearHistory:
 
         # Add some data
         for _ in range(MIN_PATTERN_OCCURRENCES):
-            detector.add_correction(
-                CorrectionRecord(original_value="Jess", corrected_value="Tess")
-            )
+            detector.add_correction(CorrectionRecord(original_value="Jess", corrected_value="Tess"))
 
         assert len(detector._correction_history) > 0
         assert len(detector._pending_patterns) > 0
@@ -516,6 +512,7 @@ class TestModuleLevelFunctions:
         """Test that get_pattern_detector returns same instance."""
         # Reset global detector
         import assistant.services.patterns as patterns_module
+
         patterns_module._detector = None
 
         detector1 = get_pattern_detector()
@@ -527,6 +524,7 @@ class TestModuleLevelFunctions:
         """Test the add_correction convenience function."""
         # Reset global detector
         import assistant.services.patterns as patterns_module
+
         patterns_module._detector = None
 
         # Add corrections
@@ -550,6 +548,7 @@ class TestPatternIntegrationWithCorrections:
         """Test that corrections are tracked for pattern detection."""
         # Reset pattern detector
         import assistant.services.patterns as patterns_module
+
         patterns_module._detector = None
 
         from assistant.services.corrections import CorrectionHandler
@@ -721,13 +720,17 @@ class TestT092PatternStorage:
         """Test that existing patterns are updated, not duplicated."""
         mock_notion = AsyncMock()
         # Return an existing pattern
-        mock_notion.query_patterns = AsyncMock(return_value=[{
-            "id": "existing-pattern-123",
-            "properties": {
-                "trigger": {"title": [{"text": {"content": "Jess"}}]},
-                "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
-            }
-        }])
+        mock_notion.query_patterns = AsyncMock(
+            return_value=[
+                {
+                    "id": "existing-pattern-123",
+                    "properties": {
+                        "trigger": {"title": [{"text": {"content": "Jess"}}]},
+                        "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
+                    },
+                }
+            ]
+        )
         mock_notion.update_pattern_confidence = AsyncMock()
 
         detector = PatternDetector(notion_client=mock_notion)
@@ -775,13 +778,17 @@ class TestT092PatternStorage:
     async def test_find_existing_pattern_exact_match(self):
         """Test finding existing pattern with exact match."""
         mock_notion = AsyncMock()
-        mock_notion.query_patterns = AsyncMock(return_value=[{
-            "id": "pattern-123",
-            "properties": {
-                "trigger": {"title": [{"text": {"content": "Jess"}}]},
-                "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
-            }
-        }])
+        mock_notion.query_patterns = AsyncMock(
+            return_value=[
+                {
+                    "id": "pattern-123",
+                    "properties": {
+                        "trigger": {"title": [{"text": {"content": "Jess"}}]},
+                        "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
+                    },
+                }
+            ]
+        )
 
         detector = PatternDetector(notion_client=mock_notion)
 
@@ -800,13 +807,17 @@ class TestT092PatternStorage:
     async def test_find_existing_pattern_normalized_match(self):
         """Test finding existing pattern with normalized match (case-insensitive)."""
         mock_notion = AsyncMock()
-        mock_notion.query_patterns = AsyncMock(return_value=[{
-            "id": "pattern-123",
-            "properties": {
-                "trigger": {"title": [{"text": {"content": "JESS"}}]},
-                "meaning": {"rich_text": [{"text": {"content": "TESS"}}]},
-            }
-        }])
+        mock_notion.query_patterns = AsyncMock(
+            return_value=[
+                {
+                    "id": "pattern-123",
+                    "properties": {
+                        "trigger": {"title": [{"text": {"content": "JESS"}}]},
+                        "meaning": {"rich_text": [{"text": {"content": "TESS"}}]},
+                    },
+                }
+            ]
+        )
 
         detector = PatternDetector(notion_client=mock_notion)
 
@@ -972,6 +983,7 @@ class TestAT109PatternLearning:
         """
         # Reset pattern detector
         import assistant.services.patterns as patterns_module
+
         patterns_module._detector = None
 
         from assistant.services.corrections import CorrectionHandler
@@ -989,7 +1001,6 @@ class TestAT109PatternLearning:
         handler = CorrectionHandler(notion_client=mock_notion)
 
         # Simulate 5 create/correct cycles
-        stored_message_received = False
         for i in range(5):
             # Track a task creation
             handler.track_action(
@@ -1012,7 +1023,7 @@ class TestAT109PatternLearning:
 
             # Check if the "learned pattern" message appears
             if "learned this pattern" in result.message:
-                stored_message_received = True
+                pass
 
         # At some point, we should have received the "learned pattern" message
         # (This happens when pattern is stored with confidence >= 70%)
@@ -1051,13 +1062,17 @@ class TestAT109PatternLearning:
         detector.clear_history()
 
         # Update mock to return existing pattern for second round
-        mock_notion.query_patterns = AsyncMock(return_value=[{
-            "id": "pattern-123",
-            "properties": {
-                "trigger": {"title": [{"text": {"content": "Jess"}}]},
-                "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
-            }
-        }])
+        mock_notion.query_patterns = AsyncMock(
+            return_value=[
+                {
+                    "id": "pattern-123",
+                    "properties": {
+                        "trigger": {"title": [{"text": {"content": "Jess"}}]},
+                        "meaning": {"rich_text": [{"text": {"content": "Tess"}}]},
+                    },
+                }
+            ]
+        )
 
         # Second round of corrections - should update existing, not create new
         for i in range(5):

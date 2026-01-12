@@ -35,9 +35,7 @@ class TestOfflineQueue:
         """Create an OfflineQueue with temporary path."""
         return OfflineQueue(queue_path=temp_queue_path)
 
-    def test_enqueue_creates_directory(
-        self, queue: OfflineQueue, temp_queue_path: Path
-    ):
+    def test_enqueue_creates_directory(self, queue: OfflineQueue, temp_queue_path: Path):
         """Test that enqueue creates the queue directory if needed."""
         action = QueuedAction(
             action_type=QueuedActionType.CREATE_TASK,
@@ -228,9 +226,7 @@ class TestQueueProcessing:
         assert result.failed == 0
 
     @pytest.mark.asyncio
-    async def test_process_queue_success(
-        self, queue: OfflineQueue, mock_notion_client
-    ):
+    async def test_process_queue_success(self, queue: OfflineQueue, mock_notion_client):
         """AT-115: All queued items synced to Notion in order."""
         # Queue 3 items
         for i in range(3):
@@ -257,9 +253,7 @@ class TestQueueProcessing:
         assert mock_notion_client.create_task.call_count == 3
 
     @pytest.mark.asyncio
-    async def test_process_queue_with_failures(
-        self, queue: OfflineQueue, mock_notion_client
-    ):
+    async def test_process_queue_with_failures(self, queue: OfflineQueue, mock_notion_client):
         """Test partial failures keep items in queue for retry."""
         # Queue 3 items
         for i in range(3):
@@ -292,9 +286,7 @@ class TestQueueProcessing:
         assert remaining[0].retry_count == 1
 
     @pytest.mark.asyncio
-    async def test_process_queue_deduplication(
-        self, queue: OfflineQueue, mock_notion_client
-    ):
+    async def test_process_queue_deduplication(self, queue: OfflineQueue, mock_notion_client):
         """Test deduplication of items with same idempotency key."""
         # Queue same item twice
         queue.queue_task(title="Task 1", chat_id="123", message_id="456")
@@ -312,9 +304,7 @@ class TestQueueProcessing:
         assert mock_notion_client.create_task.call_count == 1
 
     @pytest.mark.asyncio
-    async def test_process_queue_order_preserved(
-        self, queue: OfflineQueue, mock_notion_client
-    ):
+    async def test_process_queue_order_preserved(self, queue: OfflineQueue, mock_notion_client):
         """AT-115: Items synced to Notion in original order."""
         titles = ["First", "Second", "Third"]
 
@@ -409,9 +399,7 @@ class TestAT115RecoverySync:
         return client
 
     @pytest.mark.asyncio
-    async def test_three_items_synced_in_order(
-        self, queue: OfflineQueue, mock_notion_client
-    ):
+    async def test_three_items_synced_in_order(self, queue: OfflineQueue, mock_notion_client):
         """Test 3 items synced to Notion in order."""
         # Queue 3 items
         queue.queue_task(title="Task 1", chat_id="123", message_id="1")
@@ -434,9 +422,7 @@ class TestAT115RecoverySync:
         assert calls[2][0][0].title == "Task 3"
 
     @pytest.mark.asyncio
-    async def test_queue_cleared_after_success(
-        self, queue: OfflineQueue, mock_notion_client
-    ):
+    async def test_queue_cleared_after_success(self, queue: OfflineQueue, mock_notion_client):
         """Test queue is cleared after successful sync."""
         queue.queue_task(title="Task 1", chat_id="123", message_id="1")
         queue.queue_task(title="Task 2", chat_id="123", message_id="2")

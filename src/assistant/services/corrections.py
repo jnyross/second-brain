@@ -14,10 +14,9 @@ Per PRD Section 5.7 - Corrections:
 
 import logging
 import re
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Optional
-from collections import defaultdict
 
 from assistant.notion import NotionClient
 from assistant.notion.schemas import ActionType
@@ -46,10 +45,10 @@ class CorrectionResult:
     """Result of processing a correction."""
 
     is_correction: bool
-    original_value: Optional[str] = None
-    corrected_value: Optional[str] = None
-    correction_type: Optional[str] = None  # "name", "title", "date", "person"
-    entity_id: Optional[str] = None
+    original_value: str | None = None
+    corrected_value: str | None = None
+    correction_type: str | None = None  # "name", "title", "date", "person"
+    entity_id: str | None = None
     success: bool = False
     message: str = ""
 
@@ -64,13 +63,11 @@ CORRECTION_PATTERNS = [
     re.compile(r"^incorrect\b", re.IGNORECASE),
     re.compile(r"^actually\b", re.IGNORECASE),
     re.compile(r"^not (?:that|this)\b", re.IGNORECASE),
-
     # "I said X not Y" patterns
     re.compile(r"i said\b", re.IGNORECASE),
     re.compile(r"i meant\b", re.IGNORECASE),
     re.compile(r"should (?:be|have been)\b", re.IGNORECASE),
     re.compile(r"(?:it'?s|it was|that was)\s+(\w+)\s+not\s+(\w+)", re.IGNORECASE),
-
     # Undo requests
     re.compile(r"^undo\b", re.IGNORECASE),
     re.compile(r"^cancel\s+(?:that|this|it)\b", re.IGNORECASE),
@@ -81,25 +78,34 @@ CORRECTION_PATTERNS = [
 # Match "I said X not Y" -> extracts X (correct) and Y (wrong)
 CORRECTION_EXTRACTION_PATTERNS = [
     # "I said Tess not Jess" -> correct=Tess, wrong=Jess
-    re.compile(r"i said\s+['\"]?([^'\"]+?)['\"]?\s+not\s+['\"]?([^'\"]+?)['\"]?(?:\s|$|\.)", re.IGNORECASE),
-
+    re.compile(
+        r"i said\s+['\"]?([^'\"]+?)['\"]?\s+not\s+['\"]?([^'\"]+?)['\"]?(?:\s|$|\.)", re.IGNORECASE
+    ),
     # "I meant Tess not Jess"
-    re.compile(r"i meant\s+['\"]?([^'\"]+?)['\"]?\s+not\s+['\"]?([^'\"]+?)['\"]?(?:\s|$|\.)", re.IGNORECASE),
-
+    re.compile(
+        r"i meant\s+['\"]?([^'\"]+?)['\"]?\s+not\s+['\"]?([^'\"]+?)['\"]?(?:\s|$|\.)", re.IGNORECASE
+    ),
     # "should be Tess not Jess"
-    re.compile(r"should (?:be|have been)\s+['\"]?([^'\"]+?)['\"]?\s+not\s+['\"]?([^'\"]+?)['\"]?(?:\s|$|\.)", re.IGNORECASE),
-
+    re.compile(
+        r"should (?:be|have been)\s+['\"]?([^'\"]+?)['\"]?\s+not\s+['\"]?([^'\"]+?)['\"]?(?:\s|$|\.)",
+        re.IGNORECASE,
+    ),
     # "it's Tess not Jess" or "that was Tess not Jess"
-    re.compile(r"(?:it'?s|it was|that'?s|that was)\s+['\"]?([^'\"]+?)['\"]?\s+not\s+['\"]?([^'\"]+?)['\"]?(?:\s|$|\.)", re.IGNORECASE),
-
+    re.compile(
+        r"(?:it'?s|it was|that'?s|that was)\s+['\"]?([^'\"]+?)['\"]?\s+not\s+['\"]?([^'\"]+?)['\"]?(?:\s|$|\.)",
+        re.IGNORECASE,
+    ),
     # "Wrong, I said Tess" - just extracts the correct value
     re.compile(r"wrong[,.]?\s+i said\s+['\"]?([^'\"]+?)['\"]?(?:\s|$|\.)", re.IGNORECASE),
-
     # "Wrong, it's Tess" - just extracts the correct value
-    re.compile(r"wrong[,.]?\s+(?:it'?s|it was|that'?s|that was)\s+['\"]?([^'\"]+?)['\"]?(?:\s|$|\.)", re.IGNORECASE),
-
+    re.compile(
+        r"wrong[,.]?\s+(?:it'?s|it was|that'?s|that was)\s+['\"]?([^'\"]+?)['\"]?(?:\s|$|\.)",
+        re.IGNORECASE,
+    ),
     # "change X to Y" pattern
-    re.compile(r"change\s+['\"]?([^'\"]+?)['\"]?\s+to\s+['\"]?([^'\"]+?)['\"]?(?:\s|$|\.)", re.IGNORECASE),
+    re.compile(
+        r"change\s+['\"]?([^'\"]+?)['\"]?\s+to\s+['\"]?([^'\"]+?)['\"]?(?:\s|$|\.)", re.IGNORECASE
+    ),
 ]
 
 
@@ -116,7 +122,7 @@ class CorrectionHandler:
     # Maximum age of actions that can be corrected (in minutes)
     MAX_ACTION_AGE = 30
 
-    def __init__(self, notion_client: Optional[NotionClient] = None):
+    def __init__(self, notion_client: NotionClient | None = None):
         """Initialize the correction handler.
 
         Args:
@@ -166,16 +172,12 @@ class CorrectionHandler:
 
         # Prune old/expired actions
         self._recent_actions[chat_id] = [
-            a for a in actions
-            if not a.is_expired(self.MAX_ACTION_AGE)
-        ][-self.MAX_RECENT_ACTIONS:]
+            a for a in actions if not a.is_expired(self.MAX_ACTION_AGE)
+        ][-self.MAX_RECENT_ACTIONS :]
 
-        logger.debug(
-            f"Tracked action: {action_type} '{title}' (id={entity_id}) "
-            f"for chat {chat_id}"
-        )
+        logger.debug(f"Tracked action: {action_type} '{title}' (id={entity_id}) for chat {chat_id}")
 
-    def get_last_action(self, chat_id: str) -> Optional[RecentAction]:
+    def get_last_action(self, chat_id: str) -> RecentAction | None:
         """Get the most recent action for a chat.
 
         Args:
@@ -187,10 +189,7 @@ class CorrectionHandler:
         actions = self._recent_actions.get(chat_id, [])
 
         # Filter out expired actions and get the last one
-        valid_actions = [
-            a for a in actions
-            if not a.is_expired(self.MAX_ACTION_AGE)
-        ]
+        valid_actions = [a for a in actions if not a.is_expired(self.MAX_ACTION_AGE)]
 
         return valid_actions[-1] if valid_actions else None
 
@@ -211,7 +210,7 @@ class CorrectionHandler:
 
         return False
 
-    def extract_correction(self, text: str) -> tuple[Optional[str], Optional[str]]:
+    def extract_correction(self, text: str) -> tuple[str | None, str | None]:
         """Extract the corrected value from a correction message.
 
         Args:
@@ -285,7 +284,7 @@ class CorrectionHandler:
                 is_correction=True,
                 success=False,
                 message=(
-                    f"I created \"{last_action.title}\" - what should it be instead? "
+                    f'I created "{last_action.title}" - what should it be instead? '
                     f"(Say something like 'I said X not {last_action.title}')"
                 ),
             )
@@ -348,8 +347,7 @@ class CorrectionHandler:
             # Remove from recent actions
             if chat_id in self._recent_actions:
                 self._recent_actions[chat_id] = [
-                    a for a in self._recent_actions[chat_id]
-                    if a.entity_id != action.entity_id
+                    a for a in self._recent_actions[chat_id] if a.entity_id != action.entity_id
                 ]
 
             return CorrectionResult(
@@ -358,7 +356,7 @@ class CorrectionHandler:
                 correction_type="undo",
                 entity_id=action.entity_id,
                 success=True,
-                message=f"Done. Removed \"{action.title}\".",
+                message=f'Done. Removed "{action.title}".',
             )
 
         except Exception as e:
@@ -366,14 +364,14 @@ class CorrectionHandler:
             return CorrectionResult(
                 is_correction=True,
                 success=False,
-                message=f"Sorry, I couldn't undo that. Please try again or edit directly in Notion.",
+                message="Sorry, I couldn't undo that. Please try again or edit directly in Notion.",
             )
 
     async def _apply_correction(
         self,
         action: RecentAction,
         correct_value: str,
-        wrong_value: Optional[str],
+        wrong_value: str | None,
         chat_id: str,
         message_id: str,
     ) -> CorrectionResult:
@@ -434,6 +432,7 @@ class CorrectionHandler:
 
             # Track this correction for pattern detection AND auto-store (T-092)
             from assistant.services.patterns import add_correction_and_store
+
             detected_patterns, stored_pattern_ids = await add_correction_and_store(
                 original_value=original_value,
                 corrected_value=correct_value,
@@ -453,7 +452,7 @@ class CorrectionHandler:
                         entity_id=action.entity_id,
                         success=True,
                         message=(
-                            f"Fixed. Changed \"{original_value}\" to \"{correct_value}\".\n\n"
+                            f'Fixed. Changed "{original_value}" to "{correct_value}".\n\n'
                             f"I've learned this pattern! When you say '{pattern.trigger}', "
                             f"I'll now use '{pattern.meaning}' automatically."
                         ),
@@ -467,7 +466,7 @@ class CorrectionHandler:
                         entity_id=action.entity_id,
                         success=True,
                         message=(
-                            f"Fixed. Changed \"{original_value}\" to \"{correct_value}\".\n\n"
+                            f'Fixed. Changed "{original_value}" to "{correct_value}".\n\n'
                             f"I've noticed you correct '{pattern.trigger}' to '{pattern.meaning}' "
                             f"frequently ({pattern.occurrences} times). I'll remember this!"
                         ),
@@ -483,7 +482,7 @@ class CorrectionHandler:
                 correction_type="title",
                 entity_id=action.entity_id,
                 success=True,
-                message=f"Fixed. Changed \"{original_value}\" to \"{correct_value}\".",
+                message=f'Fixed. Changed "{original_value}" to "{correct_value}".',
             )
 
         except Exception as e:
@@ -491,7 +490,7 @@ class CorrectionHandler:
             return CorrectionResult(
                 is_correction=True,
                 success=False,
-                message=f"Sorry, I couldn't make that correction. Please edit directly in Notion.",
+                message="Sorry, I couldn't make that correction. Please edit directly in Notion.",
             )
 
     async def _update_task_title(self, page_id: str, new_title: str) -> None:
@@ -575,7 +574,7 @@ class CorrectionHandler:
 
 # Module-level convenience functions
 
-_handler: Optional[CorrectionHandler] = None
+_handler: CorrectionHandler | None = None
 
 
 def get_correction_handler() -> CorrectionHandler:

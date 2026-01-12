@@ -1,8 +1,8 @@
+import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+
 from pydantic import BaseModel, Field
-import uuid
 
 
 class TaskStatus(str, Enum):
@@ -72,15 +72,15 @@ class InboxItem(BaseModel):
     processed: bool = False
     confidence: int = 0
     needs_clarification: bool = False
-    interpretation: Optional[str] = None
-    telegram_chat_id: Optional[str] = None
-    telegram_message_id: Optional[str] = None
-    voice_file_id: Optional[str] = None
-    transcript_confidence: Optional[int] = None
-    language: Optional[str] = None
-    processing_error: Optional[str] = None
+    interpretation: str | None = None
+    telegram_chat_id: str | None = None
+    telegram_message_id: str | None = None
+    voice_file_id: str | None = None
+    transcript_confidence: int | None = None
+    language: str | None = None
+    processing_error: str | None = None
     retry_count: int = 0
-    dedupe_key: Optional[str] = None
+    dedupe_key: str | None = None
 
 
 class Task(BaseModel):
@@ -88,41 +88,41 @@ class Task(BaseModel):
     title: str
     status: TaskStatus = TaskStatus.TODO
     priority: TaskPriority = TaskPriority.MEDIUM
-    due_date: Optional[datetime] = None
-    due_timezone: Optional[str] = None
+    due_date: datetime | None = None
+    due_timezone: str | None = None
     people_ids: list[str] = Field(default_factory=list)
-    project_id: Optional[str] = None
+    project_id: str | None = None
     source: TaskSource = TaskSource.TELEGRAM
-    source_inbox_item_id: Optional[str] = None
+    source_inbox_item_id: str | None = None
     confidence: int = 100
     created_by: str = "user"
     created_at: datetime = Field(default_factory=datetime.utcnow)
     last_modified_at: datetime = Field(default_factory=datetime.utcnow)
-    completed_at: Optional[datetime] = None
-    deleted_at: Optional[datetime] = None
-    calendar_event_id: Optional[str] = None
-    estimated_duration: Optional[int] = None
+    completed_at: datetime | None = None
+    deleted_at: datetime | None = None
+    calendar_event_id: str | None = None
+    estimated_duration: int | None = None
     tags: list[str] = Field(default_factory=list)
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class Person(BaseModel):
     id: str = Field(default_factory=generate_id)
     name: str
     aliases: list[str] = Field(default_factory=list)
-    unique_key: Optional[str] = None
-    relationship: Optional[Relationship] = None
-    company: Optional[str] = None
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    telegram_handle: Optional[str] = None
-    preferences: Optional[str] = None
-    quirks: Optional[str] = None
-    communication_style: Optional[str] = None
-    last_contact: Optional[datetime] = None
+    unique_key: str | None = None
+    relationship: Relationship | None = None
+    company: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    telegram_handle: str | None = None
+    preferences: str | None = None
+    quirks: str | None = None
+    communication_style: str | None = None
+    last_contact: datetime | None = None
     archived: bool = False
-    deleted_at: Optional[datetime] = None
-    notes: Optional[str] = None
+    deleted_at: datetime | None = None
+    notes: str | None = None
 
 
 class Project(BaseModel):
@@ -131,32 +131,32 @@ class Project(BaseModel):
     status: str = "active"
     project_type: str = "personal"
     people_ids: list[str] = Field(default_factory=list)
-    deadline: Optional[datetime] = None
-    next_action: Optional[str] = None
-    context: Optional[str] = None
+    deadline: datetime | None = None
+    next_action: str | None = None
+    context: str | None = None
     archived: bool = False
-    deleted_at: Optional[datetime] = None
+    deleted_at: datetime | None = None
 
 
 class Place(BaseModel):
     id: str = Field(default_factory=generate_id)
     name: str
     place_type: str = "other"
-    address: Optional[str] = None
-    your_preference: Optional[str] = None
-    last_visit: Optional[datetime] = None
-    rating: Optional[int] = None
+    address: str | None = None
+    your_preference: str | None = None
+    last_visit: datetime | None = None
+    rating: int | None = None
     archived: bool = False
-    deleted_at: Optional[datetime] = None
-    notes: Optional[str] = None
+    deleted_at: datetime | None = None
+    notes: str | None = None
 
 
 class Preference(BaseModel):
     id: str = Field(default_factory=generate_id)
     category: str
     preference: str
-    details: Optional[str] = None
-    learned_from: Optional[str] = None
+    details: str | None = None
+    learned_from: str | None = None
     learned_at: datetime = Field(default_factory=datetime.utcnow)
     confidence: int = 50
     times_applied: int = 0
@@ -169,7 +169,7 @@ class Pattern(BaseModel):
     confidence: int = 50
     times_confirmed: int = 0
     times_wrong: int = 0
-    last_used: Optional[datetime] = None
+    last_used: datetime | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -177,36 +177,36 @@ class Email(BaseModel):
     id: str = Field(default_factory=generate_id)
     gmail_id: str
     thread_id: str
-    from_person_id: Optional[str] = None
+    from_person_id: str | None = None
     subject: str
-    snippet: Optional[str] = None
+    snippet: str | None = None
     received_at: datetime
     is_read: bool = False
     needs_response: bool = False
     priority: str = "normal"
     extracted_task_ids: list[str] = Field(default_factory=list)
-    response_draft: Optional[str] = None
+    response_draft: str | None = None
     response_sent: bool = False
-    response_sent_at: Optional[datetime] = None
+    response_sent_at: datetime | None = None
 
 
 class LogEntry(BaseModel):
     id: str = Field(default_factory=generate_id)
     request_id: str = Field(default_factory=generate_id)
-    idempotency_key: Optional[str] = None
+    idempotency_key: str | None = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     action_type: ActionType
-    input_text: Optional[str] = None
-    interpretation: Optional[str] = None
-    action_taken: Optional[str] = None
-    confidence: Optional[int] = None
+    input_text: str | None = None
+    interpretation: str | None = None
+    action_taken: str | None = None
+    confidence: int | None = None
     entities_affected: list[str] = Field(default_factory=list)
-    external_api: Optional[str] = None
-    external_resource_id: Optional[str] = None
-    error_code: Optional[str] = None
-    error_message: Optional[str] = None
+    external_api: str | None = None
+    external_resource_id: str | None = None
+    error_code: str | None = None
+    error_message: str | None = None
     retry_count: int = 0
-    correction: Optional[str] = None
-    corrected_at: Optional[datetime] = None
-    undo_available_until: Optional[datetime] = None
+    correction: str | None = None
+    corrected_at: datetime | None = None
+    undo_available_until: datetime | None = None
     undone: bool = False

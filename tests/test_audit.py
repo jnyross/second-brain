@@ -3,20 +3,19 @@
 Tests AT-111 (every action logged) and AT-113 (idempotency).
 """
 
-import pytest
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from assistant.services.audit import (
-    AuditLogger,
-    AuditEntry,
-    DedupeResult,
-    UNDO_WINDOW_MINUTES,
-    get_audit_logger,
-    log_action,
-    check_and_log_idempotency,
-)
+import pytest
+
 from assistant.notion.schemas import ActionType
+from assistant.services.audit import (
+    UNDO_WINDOW_MINUTES,
+    AuditLogger,
+    DedupeResult,
+    check_and_log_idempotency,
+    get_audit_logger,
+)
 
 
 @pytest.fixture
@@ -45,23 +44,17 @@ class TestIdempotencyKeyGeneration:
 
     def test_calendar_key(self, audit_logger):
         """Test calendar event idempotency key."""
-        key = audit_logger.generate_idempotency_key(
-            "calendar", "task-abc", "2026-01-12"
-        )
+        key = audit_logger.generate_idempotency_key("calendar", "task-abc", "2026-01-12")
         assert key == "calendar:task-abc:2026-01-12"
 
     def test_email_key(self, audit_logger):
         """Test email idempotency key."""
-        key = audit_logger.generate_idempotency_key(
-            "email", "thread-xyz", "hash123"
-        )
+        key = audit_logger.generate_idempotency_key("email", "thread-xyz", "hash123")
         assert key == "email:thread-xyz:hash123"
 
     def test_briefing_key(self, audit_logger):
         """Test briefing idempotency key."""
-        key = audit_logger.generate_idempotency_key(
-            "briefing", "2026-01-12", "chat-456"
-        )
+        key = audit_logger.generate_idempotency_key("briefing", "2026-01-12", "chat-456")
         assert key == "briefing:2026-01-12:chat-456"
 
 
@@ -187,7 +180,7 @@ class TestLogDeduplicated:
     @pytest.mark.asyncio
     async def test_log_deduplicated(self, audit_logger, mock_notion):
         """Log deduplicated creates entry with dedupe prefix."""
-        entry = await audit_logger.log_deduplicated(
+        await audit_logger.log_deduplicated(
             idempotency_key="telegram:123:456",
             original_log_id="original-log-id",
         )
@@ -207,7 +200,7 @@ class TestConvenienceMethods:
     @pytest.mark.asyncio
     async def test_log_capture(self, audit_logger, mock_notion):
         """Log capture creates correct entry."""
-        entry = await audit_logger.log_capture(
+        await audit_logger.log_capture(
             idempotency_key="telegram:123:456",
             input_text="Buy milk",
             confidence=45,
@@ -223,7 +216,7 @@ class TestConvenienceMethods:
     @pytest.mark.asyncio
     async def test_log_create_task(self, audit_logger, mock_notion):
         """Log create task creates correct entry."""
-        entry = await audit_logger.log_create(
+        await audit_logger.log_create(
             idempotency_key="telegram:123:456",
             input_text="Buy milk tomorrow",
             entity_type="task",
@@ -239,7 +232,7 @@ class TestConvenienceMethods:
     @pytest.mark.asyncio
     async def test_log_create_calendar_event(self, audit_logger, mock_notion):
         """Log create calendar event uses CALENDAR_CREATE action type."""
-        entry = await audit_logger.log_create(
+        await audit_logger.log_create(
             idempotency_key="calendar:task-123:2026-01-12",
             input_text="Meeting at 2pm",
             entity_type="calendar_event",
@@ -258,7 +251,7 @@ class TestConvenienceMethods:
     @pytest.mark.asyncio
     async def test_log_update(self, audit_logger, mock_notion):
         """Log update creates correct entry."""
-        entry = await audit_logger.log_update(
+        await audit_logger.log_update(
             entity_id="task-123",
             entity_type="task",
             field_name="title",
@@ -275,7 +268,7 @@ class TestConvenienceMethods:
     @pytest.mark.asyncio
     async def test_log_delete_soft(self, audit_logger, mock_notion):
         """Log soft delete creates correct entry with undo window."""
-        entry = await audit_logger.log_delete(
+        await audit_logger.log_delete(
             entity_id="task-123",
             entity_type="task",
             title="Buy milk",
@@ -290,7 +283,7 @@ class TestConvenienceMethods:
     @pytest.mark.asyncio
     async def test_log_delete_hard(self, audit_logger, mock_notion):
         """Log hard delete creates correct entry without undo window."""
-        entry = await audit_logger.log_delete(
+        await audit_logger.log_delete(
             entity_id="task-123",
             entity_type="task",
             title="Buy milk",
@@ -305,7 +298,7 @@ class TestConvenienceMethods:
         """Log calendar create generates correct idempotency key."""
         start_time = datetime(2026, 1, 15, 14, 0)
 
-        entry = await audit_logger.log_calendar_create(
+        await audit_logger.log_calendar_create(
             task_id="task-123",
             event_id="event-456",
             title="Team Meeting",
@@ -319,7 +312,7 @@ class TestConvenienceMethods:
     @pytest.mark.asyncio
     async def test_log_briefing(self, audit_logger, mock_notion):
         """Log briefing generates correct idempotency key."""
-        entry = await audit_logger.log_briefing(
+        await audit_logger.log_briefing(
             chat_id="123456",
             date="2026-01-12",
             sections_included=["calendar", "tasks", "inbox"],
@@ -333,7 +326,7 @@ class TestConvenienceMethods:
     @pytest.mark.asyncio
     async def test_log_error(self, audit_logger, mock_notion):
         """Log error creates correct entry."""
-        entry = await audit_logger.log_error(
+        await audit_logger.log_error(
             error_code="NOTION_503",
             error_message="Service unavailable",
             action_attempted="Create task",
@@ -355,6 +348,7 @@ class TestModuleLevelFunctions:
         """get_audit_logger returns singleton."""
         # Reset singleton for test
         import assistant.services.audit as audit_module
+
         audit_module._audit_logger = None
 
         logger1 = get_audit_logger()
@@ -369,6 +363,7 @@ class TestModuleLevelFunctions:
     async def test_check_and_log_idempotency_new(self, mock_notion):
         """check_and_log_idempotency returns True for new key."""
         import assistant.services.audit as audit_module
+
         audit_module._audit_logger = AuditLogger(notion_client=mock_notion)
         mock_notion._check_dedupe.return_value = None
 
@@ -384,6 +379,7 @@ class TestModuleLevelFunctions:
     async def test_check_and_log_idempotency_duplicate(self, mock_notion):
         """check_and_log_idempotency returns False and logs for duplicate."""
         import assistant.services.audit as audit_module
+
         audit_module._audit_logger = AuditLogger(notion_client=mock_notion)
         mock_notion._check_dedupe.return_value = "existing-log-id"
 
@@ -405,9 +401,7 @@ class TestQueryLog:
     @pytest.mark.asyncio
     async def test_query_log_by_action_type(self, audit_logger, mock_notion):
         """Query log by action type."""
-        mock_notion._request.return_value = {
-            "results": [{"id": "log-1"}, {"id": "log-2"}]
-        }
+        mock_notion._request.return_value = {"results": [{"id": "log-1"}, {"id": "log-2"}]}
 
         results = await audit_logger.query_log(action_type=ActionType.CREATE)
 
@@ -455,6 +449,7 @@ class TestAT113Idempotency:
     async def test_duplicate_message_logged_as_deduplicated(self, mock_notion):
         """AT-113: Second attempt logged as 'deduplicated'."""
         import assistant.services.audit as audit_module
+
         audit_module._audit_logger = AuditLogger(notion_client=mock_notion)
 
         # Simulate existing entry

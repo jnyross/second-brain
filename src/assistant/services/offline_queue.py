@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 class QueuedActionType(str, Enum):
     """Types of actions that can be queued."""
+
     CREATE_INBOX = "create_inbox"
     CREATE_TASK = "create_task"
     CREATE_PERSON = "create_person"
@@ -38,6 +39,7 @@ class QueuedActionType(str, Enum):
 @dataclass
 class QueuedAction:
     """Represents an action queued for offline processing."""
+
     action_type: QueuedActionType
     timestamp: datetime
     idempotency_key: str
@@ -73,6 +75,7 @@ class QueuedAction:
 @dataclass
 class QueueProcessResult:
     """Result of processing the offline queue."""
+
     total_processed: int = 0
     successful: int = 0
     failed: int = 0
@@ -116,9 +119,7 @@ class OfflineQueue:
         with open(self.queue_path, "a") as f:
             f.write(json.dumps(action.to_dict()) + "\n")
 
-        logger.info(
-            f"Queued {action.action_type.value} action: {action.idempotency_key}"
-        )
+        logger.info(f"Queued {action.action_type.value} action: {action.idempotency_key}")
 
     def queue_inbox_item(
         self,
@@ -314,9 +315,7 @@ class OfflineQueue:
                     await self._process_action(client, action)
                     self._processed_keys.add(action.idempotency_key)
                     result.successful += 1
-                    logger.info(
-                        f"Synced {action.action_type.value}: {action.idempotency_key}"
-                    )
+                    logger.info(f"Synced {action.action_type.value}: {action.idempotency_key}")
 
                 except Exception as e:
                     action.retry_count += 1
@@ -324,9 +323,7 @@ class OfflineQueue:
                         failed_actions.append(action)
                     result.failed += 1
                     result.errors.append(f"{action.idempotency_key}: {str(e)}")
-                    logger.error(
-                        f"Failed to sync {action.idempotency_key}: {e}"
-                    )
+                    logger.error(f"Failed to sync {action.idempotency_key}: {e}")
 
         finally:
             # Write back any failed actions for retry
@@ -413,9 +410,7 @@ class OfflineQueue:
             return await client.create_task(task)
 
         else:
-            raise NotImplementedError(
-                f"Action type {action.action_type.value} not implemented"
-            )
+            raise NotImplementedError(f"Action type {action.action_type.value} not implemented")
 
 
 # Module-level singleton and convenience functions

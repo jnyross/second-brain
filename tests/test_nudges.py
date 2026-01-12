@@ -10,7 +10,6 @@ Tests cover:
 - Systemd file validation
 """
 
-import json
 from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -31,7 +30,6 @@ from assistant.services.nudges import (
     NudgeService,
     NudgeType,
     format_nudge_message,
-    get_nudge_tracker_path,
     get_pending_nudges,
     has_been_nudged_today,
     is_in_nudge_window,
@@ -148,7 +146,7 @@ class TestNudgeResult:
         result = NudgeResult(
             success=True,
             task_id="task-123",
-            message="Don't forget: \"Buy milk\"",
+            message='Don\'t forget: "Buy milk"',
             nudge_type=NudgeType.DUE_TODAY,
         )
 
@@ -272,9 +270,11 @@ class TestNudgeTracking:
         old_date = now - timedelta(days=10)
 
         # Pre-populate with old entry
-        save_sent_nudges({
-            "task-old:due_today:2024-01-05": old_date.isoformat(),
-        })
+        save_sent_nudges(
+            {
+                "task-old:due_today:2024-01-05": old_date.isoformat(),
+            }
+        )
 
         # Mark a new nudge (triggers cleanup)
         mark_nudge_sent("task-new", NudgeType.DUE_TODAY, now)
@@ -606,7 +606,6 @@ class TestCLIIntegration:
 
     def test_cli_has_nudge_command(self):
         """Test CLI parser includes nudge command."""
-        from assistant.cli import main
         import argparse
 
         # Create parser like main() does
@@ -637,7 +636,9 @@ class TestT130PRDRequirements:
     def test_proactive_surfacing(self):
         """Test nudges are proactive (scheduled, not user-triggered)."""
         # This is verified by the existence of systemd timer
-        timer_path = Path(__file__).parent.parent / "deploy" / "systemd" / "second-brain-nudge.timer"
+        timer_path = (
+            Path(__file__).parent.parent / "deploy" / "systemd" / "second-brain-nudge.timer"
+        )
         assert timer_path.exists(), "Proactive nudges require scheduled timer"
 
     def test_multiple_nudge_types(self):

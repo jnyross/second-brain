@@ -197,19 +197,19 @@ def format_nudge_message(candidate: NudgeCandidate) -> str:
 
     if candidate.nudge_type == NudgeType.OVERDUE:
         if candidate.days_overdue == 1:
-            return f"Overdue: \"{candidate.title}\" was due yesterday"
-        return f"Overdue ({candidate.days_overdue} days): \"{candidate.title}\""
+            return f'Overdue: "{candidate.title}" was due yesterday'
+        return f'Overdue ({candidate.days_overdue} days): "{candidate.title}"'
 
     if candidate.nudge_type == NudgeType.DUE_TODAY:
-        return f"{priority_prefix}Don't forget: \"{candidate.title}\" is due today"
+        return f'{priority_prefix}Don\'t forget: "{candidate.title}" is due today'
 
     if candidate.nudge_type == NudgeType.DUE_TOMORROW:
-        return f"Heads up: \"{candidate.title}\" is due tomorrow"
+        return f'Heads up: "{candidate.title}" is due tomorrow'
 
     if candidate.nudge_type == NudgeType.HIGH_PRIORITY:
-        return f"Urgent reminder: \"{candidate.title}\""
+        return f'Urgent reminder: "{candidate.title}"'
 
-    return f"Reminder: \"{candidate.title}\""
+    return f'Reminder: "{candidate.title}"'
 
 
 class NudgeService:
@@ -225,8 +225,10 @@ class NudgeService:
         Args:
             notion_client: Optional NotionClient instance
         """
-        self.notion = notion_client if notion_client is not None else (
-            NotionClient() if settings.has_notion else None
+        self.notion = (
+            notion_client
+            if notion_client is not None
+            else (NotionClient() if settings.has_notion else None)
         )
         self.timezone = pytz.timezone(settings.user_timezone)
 
@@ -288,8 +290,12 @@ class NudgeService:
                 if candidate:
                     # Calculate days overdue
                     if candidate.due_date:
-                        due_date = candidate.due_date.date() if hasattr(candidate.due_date, 'date') else candidate.due_date
-                        today_date = today.date() if hasattr(today, 'date') else today
+                        due_date = (
+                            candidate.due_date.date()
+                            if hasattr(candidate.due_date, "date")
+                            else candidate.due_date
+                        )
+                        today_date = today.date() if hasattr(today, "date") else today
                         candidate.days_overdue = (today_date - due_date).days
 
                     candidates.append(candidate)
@@ -324,7 +330,9 @@ class NudgeService:
         # Extract title
         title_prop = props.get("title", {})
         title_list = title_prop.get("title", [])
-        title = title_list[0].get("text", {}).get("content", "Untitled") if title_list else "Untitled"
+        title = (
+            title_list[0].get("text", {}).get("content", "Untitled") if title_list else "Untitled"
+        )
 
         # Extract priority
         priority_prop = props.get("priority", {})
@@ -436,23 +444,27 @@ class NudgeService:
                 # Mark as sent
                 mark_nudge_sent(candidate.task_id, candidate.nudge_type, now)
 
-                report.results.append(NudgeResult(
-                    success=True,
-                    task_id=candidate.task_id,
-                    message=message,
-                    nudge_type=candidate.nudge_type,
-                ))
+                report.results.append(
+                    NudgeResult(
+                        success=True,
+                        task_id=candidate.task_id,
+                        message=message,
+                        nudge_type=candidate.nudge_type,
+                    )
+                )
                 report.nudges_sent += 1
 
             except Exception as e:
                 logger.exception(f"Failed to send nudge for task {candidate.task_id}: {e}")
-                report.results.append(NudgeResult(
-                    success=False,
-                    task_id=candidate.task_id,
-                    message=message,
-                    nudge_type=candidate.nudge_type,
-                    error=str(e),
-                ))
+                report.results.append(
+                    NudgeResult(
+                        success=False,
+                        task_id=candidate.task_id,
+                        message=message,
+                        nudge_type=candidate.nudge_type,
+                        error=str(e),
+                    )
+                )
                 report.nudges_failed += 1
 
         return report

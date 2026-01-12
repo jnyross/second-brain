@@ -1,31 +1,31 @@
-from assistant.google.maps import MapsClient, PlaceDetails, TravelTime
-from assistant.google.drive import DriveClient, DriveFile
 from assistant.google.auth import GoogleAuth, google_auth
 from assistant.google.calendar import (
+    DEFAULT_EVENT_DURATION_MINUTES,
+    UNDO_WINDOW_MINUTES,
     CalendarClient,
     CalendarEvent,
     EventCreationResult,
     EventDeletionResult,
-    get_calendar_client,
+    calendar_event_exists,
     create_calendar_event,
     delete_calendar_event,
-    calendar_event_exists,
+    get_calendar_client,
     list_calendar_events,
     list_todays_events,
-    DEFAULT_EVENT_DURATION_MINUTES,
-    UNDO_WINDOW_MINUTES,
 )
+from assistant.google.drive import DriveClient, DriveFile
 from assistant.google.gmail import (
-    GmailClient,
-    EmailMessage,
+    DEFAULT_EMAIL_LIMIT,
     EmailListResult,
+    EmailMessage,
+    GmailClient,
+    get_email_by_id,
     get_gmail_client,
     list_emails,
-    list_unread_emails,
     list_emails_needing_response,
-    get_email_by_id,
-    DEFAULT_EMAIL_LIMIT,
+    list_unread_emails,
 )
+from assistant.google.maps import MapsClient, PlaceDetails, TravelTime
 
 __all__ = [
     "MapsClient",

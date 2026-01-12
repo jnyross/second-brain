@@ -9,24 +9,22 @@ Handles the core message processing pipeline:
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
 
 from assistant.config import settings
 from assistant.notion import NotionClient
 from assistant.notion.schemas import (
+    ActionType,
     InboxItem,
     InboxSource,
+    Person,
     Task,
     TaskSource,
-    TaskPriority,
-    Person,
-    ActionType,
 )
-from assistant.services.parser import Parser, ParsedIntent
+from assistant.services.parser import ParsedIntent, Parser
 from assistant.services.pattern_applicator import (
-    PatternApplicator,
-    PatternApplicationResult,
     AppliedPattern,
+    PatternApplicationResult,
+    PatternApplicator,
 )
 
 logger = logging.getLogger(__name__)
@@ -159,10 +157,10 @@ class MessageProcessor:
                     confidence=parsed.confidence,
                     entities_affected=[inbox_id] if inbox_id else [],
                 )
-            except Exception as e:
+            except Exception:
                 logger.exception("Failed to save to Notion")
                 return ProcessResult(
-                    response=f"Got it. Saved locally - will sync when Notion is available.",
+                    response="Got it. Saved locally - will sync when Notion is available.",
                     confidence=parsed.confidence,
                     needs_clarification=True,
                     patterns_applied=pattern_result.patterns_applied,
@@ -171,10 +169,7 @@ class MessageProcessor:
                 await self.notion.close()
 
         return ProcessResult(
-            response=(
-                f"Got it. I've added this to your inbox - "
-                f"we'll clarify in your next review."
-            ),
+            response=("Got it. I've added this to your inbox - we'll clarify in your next review."),
             inbox_id=inbox_id,
             confidence=parsed.confidence,
             needs_clarification=True,
@@ -230,13 +225,11 @@ class MessageProcessor:
                 # Update pattern usage timestamps
                 for applied in pattern_result.patterns_applied:
                     try:
-                        await self.pattern_applicator.update_pattern_usage(
-                            applied.pattern_id
-                        )
+                        await self.pattern_applicator.update_pattern_usage(applied.pattern_id)
                     except Exception as e:
                         logger.warning(f"Failed to update pattern usage: {e}")
 
-            except Exception as e:
+            except Exception:
                 logger.exception("Failed to create task in Notion")
                 return ProcessResult(
                     response="Got it. Saved locally - will sync when Notion is available.",
@@ -292,7 +285,8 @@ class MessageProcessor:
         if pattern_result.has_corrections:
             # Only mention corrections for name changes (not internal pattern types)
             name_corrections = [
-                p for p in pattern_result.patterns_applied
+                p
+                for p in pattern_result.patterns_applied
                 if p.original_value.lower() != p.corrected_value.lower()
             ]
             if name_corrections:

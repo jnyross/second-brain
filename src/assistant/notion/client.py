@@ -2,22 +2,21 @@ import hashlib
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, TypeVar, Generic
+from typing import Any, TypeVar
+
 import httpx
 from pydantic import BaseModel
 
 from assistant.config import settings
 from assistant.notion.schemas import (
-    InboxItem,
-    Task,
-    Person,
-    Project,
-    Place,
-    Preference,
-    Pattern,
-    Email,
-    LogEntry,
     ActionType,
+    InboxItem,
+    LogEntry,
+    Pattern,
+    Person,
+    Place,
+    Project,
+    Task,
 )
 
 T = TypeVar("T", bound=BaseModel)
@@ -72,6 +71,7 @@ class NotionClient:
                 if response.status_code == 429:
                     retry_after = int(response.headers.get("Retry-After", "1"))
                     import asyncio
+
                     await asyncio.sleep(retry_after)
                     continue
 
@@ -82,14 +82,16 @@ class NotionClient:
                 last_error = e
                 if e.response.status_code >= 500:
                     import asyncio
-                    await asyncio.sleep(2 ** attempt)
+
+                    await asyncio.sleep(2**attempt)
                     continue
                 raise
 
             except httpx.RequestError as e:
                 last_error = e
                 import asyncio
-                await asyncio.sleep(2 ** attempt)
+
+                await asyncio.sleep(2**attempt)
                 continue
 
         if last_error:
@@ -120,8 +122,15 @@ class NotionClient:
 
     # Properties that exist in each Notion database
     NOTION_DB_PROPERTIES: dict[str, set[str]] = {
-        "inbox": {"raw_input", "source", "confidence", "processed", "timestamp",
-                  "needs_clarification", "dedupe_key"},
+        "inbox": {
+            "raw_input",
+            "source",
+            "confidence",
+            "processed",
+            "timestamp",
+            "needs_clarification",
+            "dedupe_key",
+        },
         "tasks": {"title", "status", "priority", "due_date", "confidence", "deleted_at"},
         "people": {"name", "email", "relationship", "deleted_at", "archived"},
         "places": {"name", "place_type", "address"},
@@ -129,8 +138,18 @@ class NotionClient:
         "log": {"action_type", "action_taken", "timestamp", "idempotency_key", "confidence"},
         "patterns": {"trigger", "meaning", "confidence"},
         "preferences": {"preference", "category", "value", "last_updated"},
-        "emails": {"subject", "from_address", "to_address", "thread_id", "message_id",
-                   "received_at", "snippet", "has_attachments", "labels", "processed"},
+        "emails": {
+            "subject",
+            "from_address",
+            "to_address",
+            "thread_id",
+            "message_id",
+            "received_at",
+            "snippet",
+            "has_attachments",
+            "labels",
+            "processed",
+        },
     }
 
     def _model_to_notion_properties(
@@ -139,6 +158,7 @@ class NotionClient:
         db_type: str,
     ) -> dict[str, Any]:
         from enum import Enum
+
         data = model.model_dump(exclude_none=True)
         properties: dict[str, Any] = {}
 
@@ -165,14 +185,20 @@ class NotionClient:
                 properties[key] = {"number": value}
             elif isinstance(value, list):
                 if all(isinstance(v, str) for v in value):
-                    properties[key] = {
-                        "multi_select": [{"name": v} for v in value]
-                    }
+                    properties[key] = {"multi_select": [{"name": v} for v in value]}
             elif isinstance(value, str):
                 if key in ("title", "name", "preference", "trigger", "subject", "raw_input"):
                     properties[key] = {"title": [{"text": {"content": value}}]}
-                elif key in ("status", "priority", "source", "relationship",
-                           "action_type", "category", "place_type", "project_type"):
+                elif key in (
+                    "status",
+                    "priority",
+                    "source",
+                    "relationship",
+                    "action_type",
+                    "category",
+                    "place_type",
+                    "project_type",
+                ):
                     properties[key] = {"select": {"name": value}}
                 else:
                     properties[key] = {"rich_text": [{"text": {"content": value}}]}
@@ -297,35 +323,45 @@ class NotionClient:
         filters: list[dict[str, Any]] = []
 
         if status:
-            filters.append({
-                "property": "status",
-                "select": {"equals": status},
-            })
+            filters.append(
+                {
+                    "property": "status",
+                    "select": {"equals": status},
+                }
+            )
 
         if exclude_statuses:
             for excluded_status in exclude_statuses:
-                filters.append({
-                    "property": "status",
-                    "select": {"does_not_equal": excluded_status},
-                })
+                filters.append(
+                    {
+                        "property": "status",
+                        "select": {"does_not_equal": excluded_status},
+                    }
+                )
 
         if due_before:
-            filters.append({
-                "property": "due_date",
-                "date": {"on_or_before": due_before.isoformat()},
-            })
+            filters.append(
+                {
+                    "property": "due_date",
+                    "date": {"on_or_before": due_before.isoformat()},
+                }
+            )
 
         if due_after:
-            filters.append({
-                "property": "due_date",
-                "date": {"on_or_after": due_after.isoformat()},
-            })
+            filters.append(
+                {
+                    "property": "due_date",
+                    "date": {"on_or_after": due_after.isoformat()},
+                }
+            )
 
         if not include_deleted:
-            filters.append({
-                "property": "deleted_at",
-                "date": {"is_empty": True},
-            })
+            filters.append(
+                {
+                    "property": "deleted_at",
+                    "date": {"is_empty": True},
+                }
+            )
 
         query_filter = {"and": filters} if len(filters) > 1 else (filters[0] if filters else None)
 
@@ -336,7 +372,9 @@ class NotionClient:
                 "filter": query_filter,
                 "page_size": limit,
                 "sorts": [{"property": "due_date", "direction": "ascending"}],
-            } if query_filter else {
+            }
+            if query_filter
+            else {
                 "page_size": limit,
                 "sorts": [{"property": "due_date", "direction": "ascending"}],
             },
@@ -363,16 +401,20 @@ class NotionClient:
         filters: list[dict[str, Any]] = []
 
         if needs_clarification is not None:
-            filters.append({
-                "property": "needs_clarification",
-                "checkbox": {"equals": needs_clarification},
-            })
+            filters.append(
+                {
+                    "property": "needs_clarification",
+                    "checkbox": {"equals": needs_clarification},
+                }
+            )
 
         if processed is not None:
-            filters.append({
-                "property": "processed",
-                "checkbox": {"equals": processed},
-            })
+            filters.append(
+                {
+                    "property": "processed",
+                    "checkbox": {"equals": processed},
+                }
+            )
 
         query_filter = {"and": filters} if len(filters) > 1 else (filters[0] if filters else None)
 
@@ -383,7 +425,9 @@ class NotionClient:
                 "filter": query_filter,
                 "page_size": limit,
                 "sorts": [{"property": "timestamp", "direction": "descending"}],
-            } if query_filter else {
+            }
+            if query_filter
+            else {
                 "page_size": limit,
                 "sorts": [{"property": "timestamp", "direction": "descending"}],
             },
@@ -418,18 +462,22 @@ class NotionClient:
         filters: list[dict[str, Any]] = []
 
         if name:
-            filters.append({
-                "or": [
-                    {"property": "name", "title": {"contains": name}},
-                    {"property": "aliases", "rich_text": {"contains": name}},
-                ]
-            })
+            filters.append(
+                {
+                    "or": [
+                        {"property": "name", "title": {"contains": name}},
+                        {"property": "aliases", "rich_text": {"contains": name}},
+                    ]
+                }
+            )
 
         if not include_archived:
-            filters.append({
-                "property": "archived",
-                "checkbox": {"equals": False},
-            })
+            filters.append(
+                {
+                    "property": "archived",
+                    "checkbox": {"equals": False},
+                }
+            )
 
         query_filter = {"and": filters} if len(filters) > 1 else (filters[0] if filters else None)
 
@@ -460,22 +508,28 @@ class NotionClient:
         filters: list[dict[str, Any]] = []
 
         if name:
-            filters.append({
-                "property": "name",
-                "title": {"contains": name},
-            })
+            filters.append(
+                {
+                    "property": "name",
+                    "title": {"contains": name},
+                }
+            )
 
         if place_type:
-            filters.append({
-                "property": "place_type",
-                "select": {"equals": place_type},
-            })
+            filters.append(
+                {
+                    "property": "place_type",
+                    "select": {"equals": place_type},
+                }
+            )
 
         if not include_archived:
-            filters.append({
-                "property": "archived",
-                "checkbox": {"equals": False},
-            })
+            filters.append(
+                {
+                    "property": "archived",
+                    "checkbox": {"equals": False},
+                }
+            )
 
         query_filter = {"and": filters} if len(filters) > 1 else (filters[0] if filters else None)
 
@@ -526,22 +580,28 @@ class NotionClient:
         filters: list[dict[str, Any]] = []
 
         if name:
-            filters.append({
-                "property": "name",
-                "title": {"contains": name},
-            })
+            filters.append(
+                {
+                    "property": "name",
+                    "title": {"contains": name},
+                }
+            )
 
         if status:
-            filters.append({
-                "property": "status",
-                "select": {"equals": status},
-            })
+            filters.append(
+                {
+                    "property": "status",
+                    "select": {"equals": status},
+                }
+            )
 
         if not include_archived:
-            filters.append({
-                "property": "archived",
-                "checkbox": {"equals": False},
-            })
+            filters.append(
+                {
+                    "property": "archived",
+                    "checkbox": {"equals": False},
+                }
+            )
 
         query_filter = {"and": filters} if len(filters) > 1 else (filters[0] if filters else None)
 
@@ -659,10 +719,12 @@ class NotionClient:
         ]
 
         if since:
-            filters.append({
-                "property": "timestamp",
-                "date": {"on_or_after": since.isoformat()},
-            })
+            filters.append(
+                {
+                    "property": "timestamp",
+                    "date": {"on_or_after": since.isoformat()},
+                }
+            )
 
         query_filter = {"and": filters} if len(filters) > 1 else filters[0]
 
@@ -683,7 +745,9 @@ class NotionClient:
             # Extract timestamp
             timestamp_prop = props.get("timestamp", {}).get("date", {})
             timestamp_str = timestamp_prop.get("start") if timestamp_prop else None
-            timestamp = datetime.fromisoformat(timestamp_str) if timestamp_str else datetime.utcnow()
+            timestamp = (
+                datetime.fromisoformat(timestamp_str) if timestamp_str else datetime.utcnow()
+            )
 
             # Extract correction
             correction_prop = props.get("correction", {}).get("rich_text", [])
@@ -748,16 +812,20 @@ class NotionClient:
         filters: list[dict[str, Any]] = []
 
         if trigger:
-            filters.append({
-                "property": "trigger",
-                "title": {"contains": trigger},
-            })
+            filters.append(
+                {
+                    "property": "trigger",
+                    "title": {"contains": trigger},
+                }
+            )
 
         if min_confidence is not None:
-            filters.append({
-                "property": "confidence",
-                "number": {"greater_than_or_equal_to": min_confidence},
-            })
+            filters.append(
+                {
+                    "property": "confidence",
+                    "number": {"greater_than_or_equal_to": min_confidence},
+                }
+            )
 
         query_filter = {"and": filters} if len(filters) > 1 else (filters[0] if filters else None)
 
@@ -768,7 +836,9 @@ class NotionClient:
                 "filter": query_filter,
                 "page_size": limit,
                 "sorts": [{"property": "confidence", "direction": "descending"}],
-            } if query_filter else {
+            }
+            if query_filter
+            else {
                 "page_size": limit,
                 "sorts": [{"property": "confidence", "direction": "descending"}],
             },

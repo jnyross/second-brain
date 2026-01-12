@@ -7,20 +7,21 @@ Covers acceptance tests:
 """
 
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
+
 import pytest
 
+from assistant.notion.schemas import Relationship
 from assistant.services.people import (
+    RELATIONSHIP_PRIORITY,
+    LookupResult,
     PeopleService,
     PersonMatch,
-    LookupResult,
-    RELATIONSHIP_PRIORITY,
-    get_people_service,
-    lookup_person,
-    lookup_or_create_person,
     create_person,
+    get_people_service,
+    lookup_or_create_person,
+    lookup_person,
 )
-from assistant.notion.schemas import Person, Relationship
 
 
 class TestPersonMatch:
@@ -427,7 +428,7 @@ class TestPeopleService:
     @pytest.mark.asyncio
     async def test_matches_sorted_by_confidence_and_recency(self, service, mock_notion_client):
         """Matches should be sorted by confidence then recency."""
-        now = datetime.now()
+        datetime.now()
         mock_notion_client.query_people.return_value = [
             {
                 "id": "old-contact-id",
@@ -462,10 +463,20 @@ class TestPeopleService:
 
     def test_relationship_priority_ordering(self):
         """Partner should have highest priority, acquaintance lowest."""
-        assert RELATIONSHIP_PRIORITY[Relationship.PARTNER] > RELATIONSHIP_PRIORITY[Relationship.FAMILY]
-        assert RELATIONSHIP_PRIORITY[Relationship.FAMILY] > RELATIONSHIP_PRIORITY[Relationship.FRIEND]
-        assert RELATIONSHIP_PRIORITY[Relationship.FRIEND] > RELATIONSHIP_PRIORITY[Relationship.COLLEAGUE]
-        assert RELATIONSHIP_PRIORITY[Relationship.COLLEAGUE] > RELATIONSHIP_PRIORITY[Relationship.ACQUAINTANCE]
+        assert (
+            RELATIONSHIP_PRIORITY[Relationship.PARTNER] > RELATIONSHIP_PRIORITY[Relationship.FAMILY]
+        )
+        assert (
+            RELATIONSHIP_PRIORITY[Relationship.FAMILY] > RELATIONSHIP_PRIORITY[Relationship.FRIEND]
+        )
+        assert (
+            RELATIONSHIP_PRIORITY[Relationship.FRIEND]
+            > RELATIONSHIP_PRIORITY[Relationship.COLLEAGUE]
+        )
+        assert (
+            RELATIONSHIP_PRIORITY[Relationship.COLLEAGUE]
+            > RELATIONSHIP_PRIORITY[Relationship.ACQUAINTANCE]
+        )
 
     @pytest.mark.asyncio
     async def test_relationship_gives_confidence_boost(self, service, mock_notion_client):

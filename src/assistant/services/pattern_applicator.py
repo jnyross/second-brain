@@ -20,7 +20,6 @@ Pattern matching strategy:
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Optional
 
 from assistant.notion import NotionClient
 from assistant.services.patterns import PATTERN_CONFIDENCE_THRESHOLD
@@ -98,7 +97,7 @@ class PatternApplicator:
     corrections to extracted entities before further processing.
     """
 
-    def __init__(self, notion_client: Optional[NotionClient] = None):
+    def __init__(self, notion_client: NotionClient | None = None):
         """Initialize the pattern applicator.
 
         Args:
@@ -146,7 +145,7 @@ class PatternApplicator:
             self._cache_loaded = True  # Mark as loaded to avoid repeated failures
             return 0
 
-    def _extract_pattern_data(self, notion_result: dict) -> Optional[dict]:
+    def _extract_pattern_data(self, notion_result: dict) -> dict | None:
         """Extract pattern data from Notion result.
 
         Args:
@@ -339,8 +338,7 @@ class PatternApplicator:
             if norm_trigger in norm_title:
                 # Check if this pattern was already applied
                 already_applied = any(
-                    p.pattern_id == pattern["id"]
-                    for p in result.patterns_applied
+                    p.pattern_id == pattern["id"] for p in result.patterns_applied
                 )
                 if not already_applied:
                     # For title-based patterns, we record but may not modify title
@@ -386,7 +384,7 @@ class PatternApplicator:
 
 # Module-level convenience functions
 
-_applicator: Optional[PatternApplicator] = None
+_applicator: PatternApplicator | None = None
 
 
 def get_pattern_applicator() -> PatternApplicator:

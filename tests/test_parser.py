@@ -1,7 +1,8 @@
-import pytest
-import pytz
 from datetime import datetime, timedelta
-from assistant.services.parser import Parser, ParsedIntent
+
+import pytz
+
+from assistant.services.parser import Parser
 
 
 class TestParser:

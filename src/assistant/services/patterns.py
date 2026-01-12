@@ -31,10 +31,9 @@ T-092: Pattern Storage
 
 import logging
 import re
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Optional
-from collections import Counter, defaultdict
 
 from assistant.notion import NotionClient
 from assistant.notion.schemas import Pattern
@@ -108,7 +107,7 @@ class PatternDetector:
     and creates patterns that can be applied to future inputs.
     """
 
-    def __init__(self, notion_client: Optional[NotionClient] = None):
+    def __init__(self, notion_client: NotionClient | None = None):
         """Initialize the pattern detector.
 
         Args:
@@ -197,7 +196,7 @@ class PatternDetector:
 
         return detected, stored_ids
 
-    async def _find_existing_pattern(self, pattern: DetectedPattern) -> Optional[str]:
+    async def _find_existing_pattern(self, pattern: DetectedPattern) -> str | None:
         """Check if a pattern already exists in Notion.
 
         Args:
@@ -231,8 +230,9 @@ class PatternDetector:
                     existing_meaning = meaning_text[0].get("text", {}).get("content", "")
 
                 # Check if it's the same pattern (normalized comparison)
-                if (self._normalize(existing_trigger) == self._normalize(pattern.trigger) and
-                    self._normalize(existing_meaning) == self._normalize(pattern.meaning)):
+                if self._normalize(existing_trigger) == self._normalize(
+                    pattern.trigger
+                ) and self._normalize(existing_meaning) == self._normalize(pattern.meaning):
                     return result.get("id")
 
             return None
@@ -268,9 +268,7 @@ class PatternDetector:
         return text
 
     def _detect_patterns_for(
-        self,
-        normalized_original: str,
-        normalized_corrected: str
+        self, normalized_original: str, normalized_corrected: str
     ) -> list[DetectedPattern]:
         """Detect patterns involving this specific correction.
 
@@ -290,8 +288,7 @@ class PatternDetector:
             rec_corr = self._normalize(record.corrected_value)
 
             if self._is_similar_correction(
-                normalized_original, normalized_corrected,
-                rec_orig, rec_corr
+                normalized_original, normalized_corrected, rec_orig, rec_corr
             ):
                 similar_corrections.append(record)
 
@@ -312,8 +309,10 @@ class PatternDetector:
 
     def _is_similar_correction(
         self,
-        orig1: str, corr1: str,
-        orig2: str, corr2: str,
+        orig1: str,
+        corr1: str,
+        orig2: str,
+        corr2: str,
     ) -> bool:
         """Check if two corrections are similar enough to form a pattern.
 
@@ -358,8 +357,7 @@ class PatternDetector:
         return (matching - extra_chars * 0.5) / max_len
 
     def _create_pattern_from_corrections(
-        self,
-        corrections: list[CorrectionRecord]
+        self, corrections: list[CorrectionRecord]
     ) -> DetectedPattern:
         """Create a pattern from a list of similar corrections.
 
@@ -385,7 +383,9 @@ class PatternDetector:
 
         if consistency:
             # All corrections went to the same value - higher confidence
-            extra_confidence = (len(corrections) - MIN_PATTERN_OCCURRENCES) * CONFIDENCE_BOOST_PER_CONFIRMATION
+            extra_confidence = (
+                len(corrections) - MIN_PATTERN_OCCURRENCES
+            ) * CONFIDENCE_BOOST_PER_CONFIRMATION
             confidence = min(100, base_confidence + extra_confidence + 10)
         else:
             confidence = base_confidence
@@ -432,8 +432,9 @@ class PatternDetector:
     def _is_pattern_pending(self, pattern: DetectedPattern) -> bool:
         """Check if a similar pattern is already pending storage."""
         for pending in self._pending_patterns:
-            if (self._normalize(pending.trigger) == self._normalize(pattern.trigger) and
-                self._normalize(pending.meaning) == self._normalize(pattern.meaning)):
+            if self._normalize(pending.trigger) == self._normalize(
+                pattern.trigger
+            ) and self._normalize(pending.meaning) == self._normalize(pattern.meaning):
                 return True
         return False
 
@@ -461,14 +462,16 @@ class PatternDetector:
 
         # Remove from pending
         self._pending_patterns = [
-            p for p in self._pending_patterns
-            if not (self._normalize(p.trigger) == self._normalize(pattern.trigger) and
-                   self._normalize(p.meaning) == self._normalize(pattern.meaning))
+            p
+            for p in self._pending_patterns
+            if not (
+                self._normalize(p.trigger) == self._normalize(pattern.trigger)
+                and self._normalize(p.meaning) == self._normalize(pattern.meaning)
+            )
         ]
 
         logger.info(
-            f"Stored pattern in Notion: '{pattern.trigger}' → '{pattern.meaning}' "
-            f"(id: {page_id})"
+            f"Stored pattern in Notion: '{pattern.trigger}' → '{pattern.meaning}' (id: {page_id})"
         )
 
         return page_id
@@ -491,9 +494,7 @@ class PatternDetector:
         return stored_ids
 
     async def load_corrections_from_log(
-        self,
-        since: Optional[datetime] = None,
-        limit: int = 100
+        self, since: datetime | None = None, limit: int = 100
     ) -> int:
         """Load correction history from Notion's log.
 
@@ -570,7 +571,7 @@ class PatternDetector:
 
 # Module-level convenience functions
 
-_detector: Optional[PatternDetector] = None
+_detector: PatternDetector | None = None
 
 
 def get_pattern_detector() -> PatternDetector:

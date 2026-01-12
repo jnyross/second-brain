@@ -8,22 +8,22 @@ Covers T-072: Implement Projects lookup/create service
 
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock
+
 import pytest
 
 from assistant.services.projects import (
-    ProjectsService,
-    ProjectMatch,
+    STATUS_PRIORITY,
     ProjectLookupResult,
+    ProjectMatch,
+    ProjectsService,
     ProjectStatus,
     ProjectType,
-    STATUS_PRIORITY,
-    get_projects_service,
-    lookup_project,
-    lookup_or_create_project,
     create_project,
+    get_projects_service,
     lookup_active_projects,
+    lookup_or_create_project,
+    lookup_project,
 )
-from assistant.notion.schemas import Project
 
 
 class TestProjectMatch:
@@ -79,9 +79,7 @@ class TestProjectMatch:
 
     def test_having_deadline_beats_not_having(self):
         """Having deadline is better than not having one."""
-        match1 = ProjectMatch(
-            project_id="1", name="Project A", confidence=0.8, status="active"
-        )
+        match1 = ProjectMatch(project_id="1", name="Project A", confidence=0.8, status="active")
         match2 = ProjectMatch(
             project_id="2",
             name="Project B",
@@ -187,9 +185,7 @@ class TestProjectsService:
         result = await service.lookup("Active", status="active")
 
         assert result.found is True
-        mock_notion_client.query_projects.assert_called_once_with(
-            name="Active", status="active"
-        )
+        mock_notion_client.query_projects.assert_called_once_with(name="Active", status="active")
 
     @pytest.mark.asyncio
     async def test_lookup_returns_not_found_when_no_match(self, service, mock_notion_client):
@@ -329,9 +325,7 @@ class TestProjectsService:
     @pytest.mark.asyncio
     async def test_create_project(self, service, mock_notion_client):
         """create() should create a new project in Notion."""
-        project = await service.create(
-            "New Website", "work", "Client project for ABC Inc"
-        )
+        project = await service.create("New Website", "work", "Client project for ABC Inc")
 
         assert project.name == "New Website"
         assert project.project_type == "work"
@@ -351,9 +345,7 @@ class TestProjectsService:
     async def test_create_project_with_deadline(self, service, mock_notion_client):
         """create() should support setting a deadline."""
         deadline = datetime.now() + timedelta(days=30)
-        project = await service.create(
-            "Q1 Goals", "work", deadline=deadline
-        )
+        project = await service.create("Q1 Goals", "work", deadline=deadline)
 
         assert project.name == "Q1 Goals"
         assert project.deadline == deadline
@@ -399,9 +391,7 @@ class TestProjectsService:
         assert result.needs_disambiguation is True
 
     @pytest.mark.asyncio
-    async def test_disambiguation_not_needed_for_active_project(
-        self, service, mock_notion_client
-    ):
+    async def test_disambiguation_not_needed_for_active_project(self, service, mock_notion_client):
         """Active projects with decent confidence don't need disambiguation."""
         mock_notion_client.query_projects.return_value = [
             {
@@ -634,9 +624,7 @@ class TestProjectsService:
             ],
         ]
 
-        results = await service.lookup_multiple(
-            ["Website", "API Integration", "Marketing"]
-        )
+        results = await service.lookup_multiple(["Website", "API Integration", "Marketing"])
 
         assert len(results) == 3
         assert results["Website"].found is True

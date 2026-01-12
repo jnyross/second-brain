@@ -1,23 +1,23 @@
 """Tests for Telegram message handlers."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from io import BytesIO
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from assistant.telegram.handlers import (
-    router,
-    setup_handlers,
-    get_transcriber,
-    cmd_start,
-    cmd_help,
-    cmd_today,
-    cmd_status,
-    handle_voice,
-    handle_text,
-    _process_voice_transcription,
-)
+import pytest
+
 # Note: cmd_debrief moved to assistant.telegram.debrief module
-from assistant.services.whisper import TranscriptionResult, TranscriptionError
+from assistant.services.whisper import TranscriptionError, TranscriptionResult
+from assistant.telegram.handlers import (
+    _process_voice_transcription,
+    cmd_help,
+    cmd_start,
+    cmd_status,
+    cmd_today,
+    get_transcriber,
+    handle_text,
+    handle_voice,
+    setup_handlers,
+)
 
 
 class TestSetupHandlers:
@@ -38,6 +38,7 @@ class TestGetTranscriber:
         """get_transcriber should create WhisperTranscriber."""
         # Reset global
         import assistant.telegram.handlers as handlers
+
         handlers._transcriber = None
 
         with patch("assistant.telegram.handlers.WhisperTranscriber") as mock_cls:
@@ -214,10 +215,11 @@ class TestVoiceHandler:
             is_low_confidence=False,
         )
 
-        with patch("assistant.telegram.handlers.settings") as mock_settings, \
-             patch("assistant.telegram.handlers.get_transcriber") as mock_get_transcriber, \
-             patch("assistant.telegram.handlers.processor") as mock_processor:
-
+        with (
+            patch("assistant.telegram.handlers.settings") as mock_settings,
+            patch("assistant.telegram.handlers.get_transcriber") as mock_get_transcriber,
+            patch("assistant.telegram.handlers.processor") as mock_processor,
+        ):
             mock_settings.has_openai = True
             mock_transcriber = AsyncMock()
             mock_transcriber.transcribe = AsyncMock(return_value=transcription)
@@ -242,14 +244,13 @@ class TestVoiceHandler:
     @pytest.mark.asyncio
     async def test_handle_voice_transcription_error(self):
         """Voice handler should handle transcription errors gracefully."""
-        with patch("assistant.telegram.handlers.settings") as mock_settings, \
-             patch("assistant.telegram.handlers.get_transcriber") as mock_get_transcriber:
-
+        with (
+            patch("assistant.telegram.handlers.settings") as mock_settings,
+            patch("assistant.telegram.handlers.get_transcriber") as mock_get_transcriber,
+        ):
             mock_settings.has_openai = True
             mock_transcriber = AsyncMock()
-            mock_transcriber.transcribe = AsyncMock(
-                side_effect=TranscriptionError("API error")
-            )
+            mock_transcriber.transcribe = AsyncMock(side_effect=TranscriptionError("API error"))
             mock_get_transcriber.return_value = mock_transcriber
 
             await handle_voice(self.message, self.bot)

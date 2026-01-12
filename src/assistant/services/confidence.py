@@ -4,8 +4,7 @@ Calculates confidence scores (0-100) for AI interpretations of user input.
 Scores determine routing: ≥80% = act automatically, <80% = flag for review.
 """
 
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 from assistant.services.entities import ExtractedEntities
 
@@ -80,18 +79,56 @@ class ConfidenceScorer:
     DEFAULT_THRESHOLD = 80
 
     # Clear action verbs that indicate intent
-    ACTION_VERBS = frozenset([
-        "buy", "call", "email", "send", "book", "schedule", "meet",
-        "remind", "pick up", "drop off", "finish", "complete", "do",
-        "make", "get", "check", "review", "prepare", "write", "text",
-        "contact", "cancel", "reschedule", "confirm", "pay", "order",
-        "submit", "deliver", "return", "fix", "update", "create",
-    ])
+    ACTION_VERBS = frozenset(
+        [
+            "buy",
+            "call",
+            "email",
+            "send",
+            "book",
+            "schedule",
+            "meet",
+            "remind",
+            "pick up",
+            "drop off",
+            "finish",
+            "complete",
+            "do",
+            "make",
+            "get",
+            "check",
+            "review",
+            "prepare",
+            "write",
+            "text",
+            "contact",
+            "cancel",
+            "reschedule",
+            "confirm",
+            "pay",
+            "order",
+            "submit",
+            "deliver",
+            "return",
+            "fix",
+            "update",
+            "create",
+        ]
+    )
 
     # Filler words indicating uncertainty
     FILLER_WORDS = [
-        "uhh", "umm", "uh", "um", "like", "you know", "that thing",
-        "whatever", "stuff", "thingy", "whatchamacallit",
+        "uhh",
+        "umm",
+        "uh",
+        "um",
+        "like",
+        "you know",
+        "that thing",
+        "whatever",
+        "stuff",
+        "thingy",
+        "whatchamacallit",
     ]
 
     # Vague pronouns that need context
@@ -103,8 +140,8 @@ class ConfidenceScorer:
     def score(
         self,
         text: str,
-        entities: Optional[ExtractedEntities] = None,
-        intent_type: Optional[str] = None,
+        entities: ExtractedEntities | None = None,
+        intent_type: str | None = None,
     ) -> ConfidenceResult:
         """Calculate confidence score for the given input.
 
@@ -181,9 +218,7 @@ class ConfidenceScorer:
                 return True
         return False
 
-    def _has_vague_pronouns(
-        self, text: str, entities: Optional[ExtractedEntities]
-    ) -> bool:
+    def _has_vague_pronouns(self, text: str, entities: ExtractedEntities | None) -> bool:
         """Check for vague pronouns without supporting entity context."""
         words = text.split()
 
@@ -248,8 +283,8 @@ class ConfidenceScorer:
 
 def calculate_confidence(
     text: str,
-    entities: Optional[ExtractedEntities] = None,
-    intent_type: Optional[str] = None,
+    entities: ExtractedEntities | None = None,
+    intent_type: str | None = None,
     threshold: int = ConfidenceScorer.DEFAULT_THRESHOLD,
 ) -> ConfidenceResult:
     """Convenience function to calculate confidence score.

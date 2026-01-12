@@ -340,6 +340,7 @@ class TestPRDSection54Examples:
 
     def setup_method(self):
         from assistant.services.entities import EntityExtractor
+
         self.extractor = EntityExtractor(timezone="America/Los_Angeles")
         self.tz = ZoneInfo("America/Los_Angeles")
 

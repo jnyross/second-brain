@@ -106,9 +106,9 @@ class TimezoneService:
     # Pattern to match explicit timezone markers
     # Matches: "9am EST", "2pm PST", "14:00 UTC"
     EXPLICIT_TZ_PATTERN = re.compile(
-        r"\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s+(" +
-        "|".join(re.escape(tz) for tz in TIMEZONE_ABBREVIATIONS.keys()) +
-        r")\b",
+        r"\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s+("
+        + "|".join(re.escape(tz) for tz in TIMEZONE_ABBREVIATIONS.keys())
+        + r")\b",
         re.IGNORECASE,
     )
 
@@ -340,7 +340,7 @@ class TimezoneService:
                 tz = self._default_tz
 
             # Get the abbreviation (e.g., PST, PDT)
-            if hasattr(tz, 'key'):
+            if hasattr(tz, "key"):
                 tz_abbrev = dt_value.strftime("%Z")
             else:
                 tz_abbrev = str(tz)

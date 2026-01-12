@@ -7,6 +7,26 @@ confidence scoring, and more.
 from assistant.services.briefing import BriefingGenerator, generate_briefing
 from assistant.services.clarification import ClarificationService
 from assistant.services.confidence import ConfidenceScorer
+from assistant.services.corrections import (
+    CorrectionHandler,
+    CorrectionResult,
+    get_correction_handler,
+    is_correction_message,
+    process_correction,
+    track_created_task,
+)
+from assistant.services.entities import EntityExtractor, ExtractedDate, ExtractedEntities
+from assistant.services.nudges import (
+    NudgeCandidate,
+    NudgeReport,
+    NudgeResult,
+    NudgeService,
+    NudgeType,
+    format_nudge_message,
+    get_nudge_service,
+    get_pending_nudges,
+    run_nudges,
+)
 from assistant.services.offline_queue import (
     OfflineQueue,
     QueuedAction,
@@ -17,13 +37,14 @@ from assistant.services.offline_queue import (
     process_offline_queue,
     queue_for_offline_sync,
 )
-from assistant.services.corrections import (
-    CorrectionHandler,
-    CorrectionResult,
-    get_correction_handler,
-    is_correction_message,
-    process_correction,
-    track_created_task,
+from assistant.services.parser import ParsedIntent, Parser
+from assistant.services.pattern_applicator import (
+    AppliedPattern,
+    PatternApplicationResult,
+    PatternApplicator,
+    apply_patterns,
+    get_pattern_applicator,
+    load_patterns,
 )
 from assistant.services.patterns import (
     CorrectionRecord,
@@ -35,28 +56,6 @@ from assistant.services.patterns import (
     load_and_analyze_patterns,
     store_pending_patterns,
 )
-from assistant.services.pattern_applicator import (
-    AppliedPattern,
-    PatternApplicator,
-    PatternApplicationResult,
-    apply_patterns,
-    get_pattern_applicator,
-    load_patterns,
-)
-from assistant.services.entities import EntityExtractor, ExtractedDate, ExtractedEntities
-from assistant.services.timezone import (
-    ParsedTimezone,
-    TIMEZONE_ABBREVIATIONS,
-    TimezoneAwareDateTime,
-    TimezoneService,
-    get_timezone_service,
-    localize,
-    now,
-    parse_time_with_timezone,
-    reset_timezone_service,
-    today,
-)
-from assistant.services.parser import ParsedIntent, Parser
 from assistant.services.people import PeopleService
 from assistant.services.places import PlacesService
 from assistant.services.processor import MessageProcessor
@@ -75,18 +74,19 @@ from assistant.services.soft_delete import (
     soft_delete,
     undo_last_delete,
 )
-from assistant.services.whisper import WhisperTranscriber
-from assistant.services.nudges import (
-    NudgeCandidate,
-    NudgeReport,
-    NudgeResult,
-    NudgeService,
-    NudgeType,
-    format_nudge_message,
-    get_nudge_service,
-    get_pending_nudges,
-    run_nudges,
+from assistant.services.timezone import (
+    TIMEZONE_ABBREVIATIONS,
+    ParsedTimezone,
+    TimezoneAwareDateTime,
+    TimezoneService,
+    get_timezone_service,
+    localize,
+    now,
+    parse_time_with_timezone,
+    reset_timezone_service,
+    today,
 )
+from assistant.services.whisper import WhisperTranscriber
 
 __all__ = [
     # Briefing

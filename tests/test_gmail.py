@@ -14,30 +14,28 @@ Tests T-121 acceptance criteria (Gmail draft creation):
 - Draft flow: create → preview → send (with user confirmation)
 """
 
-import pytest
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from assistant.google.gmail import (
-    GmailClient,
-    EmailMessage,
-    EmailListResult,
     DraftResult,
+    EmailListResult,
+    EmailMessage,
+    GmailClient,
     SendResult,
+    create_draft,
+    delete_draft,
+    get_draft,
+    get_email_by_id,
     get_gmail_client,
     list_emails,
-    list_unread_emails,
     list_emails_needing_response,
-    get_email_by_id,
-    create_draft,
-    get_draft,
+    list_unread_emails,
     send_draft,
-    delete_draft,
     send_email,
-    DEFAULT_EMAIL_LIMIT,
-    SKIP_LABELS,
-    ACTION_PATTERNS,
 )
 
 
@@ -168,7 +166,9 @@ class TestGmailClient:
 
         # Normal emails without questions/actions
         assert client._needs_response("Newsletter", "This week's updates...") is False
-        assert client._needs_response("FYI: Meeting notes", "Here are the notes from today") is False
+        assert (
+            client._needs_response("FYI: Meeting notes", "Here are the notes from today") is False
+        )
 
     def test_determine_priority_high(self):
         """Test high priority detection."""
@@ -554,6 +554,7 @@ class TestGmailModuleFunctions:
         """Test that get_gmail_client returns singleton."""
         # Clear any existing client
         import assistant.google.gmail as gmail_module
+
         gmail_module._gmail_client = None
 
         client1 = get_gmail_client()
@@ -569,7 +570,7 @@ class TestGmailModuleFunctions:
             mock_client.list_emails.return_value = EmailListResult(success=True)
             mock_get.return_value = mock_client
 
-            result = await list_emails(max_results=10)
+            await list_emails(max_results=10)
 
             mock_client.list_emails.assert_called_once_with(max_results=10, query=None)
 
@@ -581,7 +582,7 @@ class TestGmailModuleFunctions:
             mock_client.list_unread.return_value = EmailListResult(success=True)
             mock_get.return_value = mock_client
 
-            result = await list_unread_emails(max_results=5, since_hours=12)
+            await list_unread_emails(max_results=5, since_hours=12)
 
             mock_client.list_unread.assert_called_once_with(max_results=5, since_hours=12)
 
@@ -593,7 +594,7 @@ class TestGmailModuleFunctions:
             mock_client.list_needing_response.return_value = EmailListResult(success=True)
             mock_get.return_value = mock_client
 
-            result = await list_emails_needing_response(max_results=5)
+            await list_emails_needing_response(max_results=5)
 
             mock_client.list_needing_response.assert_called_once()
 
@@ -605,7 +606,7 @@ class TestGmailModuleFunctions:
             mock_client.get_email.return_value = None
             mock_get.return_value = mock_client
 
-            result = await get_email_by_id("msg123")
+            await get_email_by_id("msg123")
 
             mock_client.get_email.assert_called_once_with("msg123")
 
@@ -887,7 +888,7 @@ class TestGmailClientDrafts:
             "message": {
                 "id": "msg456",
                 "threadId": "thread789",
-            }
+            },
         }
 
         mock_users = MagicMock()
@@ -926,7 +927,7 @@ class TestGmailClientDrafts:
             "message": {
                 "id": "msg456",
                 "threadId": "existing_thread",
-            }
+            },
         }
 
         mock_users = MagicMock()
@@ -1139,7 +1140,7 @@ class TestDraftConvenienceFunctions:
             mock_client.get_draft.return_value = DraftResult(success=True)
             mock_get.return_value = mock_client
 
-            result = await get_draft("draft123")
+            await get_draft("draft123")
 
             mock_client.get_draft.assert_called_once_with("draft123")
 

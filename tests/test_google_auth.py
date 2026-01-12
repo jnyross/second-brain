@@ -7,25 +7,22 @@ This module tests the Google Calendar OAuth implementation per PRD Section 4.4:
 - Error handling
 """
 
-import json
-from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch, mock_open
-import pytest
+from unittest.mock import MagicMock, mock_open, patch
 
 from assistant.google.auth import (
-    GoogleAuth,
-    google_auth,
+    CREDENTIALS_PATH,
     SCOPES,
     TOKEN_PATH,
-    CREDENTIALS_PATH,
+    GoogleAuth,
     extract_oauth_code,
+    google_auth,
 )
-
 
 # =============================================================================
 # Test OAuth Scopes Configuration
 # =============================================================================
+
 
 class TestOAuthScopes:
     """Test that all required OAuth scopes are configured."""
@@ -59,6 +56,7 @@ class TestOAuthScopes:
 # Test Token Path Configuration
 # =============================================================================
 
+
 class TestTokenPaths:
     """Test token storage configuration."""
 
@@ -78,6 +76,7 @@ class TestTokenPaths:
 # =============================================================================
 # Test GoogleAuth Class
 # =============================================================================
+
 
 class TestGoogleAuthInit:
     """Test GoogleAuth initialization."""
@@ -127,9 +126,10 @@ class TestGoogleAuthCredentials:
         # After refresh, should be valid
         def set_valid_on_refresh(request):
             mock_creds.valid = True
+
         mock_creds.refresh.side_effect = set_valid_on_refresh
 
-        with patch.object(auth, '_save_token'):
+        with patch.object(auth, "_save_token"):
             result = auth.credentials
 
         mock_creds.refresh.assert_called_once()
@@ -174,7 +174,7 @@ class TestGoogleAuthLoadSavedCredentials:
     def test_returns_false_when_no_token_file(self):
         """Returns False when token file doesn't exist."""
         auth = GoogleAuth()
-        with patch.object(Path, 'exists', return_value=False):
+        with patch.object(Path, "exists", return_value=False):
             result = auth.load_saved_credentials()
 
         assert result is False
@@ -186,8 +186,11 @@ class TestGoogleAuthLoadSavedCredentials:
         mock_creds.valid = True
         mock_creds.expired = False
 
-        with patch.object(Path, 'exists', return_value=True):
-            with patch('assistant.google.auth.Credentials.from_authorized_user_file', return_value=mock_creds):
+        with patch.object(Path, "exists", return_value=True):
+            with patch(
+                "assistant.google.auth.Credentials.from_authorized_user_file",
+                return_value=mock_creds,
+            ):
                 result = auth.load_saved_credentials()
 
         assert result is True
@@ -203,11 +206,15 @@ class TestGoogleAuthLoadSavedCredentials:
 
         def set_valid_on_refresh(request):
             mock_creds.valid = True
+
         mock_creds.refresh.side_effect = set_valid_on_refresh
 
-        with patch.object(Path, 'exists', return_value=True):
-            with patch('assistant.google.auth.Credentials.from_authorized_user_file', return_value=mock_creds):
-                with patch.object(auth, '_save_token'):
+        with patch.object(Path, "exists", return_value=True):
+            with patch(
+                "assistant.google.auth.Credentials.from_authorized_user_file",
+                return_value=mock_creds,
+            ):
+                with patch.object(auth, "_save_token"):
                     result = auth.load_saved_credentials()
 
         assert result is True
@@ -217,8 +224,11 @@ class TestGoogleAuthLoadSavedCredentials:
         """Returns False if loading fails."""
         auth = GoogleAuth()
 
-        with patch.object(Path, 'exists', return_value=True):
-            with patch('assistant.google.auth.Credentials.from_authorized_user_file', side_effect=Exception("Load failed")):
+        with patch.object(Path, "exists", return_value=True):
+            with patch(
+                "assistant.google.auth.Credentials.from_authorized_user_file",
+                side_effect=Exception("Load failed"),
+            ):
                 result = auth.load_saved_credentials()
 
         assert result is False
@@ -231,7 +241,7 @@ class TestGoogleAuthInteractiveAuth:
         """Returns False when credentials file missing."""
         auth = GoogleAuth()
 
-        with patch('assistant.google.auth.CREDENTIALS_PATH') as mock_path:
+        with patch("assistant.google.auth.CREDENTIALS_PATH") as mock_path:
             mock_path.exists.return_value = False
             result = auth.authenticate_interactive()
 
@@ -244,10 +254,13 @@ class TestGoogleAuthInteractiveAuth:
         mock_creds = MagicMock()
         mock_flow.run_local_server.return_value = mock_creds
 
-        with patch('assistant.google.auth.CREDENTIALS_PATH') as mock_path:
+        with patch("assistant.google.auth.CREDENTIALS_PATH") as mock_path:
             mock_path.exists.return_value = True
-            with patch('assistant.google.auth.InstalledAppFlow.from_client_secrets_file', return_value=mock_flow):
-                with patch.object(auth, '_save_token'):
+            with patch(
+                "assistant.google.auth.InstalledAppFlow.from_client_secrets_file",
+                return_value=mock_flow,
+            ):
+                with patch.object(auth, "_save_token"):
                     result = auth.authenticate_interactive()
 
         assert result is True
@@ -259,9 +272,12 @@ class TestGoogleAuthInteractiveAuth:
         mock_flow = MagicMock()
         mock_flow.run_local_server.side_effect = Exception("Auth failed")
 
-        with patch('assistant.google.auth.CREDENTIALS_PATH') as mock_path:
+        with patch("assistant.google.auth.CREDENTIALS_PATH") as mock_path:
             mock_path.exists.return_value = True
-            with patch('assistant.google.auth.InstalledAppFlow.from_client_secrets_file', return_value=mock_flow):
+            with patch(
+                "assistant.google.auth.InstalledAppFlow.from_client_secrets_file",
+                return_value=mock_flow,
+            ):
                 result = auth.authenticate_interactive()
 
         assert result is False
@@ -289,8 +305,8 @@ class TestGoogleAuthSaveToken:
         mock_parent = MagicMock()
         mock_path.parent = mock_parent
 
-        with patch('assistant.google.auth.TOKEN_PATH', mock_path):
-            with patch('builtins.open', mock_open()):
+        with patch("assistant.google.auth.TOKEN_PATH", mock_path):
+            with patch("builtins.open", mock_open()):
                 auth._save_token()
 
         mock_parent.mkdir.assert_called_once_with(parents=True, exist_ok=True)
@@ -303,10 +319,10 @@ class TestGoogleAuthSaveToken:
         auth._credentials = mock_creds
 
         m = mock_open()
-        with patch('assistant.google.auth.TOKEN_PATH') as mock_path:
+        with patch("assistant.google.auth.TOKEN_PATH") as mock_path:
             mock_parent = MagicMock()
             mock_path.parent = mock_parent
-            with patch('builtins.open', m):
+            with patch("builtins.open", m):
                 auth._save_token()
 
         m().write.assert_called_once_with('{"token": "test_token"}')
@@ -319,7 +335,7 @@ class TestGoogleAuthGetAuthUrl:
         """Returns None when credentials file missing."""
         auth = GoogleAuth()
 
-        with patch('assistant.google.auth.CREDENTIALS_PATH') as mock_path:
+        with patch("assistant.google.auth.CREDENTIALS_PATH") as mock_path:
             mock_path.exists.return_value = False
             result = auth.get_auth_url()
 
@@ -329,22 +345,24 @@ class TestGoogleAuthGetAuthUrl:
         """Returns authorization URL for OAuth flow."""
         auth = GoogleAuth()
         mock_flow = MagicMock()
-        mock_flow.client_config = {
-            'installed': {
-                'redirect_uris': ['http://localhost']
-            }
-        }
-        mock_flow.authorization_url.return_value = ('https://accounts.google.com/o/oauth2/auth?client_id=...', 'state')
+        mock_flow.client_config = {"installed": {"redirect_uris": ["http://localhost"]}}
+        mock_flow.authorization_url.return_value = (
+            "https://accounts.google.com/o/oauth2/auth?client_id=...",
+            "state",
+        )
 
-        with patch('assistant.google.auth.CREDENTIALS_PATH') as mock_path:
+        with patch("assistant.google.auth.CREDENTIALS_PATH") as mock_path:
             mock_path.exists.return_value = True
-            with patch('assistant.google.auth.InstalledAppFlow.from_client_secrets_file', return_value=mock_flow):
+            with patch(
+                "assistant.google.auth.InstalledAppFlow.from_client_secrets_file",
+                return_value=mock_flow,
+            ):
                 result = auth.get_auth_url()
 
-        assert result == 'https://accounts.google.com/o/oauth2/auth?client_id=...'
+        assert result == "https://accounts.google.com/o/oauth2/auth?client_id=..."
         mock_flow.authorization_url.assert_called_once_with(
-            prompt='consent',
-            access_type='offline',
+            prompt="consent",
+            access_type="offline",
         )
 
     def test_returns_none_when_no_redirect_uri(self):
@@ -353,9 +371,12 @@ class TestGoogleAuthGetAuthUrl:
         mock_flow = MagicMock()
         mock_flow.client_config = {}  # No redirect_uris
 
-        with patch('assistant.google.auth.CREDENTIALS_PATH') as mock_path:
+        with patch("assistant.google.auth.CREDENTIALS_PATH") as mock_path:
             mock_path.exists.return_value = True
-            with patch('assistant.google.auth.InstalledAppFlow.from_client_secrets_file', return_value=mock_flow):
+            with patch(
+                "assistant.google.auth.InstalledAppFlow.from_client_secrets_file",
+                return_value=mock_flow,
+            ):
                 result = auth.get_auth_url()
 
         assert result is None
@@ -364,9 +385,12 @@ class TestGoogleAuthGetAuthUrl:
         """Returns None if URL generation fails."""
         auth = GoogleAuth()
 
-        with patch('assistant.google.auth.CREDENTIALS_PATH') as mock_path:
+        with patch("assistant.google.auth.CREDENTIALS_PATH") as mock_path:
             mock_path.exists.return_value = True
-            with patch('assistant.google.auth.InstalledAppFlow.from_client_secrets_file', side_effect=Exception("Flow error")):
+            with patch(
+                "assistant.google.auth.InstalledAppFlow.from_client_secrets_file",
+                side_effect=Exception("Flow error"),
+            ):
                 result = auth.get_auth_url()
 
         assert result is None
@@ -379,7 +403,7 @@ class TestGoogleAuthCompleteAuthWithCode:
         """Returns False when credentials file missing."""
         auth = GoogleAuth()
 
-        with patch('assistant.google.auth.CREDENTIALS_PATH') as mock_path:
+        with patch("assistant.google.auth.CREDENTIALS_PATH") as mock_path:
             mock_path.exists.return_value = False
             result = auth.complete_auth_with_code("test_code")
 
@@ -391,16 +415,15 @@ class TestGoogleAuthCompleteAuthWithCode:
         mock_flow = MagicMock()
         mock_creds = MagicMock()
         mock_flow.credentials = mock_creds
-        mock_flow.client_config = {
-            'installed': {
-                'redirect_uris': ['http://localhost']
-            }
-        }
+        mock_flow.client_config = {"installed": {"redirect_uris": ["http://localhost"]}}
 
-        with patch('assistant.google.auth.CREDENTIALS_PATH') as mock_path:
+        with patch("assistant.google.auth.CREDENTIALS_PATH") as mock_path:
             mock_path.exists.return_value = True
-            with patch('assistant.google.auth.InstalledAppFlow.from_client_secrets_file', return_value=mock_flow):
-                with patch.object(auth, '_save_token'):
+            with patch(
+                "assistant.google.auth.InstalledAppFlow.from_client_secrets_file",
+                return_value=mock_flow,
+            ):
+                with patch.object(auth, "_save_token"):
                     result = auth.complete_auth_with_code("auth_code_123")
 
         assert result is True
@@ -413,9 +436,12 @@ class TestGoogleAuthCompleteAuthWithCode:
         mock_flow = MagicMock()
         mock_flow.client_config = {}  # No redirect_uris
 
-        with patch('assistant.google.auth.CREDENTIALS_PATH') as mock_path:
+        with patch("assistant.google.auth.CREDENTIALS_PATH") as mock_path:
             mock_path.exists.return_value = True
-            with patch('assistant.google.auth.InstalledAppFlow.from_client_secrets_file', return_value=mock_flow):
+            with patch(
+                "assistant.google.auth.InstalledAppFlow.from_client_secrets_file",
+                return_value=mock_flow,
+            ):
                 result = auth.complete_auth_with_code("auth_code_123")
 
         assert result is False
@@ -424,16 +450,15 @@ class TestGoogleAuthCompleteAuthWithCode:
         """Returns False if code exchange fails."""
         auth = GoogleAuth()
         mock_flow = MagicMock()
-        mock_flow.client_config = {
-            'installed': {
-                'redirect_uris': ['http://localhost']
-            }
-        }
+        mock_flow.client_config = {"installed": {"redirect_uris": ["http://localhost"]}}
         mock_flow.fetch_token.side_effect = Exception("Token exchange failed")
 
-        with patch('assistant.google.auth.CREDENTIALS_PATH') as mock_path:
+        with patch("assistant.google.auth.CREDENTIALS_PATH") as mock_path:
             mock_path.exists.return_value = True
-            with patch('assistant.google.auth.InstalledAppFlow.from_client_secrets_file', return_value=mock_flow):
+            with patch(
+                "assistant.google.auth.InstalledAppFlow.from_client_secrets_file",
+                return_value=mock_flow,
+            ):
                 result = auth.complete_auth_with_code("invalid_code")
 
         assert result is False
@@ -446,49 +471,37 @@ class TestGoogleAuthGetRedirectUri:
         """Extracts redirect_uri from top-level string."""
         auth = GoogleAuth()
         mock_flow = MagicMock()
-        mock_flow.client_config = {
-            'redirect_uris': 'http://localhost:8080'
-        }
+        mock_flow.client_config = {"redirect_uris": "http://localhost:8080"}
 
         result = auth._get_redirect_uri(mock_flow)
-        assert result == 'http://localhost:8080'
+        assert result == "http://localhost:8080"
 
     def test_extracts_from_top_level_list(self):
         """Extracts redirect_uri from top-level list."""
         auth = GoogleAuth()
         mock_flow = MagicMock()
-        mock_flow.client_config = {
-            'redirect_uris': ['http://localhost:8080', 'http://example.com']
-        }
+        mock_flow.client_config = {"redirect_uris": ["http://localhost:8080", "http://example.com"]}
 
         result = auth._get_redirect_uri(mock_flow)
-        assert result == 'http://localhost:8080'
+        assert result == "http://localhost:8080"
 
     def test_extracts_from_installed_config(self):
         """Extracts redirect_uri from 'installed' section."""
         auth = GoogleAuth()
         mock_flow = MagicMock()
-        mock_flow.client_config = {
-            'installed': {
-                'redirect_uris': ['urn:ietf:wg:oauth:2.0:oob']
-            }
-        }
+        mock_flow.client_config = {"installed": {"redirect_uris": ["urn:ietf:wg:oauth:2.0:oob"]}}
 
         result = auth._get_redirect_uri(mock_flow)
-        assert result == 'urn:ietf:wg:oauth:2.0:oob'
+        assert result == "urn:ietf:wg:oauth:2.0:oob"
 
     def test_extracts_from_web_config(self):
         """Extracts redirect_uri from 'web' section."""
         auth = GoogleAuth()
         mock_flow = MagicMock()
-        mock_flow.client_config = {
-            'web': {
-                'redirect_uris': ['http://localhost:3000/callback']
-            }
-        }
+        mock_flow.client_config = {"web": {"redirect_uris": ["http://localhost:3000/callback"]}}
 
         result = auth._get_redirect_uri(mock_flow)
-        assert result == 'http://localhost:3000/callback'
+        assert result == "http://localhost:3000/callback"
 
     def test_returns_none_when_not_found(self):
         """Returns None when redirect_uris not in config."""
@@ -503,9 +516,7 @@ class TestGoogleAuthGetRedirectUri:
         """Returns None for empty list."""
         auth = GoogleAuth()
         mock_flow = MagicMock()
-        mock_flow.client_config = {
-            'redirect_uris': []
-        }
+        mock_flow.client_config = {"redirect_uris": []}
 
         result = auth._get_redirect_uri(mock_flow)
         assert result is None
@@ -523,6 +534,7 @@ class TestGoogleAuthGetRedirectUri:
 # =============================================================================
 # Test extract_oauth_code function
 # =============================================================================
+
 
 class TestExtractOAuthCode:
     """Test extract_oauth_code helper function."""
@@ -589,6 +601,7 @@ class TestExtractOAuthCode:
 # Test Integration Scenarios
 # =============================================================================
 
+
 class TestGoogleAuthIntegration:
     """Integration tests for OAuth flow scenarios."""
 
@@ -602,9 +615,12 @@ class TestGoogleAuthIntegration:
         mock_creds.to_json.return_value = '{"token": "test"}'
         mock_flow.run_local_server.return_value = mock_creds
 
-        with patch('assistant.google.auth.CREDENTIALS_PATH') as mock_path:
+        with patch("assistant.google.auth.CREDENTIALS_PATH") as mock_path:
             mock_path.exists.return_value = True
-            with patch('assistant.google.auth.InstalledAppFlow.from_client_secrets_file', return_value=mock_flow):
+            with patch(
+                "assistant.google.auth.InstalledAppFlow.from_client_secrets_file",
+                return_value=mock_flow,
+            ):
                 # Authenticate
                 result = auth.authenticate_interactive()
 
@@ -617,30 +633,32 @@ class TestGoogleAuthIntegration:
 
         # Step 1: Get auth URL
         mock_flow = MagicMock()
-        mock_flow.client_config = {
-            'installed': {'redirect_uris': ['http://localhost']}
-        }
-        mock_flow.authorization_url.return_value = ('https://auth.url', 'state')
+        mock_flow.client_config = {"installed": {"redirect_uris": ["http://localhost"]}}
+        mock_flow.authorization_url.return_value = ("https://auth.url", "state")
 
-        with patch('assistant.google.auth.CREDENTIALS_PATH') as mock_path:
+        with patch("assistant.google.auth.CREDENTIALS_PATH") as mock_path:
             mock_path.exists.return_value = True
-            with patch('assistant.google.auth.InstalledAppFlow.from_client_secrets_file', return_value=mock_flow):
+            with patch(
+                "assistant.google.auth.InstalledAppFlow.from_client_secrets_file",
+                return_value=mock_flow,
+            ):
                 auth_url = auth.get_auth_url()
 
-        assert auth_url == 'https://auth.url'
+        assert auth_url == "https://auth.url"
 
         # Step 2: Complete with code
         mock_flow2 = MagicMock()
-        mock_flow2.client_config = {
-            'installed': {'redirect_uris': ['http://localhost']}
-        }
+        mock_flow2.client_config = {"installed": {"redirect_uris": ["http://localhost"]}}
         mock_creds = MagicMock()
         mock_flow2.credentials = mock_creds
 
-        with patch('assistant.google.auth.CREDENTIALS_PATH') as mock_path:
+        with patch("assistant.google.auth.CREDENTIALS_PATH") as mock_path:
             mock_path.exists.return_value = True
-            with patch('assistant.google.auth.InstalledAppFlow.from_client_secrets_file', return_value=mock_flow2):
-                with patch.object(auth, '_save_token'):
+            with patch(
+                "assistant.google.auth.InstalledAppFlow.from_client_secrets_file",
+                return_value=mock_flow2,
+            ):
+                with patch.object(auth, "_save_token"):
                     result = auth.complete_auth_with_code("user_provided_code")
 
         assert result is True
@@ -660,10 +678,10 @@ class TestGoogleAuthIntegration:
         # Save token (mocked)
         saved_json = None
         m = mock_open()
-        with patch('assistant.google.auth.TOKEN_PATH') as mock_path:
+        with patch("assistant.google.auth.TOKEN_PATH") as mock_path:
             mock_parent = MagicMock()
             mock_path.parent = mock_parent
-            with patch('builtins.open', m):
+            with patch("builtins.open", m):
                 auth1._save_token()
                 # Capture what was written
                 saved_json = m().write.call_args[0][0]
@@ -676,8 +694,11 @@ class TestGoogleAuthIntegration:
         mock_creds2.valid = True
         mock_creds2.expired = False
 
-        with patch.object(Path, 'exists', return_value=True):
-            with patch('assistant.google.auth.Credentials.from_authorized_user_file', return_value=mock_creds2):
+        with patch.object(Path, "exists", return_value=True):
+            with patch(
+                "assistant.google.auth.Credentials.from_authorized_user_file",
+                return_value=mock_creds2,
+            ):
                 result = auth2.load_saved_credentials()
 
         assert result is True
@@ -686,6 +707,7 @@ class TestGoogleAuthIntegration:
 # =============================================================================
 # Test PRD Section 4.4 Requirements
 # =============================================================================
+
 
 class TestPRDSection44Requirements:
     """Tests verifying PRD Section 4.4 Google Calendar API requirements."""
@@ -706,26 +728,28 @@ class TestPRDSection44Requirements:
         """Auth URL requests offline access for refresh tokens."""
         auth = GoogleAuth()
         mock_flow = MagicMock()
-        mock_flow.client_config = {
-            'installed': {'redirect_uris': ['http://localhost']}
-        }
-        mock_flow.authorization_url.return_value = ('https://auth.url', 'state')
+        mock_flow.client_config = {"installed": {"redirect_uris": ["http://localhost"]}}
+        mock_flow.authorization_url.return_value = ("https://auth.url", "state")
 
-        with patch('assistant.google.auth.CREDENTIALS_PATH') as mock_path:
+        with patch("assistant.google.auth.CREDENTIALS_PATH") as mock_path:
             mock_path.exists.return_value = True
-            with patch('assistant.google.auth.InstalledAppFlow.from_client_secrets_file', return_value=mock_flow):
+            with patch(
+                "assistant.google.auth.InstalledAppFlow.from_client_secrets_file",
+                return_value=mock_flow,
+            ):
                 auth.get_auth_url()
 
         # Verify offline access was requested
         mock_flow.authorization_url.assert_called_once_with(
-            prompt='consent',
-            access_type='offline',
+            prompt="consent",
+            access_type="offline",
         )
 
 
 # =============================================================================
 # Test PRD Section 4.8 Failure Handling
 # =============================================================================
+
 
 class TestOAuthFailureHandling:
     """Tests for OAuth failure scenarios per PRD Section 4.8."""
@@ -740,11 +764,12 @@ class TestOAuthFailureHandling:
 
         def set_valid(request):
             mock_creds.valid = True
+
         mock_creds.refresh.side_effect = set_valid
 
         auth._credentials = mock_creds
 
-        with patch.object(auth, '_save_token'):
+        with patch.object(auth, "_save_token"):
             result = auth.credentials
 
         assert result is not None
@@ -769,6 +794,7 @@ class TestOAuthFailureHandling:
 # =============================================================================
 # Acceptance Test: AT-T100
 # =============================================================================
+
 
 class TestAT100GoogleCalendarOAuth:
     """Acceptance test for T-100: Google Calendar OAuth.
@@ -801,11 +827,12 @@ class TestAT100GoogleCalendarOAuth:
 
         def set_valid(request):
             mock_creds.valid = True
+
         mock_creds.refresh.side_effect = set_valid
 
         auth._credentials = mock_creds
 
-        with patch.object(auth, '_save_token'):
+        with patch.object(auth, "_save_token"):
             result = auth.credentials
 
         assert result is not None
@@ -819,14 +846,14 @@ class TestAT100GoogleCalendarOAuth:
     def test_interactive_flow_available(self):
         """Interactive OAuth flow method exists."""
         auth = GoogleAuth()
-        assert hasattr(auth, 'authenticate_interactive')
+        assert hasattr(auth, "authenticate_interactive")
         assert callable(auth.authenticate_interactive)
 
     def test_url_code_flow_available(self):
         """URL + code OAuth flow methods exist."""
         auth = GoogleAuth()
-        assert hasattr(auth, 'get_auth_url')
-        assert hasattr(auth, 'complete_auth_with_code')
+        assert hasattr(auth, "get_auth_url")
+        assert hasattr(auth, "complete_auth_with_code")
         assert callable(auth.get_auth_url)
         assert callable(auth.complete_auth_with_code)
 

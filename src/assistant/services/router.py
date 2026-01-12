@@ -6,10 +6,9 @@ confidence score, and intent classification.
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
-from assistant.services.entities import ExtractedEntities
 from assistant.services.confidence import ConfidenceResult
+from assistant.services.entities import ExtractedEntities
 
 
 class TargetDatabase(Enum):
@@ -72,7 +71,7 @@ class ClassificationRouter:
         self,
         intent_type: str,
         confidence_result: ConfidenceResult,
-        entities: Optional[ExtractedEntities] = None,
+        entities: ExtractedEntities | None = None,
     ) -> RoutingDecision:
         """Determine where to route the parsed input.
 
@@ -124,7 +123,7 @@ class ClassificationRouter:
 
     def _get_secondary_targets(
         self,
-        entities: Optional[ExtractedEntities],
+        entities: ExtractedEntities | None,
         primary_target: TargetDatabase,
     ) -> list[TargetDatabase]:
         """Determine secondary databases to update based on entities.
@@ -148,18 +147,13 @@ class ClassificationRouter:
 
     def should_create_task(self, decision: RoutingDecision) -> bool:
         """Check if routing decision indicates task creation."""
-        return (
-            decision.target == TargetDatabase.TASKS
-            and decision.action == RouteAction.CREATE
-        )
+        return decision.target == TargetDatabase.TASKS and decision.action == RouteAction.CREATE
 
     def should_flag_for_review(self, decision: RoutingDecision) -> bool:
         """Check if routing decision indicates flagging for human review."""
         return decision.needs_clarification
 
-    def get_linked_entities(
-        self, entities: Optional[ExtractedEntities]
-    ) -> dict[str, list[str]]:
+    def get_linked_entities(self, entities: ExtractedEntities | None) -> dict[str, list[str]]:
         """Extract entity names for linking to related databases.
 
         Returns dict with 'people' and 'places' lists of names to link.
@@ -178,7 +172,7 @@ class ClassificationRouter:
 def classify_and_route(
     intent_type: str,
     confidence_result: ConfidenceResult,
-    entities: Optional[ExtractedEntities] = None,
+    entities: ExtractedEntities | None = None,
     threshold: int = ClassificationRouter.DEFAULT_THRESHOLD,
 ) -> RoutingDecision:
     """Convenience function to classify and route input.

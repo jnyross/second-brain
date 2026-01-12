@@ -70,8 +70,9 @@ class TestDockerComposeService:
         """Service has restart policy for auto-recovery (PRD 1.2)."""
         restart = service.get("restart")
         # Accept 'always' or 'unless-stopped' - both ensure auto-recovery
-        assert restart in ("always", "unless-stopped"), \
+        assert restart in ("always", "unless-stopped"), (
             f"Expected restart policy 'always' or 'unless-stopped', got '{restart}'"
+        )
 
     def test_env_file_for_secrets(self, service: dict):
         """Service uses env_file for secrets (PRD 1.3)."""
@@ -80,8 +81,9 @@ class TestDockerComposeService:
         if isinstance(env_file, str):
             env_file = [env_file]
         # Check for /etc/second-brain.env
-        assert any("/etc/second-brain.env" in f for f in env_file), \
+        assert any("/etc/second-brain.env" in f for f in env_file), (
             "Expected env_file to include /etc/second-brain.env"
+        )
 
     def test_has_timezone_environment(self, service: dict):
         """Service has TZ environment variable."""
@@ -106,33 +108,28 @@ class TestDockerComposeVolumes:
     def test_tokens_volume(self, volumes: list):
         """Has volume mount for OAuth tokens."""
         volume_paths = [v.split(":")[0] for v in volumes]
-        assert any("tokens" in v for v in volume_paths), \
-            "Expected volume mount for tokens"
+        assert any("tokens" in v for v in volume_paths), "Expected volume mount for tokens"
 
     def test_cache_volume(self, volumes: list):
         """Has volume mount for cache."""
         volume_paths = [v.split(":")[0] for v in volumes]
-        assert any("cache" in v for v in volume_paths), \
-            "Expected volume mount for cache"
+        assert any("cache" in v for v in volume_paths), "Expected volume mount for cache"
 
     def test_logs_volume(self, volumes: list):
         """Has volume mount for logs."""
         volume_paths = [v.split(":")[0] for v in volumes]
-        assert any("logs" in v for v in volume_paths), \
-            "Expected volume mount for logs"
+        assert any("logs" in v for v in volume_paths), "Expected volume mount for logs"
 
     def test_queue_volume(self, volumes: list):
         """Has volume mount for offline queue (PRD 4.8)."""
         volume_paths = [v.split(":")[0] for v in volumes]
-        assert any("queue" in v for v in volume_paths), \
-            "Expected volume mount for offline queue"
+        assert any("queue" in v for v in volume_paths), "Expected volume mount for offline queue"
 
     def test_all_volumes_absolute_paths(self, volumes: list):
         """All volume mounts use absolute paths."""
         for volume in volumes:
             host_path = volume.split(":")[0]
-            assert host_path.startswith("/"), \
-                f"Volume host path should be absolute: {host_path}"
+            assert host_path.startswith("/"), f"Volume host path should be absolute: {host_path}"
 
 
 class TestDockerComposeHealthCheck:
@@ -155,8 +152,9 @@ class TestDockerComposeHealthCheck:
             test_str = " ".join(test)
         else:
             test_str = test
-        assert "assistant" in test_str and "check" in test_str, \
+        assert "assistant" in test_str and "check" in test_str, (
             f"Expected healthcheck to use 'assistant check', got: {test}"
+        )
 
     def test_healthcheck_has_interval(self, healthcheck: dict):
         """Health check has interval configured."""
@@ -239,8 +237,9 @@ class TestDockerComposeSecurity:
     def test_no_new_privileges(self, service: dict):
         """Service has no-new-privileges security option."""
         security_opt = service.get("security_opt", [])
-        assert "no-new-privileges:true" in security_opt, \
+        assert "no-new-privileges:true" in security_opt, (
             "Expected no-new-privileges:true security option"
+        )
 
     def test_read_only_filesystem(self, service: dict):
         """Service has read-only root filesystem."""
@@ -248,8 +247,7 @@ class TestDockerComposeSecurity:
         read_only = service.get("read_only", False)
         if read_only:
             # If read_only is set, tmpfs should be configured
-            assert service.get("tmpfs"), \
-                "Expected tmpfs when read_only is true"
+            assert service.get("tmpfs"), "Expected tmpfs when read_only is true"
 
 
 class TestAT202DockerCompose:
@@ -304,9 +302,9 @@ class TestDockerComposeDocumentation:
         # Should have header comments
         assert content.startswith("#"), "Expected header comment"
         # Should have usage comments
-        assert "docker compose up" in content.lower() or \
-               "docker-compose up" in content.lower(), \
+        assert "docker compose up" in content.lower() or "docker-compose up" in content.lower(), (
             "Expected usage instructions in comments"
+        )
 
 
 class TestDockerComposePRDCompliance:

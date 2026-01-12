@@ -18,7 +18,6 @@ Uses aiogram FSM (Finite State Machine) for multi-turn conversation flow.
 import logging
 import re
 from datetime import datetime
-from typing import Optional
 
 from aiogram import F, Router
 from aiogram.filters import Command
@@ -89,8 +88,7 @@ async def cmd_debrief(message: Message, state: FSMContext) -> None:
 
     if not items:
         await message.answer(
-            "✅ **All clear!**\n\n"
-            "No items need clarification. You're all caught up!"
+            "✅ **All clear!**\n\nNo items need clarification. You're all caught up!"
         )
         return
 
@@ -176,10 +174,12 @@ async def handle_debrief_response(message: Message, state: FSMContext) -> None:
     # Handle cancel patterns ("cancel that", "already done", etc.)
     if _is_cancel_command(response):
         service = ClarificationService()
-        await service.dismiss_item(current_item.id, reason="Cancelled by user - already done or not needed")
+        await service.dismiss_item(
+            current_item.id, reason="Cancelled by user - already done or not needed"
+        )
         stats["skipped"] += 1
 
-        await message.answer(f"✓ Removed from inbox.")
+        await message.answer("✓ Removed from inbox.")
 
         # Move to next item
         await _advance_to_next_item(message, state, items_data, current_index + 1, stats)
@@ -261,11 +261,14 @@ async def handle_due_date_response(message: Message, state: FSMContext) -> None:
             pending_entities=None,
         )
         await state.set_state(DebriefStates.reviewing)
-        await message.answer("OK, let's try again.\n\n" + _format_item_for_review(
-            _dict_to_item(data["items"][data["current_index"]]),
-            data["current_index"] + 1,
-            len(data["items"])
-        ))
+        await message.answer(
+            "OK, let's try again.\n\n"
+            + _format_item_for_review(
+                _dict_to_item(data["items"][data["current_index"]]),
+                data["current_index"] + 1,
+                len(data["items"]),
+            )
+        )
         return
 
     # Handle skip (no due date)
@@ -279,8 +282,8 @@ async def handle_due_date_response(message: Message, state: FSMContext) -> None:
         else:
             # Couldn't parse - ask again or proceed without
             await message.answer(
-                f"I couldn't understand that date. Creating task without due date.\n"
-                f"_(You can update the date in Notion)_"
+                "I couldn't understand that date. Creating task without due date.\n"
+                "_(You can update the date in Notion)_"
             )
 
     # Restore entities from dict
@@ -321,9 +324,9 @@ async def _create_task_with_entities(
     state: FSMContext,
     item_id: str,
     title: str,
-    due_date: Optional[datetime],
+    due_date: datetime | None,
     entities: ExtractedEntities,
-    chat_id: Optional[str],
+    chat_id: str | None,
     items_data: list[dict],
     current_index: int,
     stats: dict,
@@ -361,10 +364,7 @@ async def _create_task_with_entities(
 
         await message.answer("\n".join(confirmation_parts))
     else:
-        await message.answer(
-            f"⚠️ Couldn't create task: {result.message}\n"
-            f"Let's continue..."
-        )
+        await message.answer(f"⚠️ Couldn't create task: {result.message}\nLet's continue...")
 
     # Move to next item
     await _advance_to_next_item(message, state, items_data, current_index + 1, stats)
@@ -436,7 +436,7 @@ def _format_item_for_review(item: UnclearItem, index: int, total: int) -> str:
     lines = [f"📝 **Item {index} of {total}**\n"]
 
     # Show original input
-    lines.append(f"You said: \"{item.raw_input}\"")
+    lines.append(f'You said: "{item.raw_input}"')
 
     # Add voice indicator and confidence
     indicators = []
@@ -499,15 +499,39 @@ def _should_ask_for_due_date(title: str) -> bool:
     """
     # Words that suggest a specific action (should ask for due date)
     action_words = [
-        "send", "email", "call", "meet", "buy", "book", "schedule",
-        "finish", "complete", "submit", "review", "prepare", "write",
-        "pay", "order", "pick up", "drop off", "deliver", "remind",
+        "send",
+        "email",
+        "call",
+        "meet",
+        "buy",
+        "book",
+        "schedule",
+        "finish",
+        "complete",
+        "submit",
+        "review",
+        "prepare",
+        "write",
+        "pay",
+        "order",
+        "pick up",
+        "drop off",
+        "deliver",
+        "remind",
     ]
 
     # Words that suggest general notes (don't ask for due date)
     note_words = [
-        "remember", "idea", "note", "thought", "maybe", "consider",
-        "someday", "when possible", "eventually", "later",
+        "remember",
+        "idea",
+        "note",
+        "thought",
+        "maybe",
+        "consider",
+        "someday",
+        "when possible",
+        "eventually",
+        "later",
     ]
 
     title_lower = title.lower()
@@ -558,10 +582,10 @@ def _dict_to_entities(data: dict) -> ExtractedEntities:
     T-083: Entity deserialization for multi-turn clarification.
     """
     from assistant.services.entities import (
+        ExtractedDate,
         ExtractedEntities,
         ExtractedPerson,
         ExtractedPlace,
-        ExtractedDate,
     )
 
     if not data:
@@ -580,11 +604,13 @@ def _dict_to_entities(data: dict) -> ExtractedEntities:
     dates = []
     for d in data.get("dates", []):
         dt_value = datetime.fromisoformat(d["datetime_value"])
-        dates.append(ExtractedDate(
-            datetime_value=dt_value,
-            confidence=d["confidence"],
-            original_text=d["original_text"],
-        ))
+        dates.append(
+            ExtractedDate(
+                datetime_value=dt_value,
+                confidence=d["confidence"],
+                original_text=d["original_text"],
+            )
+        )
 
     return ExtractedEntities(
         people=people,

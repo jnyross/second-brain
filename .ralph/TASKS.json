@@ -907,8 +907,8 @@
       "description": "CI pipeline for linting, type-checking, and testing on every PR.",
       "depends_on": [],
       "acceptance_tests": ["AT-203"],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created .github/workflows/ci.yml with lint/type-check/test jobs per PRD 12.5. Python 3.12, ruff check/format, mypy src, pytest --cov. Tests in tests/test_ci_workflow.py (38 tests pass). Full suite: 1094 tests pass.",
       "updated_at": "2026-01-12"
     },
     {

@@ -1,8 +1,9 @@
 """Tests for the morning briefing generator."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 import pytz
 
 from assistant.services.briefing import (
@@ -26,9 +27,7 @@ def make_notion_task(
         },
     }
     if due_date:
-        page["properties"]["due_date"] = {
-            "date": {"start": due_date.isoformat()}
-        }
+        page["properties"]["due_date"] = {"date": {"start": due_date.isoformat()}}
     if priority:
         page["properties"]["priority"] = {"select": {"name": priority}}
     return page

@@ -1,21 +1,17 @@
 """Tests for the correction handler service."""
 
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
+
+import pytest
 
 from assistant.services.corrections import (
     CorrectionHandler,
-    CorrectionResult,
     RecentAction,
-    is_correction_message,
     get_correction_handler,
+    is_correction_message,
     track_created_task,
-    process_correction,
-    CORRECTION_PATTERNS,
-    CORRECTION_EXTRACTION_PATTERNS,
 )
-from assistant.notion.schemas import ActionType
 
 
 class TestRecentAction:
@@ -136,7 +132,9 @@ class TestCorrectionExtraction:
         """Test extracting correct and wrong values from correction text."""
         handler = CorrectionHandler()
         correct, wrong = handler.extract_correction(text)
-        assert correct == expected_correct, f"Expected correct='{expected_correct}', got '{correct}'"
+        assert correct == expected_correct, (
+            f"Expected correct='{expected_correct}', got '{correct}'"
+        )
         if expected_wrong is not None:
             assert wrong == expected_wrong, f"Expected wrong='{expected_wrong}', got '{wrong}'"
 
@@ -512,8 +510,7 @@ class TestAT108AcceptanceTest:
 
         # Verify: Notion API was called to update the task title
         patch_calls = [
-            call for call in mock_notion._request.call_args_list
-            if call[0][0] == "PATCH"
+            call for call in mock_notion._request.call_args_list if call[0][0] == "PATCH"
         ]
         assert len(patch_calls) >= 1, "Should have made at least one PATCH request"
 

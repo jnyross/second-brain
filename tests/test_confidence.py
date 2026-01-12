@@ -1,20 +1,19 @@
 """Tests for the confidence scoring service."""
 
-import pytest
+from datetime import datetime
 
 from assistant.services.confidence import (
-    ConfidenceScorer,
-    ConfidenceResult,
     ConfidenceBreakdown,
+    ConfidenceResult,
+    ConfidenceScorer,
     calculate_confidence,
 )
 from assistant.services.entities import (
+    ExtractedDate,
     ExtractedEntities,
     ExtractedPerson,
     ExtractedPlace,
-    ExtractedDate,
 )
-from datetime import datetime
 
 
 class TestConfidenceScorer:
@@ -29,13 +28,15 @@ class TestConfidenceScorer:
         """Clear task with action verb and time should score ≥80%."""
         # In real usage, entities would be extracted first
         entities = ExtractedEntities(
-            dates=[ExtractedDate(
-                datetime_value=datetime.now(),
-                confidence=95,
-                original_text="tomorrow",
-                timezone="UTC",
-                is_relative=True,
-            )],
+            dates=[
+                ExtractedDate(
+                    datetime_value=datetime.now(),
+                    confidence=95,
+                    original_text="tomorrow",
+                    timezone="UTC",
+                    is_relative=True,
+                )
+            ],
             raw_text="Buy milk tomorrow",
         )
         result = self.scorer.score("Buy milk tomorrow", entities)
@@ -47,13 +48,15 @@ class TestConfidenceScorer:
         """Task with verb and entities should boost confidence."""
         entities = ExtractedEntities(
             people=[ExtractedPerson(name="Sarah", confidence=90, context="with Sarah")],
-            dates=[ExtractedDate(
-                datetime_value=datetime.now(),
-                confidence=95,
-                original_text="tomorrow",
-                timezone="America/Los_Angeles",
-                is_relative=True,
-            )],
+            dates=[
+                ExtractedDate(
+                    datetime_value=datetime.now(),
+                    confidence=95,
+                    original_text="tomorrow",
+                    timezone="America/Los_Angeles",
+                    is_relative=True,
+                )
+            ],
             raw_text="Meet Sarah for lunch tomorrow",
         )
         # "Meet" is an action verb, plus entities and time
@@ -65,13 +68,15 @@ class TestConfidenceScorer:
         """Task with verb, time, and entities should be very high confidence."""
         entities = ExtractedEntities(
             people=[ExtractedPerson(name="John", confidence=85, context="call John")],
-            dates=[ExtractedDate(
-                datetime_value=datetime.now(),
-                confidence=90,
-                original_text="3pm",
-                timezone="UTC",
-                is_relative=False,
-            )],
+            dates=[
+                ExtractedDate(
+                    datetime_value=datetime.now(),
+                    confidence=90,
+                    original_text="3pm",
+                    timezone="UTC",
+                    is_relative=False,
+                )
+            ],
             raw_text="Call John at 3pm",
         )
         result = self.scorer.score("Call John at 3pm", entities)
@@ -137,13 +142,15 @@ class TestConfidenceScorer:
     def test_breakdown_time_bonus(self):
         """Date/time should add time bonus."""
         entities = ExtractedEntities(
-            dates=[ExtractedDate(
-                datetime_value=datetime.now(),
-                confidence=90,
-                original_text="tomorrow",
-                timezone="UTC",
-                is_relative=True,
-            )],
+            dates=[
+                ExtractedDate(
+                    datetime_value=datetime.now(),
+                    confidence=90,
+                    original_text="tomorrow",
+                    timezone="UTC",
+                    is_relative=True,
+                )
+            ],
             raw_text="tomorrow",
         )
         result = self.scorer.score("Buy milk tomorrow", entities)
@@ -184,13 +191,15 @@ class TestConfidenceScorer:
         entities = ExtractedEntities(
             people=[ExtractedPerson(name="P1", confidence=90, context="")],
             places=[ExtractedPlace(name="Place", confidence=90, context="")],
-            dates=[ExtractedDate(
-                datetime_value=datetime.now(),
-                confidence=95,
-                original_text="now",
-                timezone="UTC",
-                is_relative=True,
-            )],
+            dates=[
+                ExtractedDate(
+                    datetime_value=datetime.now(),
+                    confidence=95,
+                    original_text="now",
+                    timezone="UTC",
+                    is_relative=True,
+                )
+            ],
             raw_text="test",
         )
         result = self.scorer.score(

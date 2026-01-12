@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phases 1-5 complete. T-200 complete (Dockerfile). T-201 complete (docker-compose.yml). Next: T-202 (GitHub Actions CI) or T-204 (server setup script) - both P0 with no dependencies.
+- Status: Phase 0 complete. Phases 1-5 complete. T-200 (Dockerfile), T-201 (docker-compose.yml), T-202 (GitHub Actions CI) complete. Next: T-203 (GitHub Actions CD), T-204 (server setup script), or T-205 (health check script).
 
 ## Iteration Log
 
@@ -901,3 +901,37 @@
   - Commands: python3 -m pytest tests/test_docker_compose.py -v (41 passed)
   - Full test suite: 1056 tests (all pass)
   - Commit: ae2e29c
+
+- Iteration 32 (T-202): GitHub Actions CI Pipeline
+  - Task: Set up GitHub Actions CI for lint, type-check, and test on every PR per PRD 12.5
+  - PRD Compliance:
+    - PRD 12.5: "GitHub Actions - CI (ci.yml)" with lint, type-check, test jobs
+    - AT-203: "Given: PR opened against main, When: GitHub Actions CI runs, Then: All jobs pass"
+  - Created .github/workflows/ci.yml:
+    - name: CI
+    - Triggers: push to main, pull_request to main
+    - Concurrency: cancel-in-progress for same branch
+    - Jobs: lint, type-check, test, ci-success
+    - lint: ruff check src tests, ruff format --check src tests
+    - type-check: mypy src
+    - test: pytest --cov=assistant --cov-report=xml, codecov upload
+    - ci-success: summary job depending on all others
+    - All jobs use ubuntu-latest, Python 3.12, pip cache
+    - Security: env vars for interpolation, pinned action versions
+  - Created tests/test_ci_workflow.py (38 tests):
+    - TestCIWorkflowExists (3): file exists, valid YAML, has name
+    - TestCIWorkflowTriggers (2): push, pull_request triggers
+    - TestCIWorkflowJobs (4): lint, type-check, test jobs, ubuntu-latest
+    - TestLintJob (5): checkout, python, deps, ruff check, ruff format
+    - TestTypeCheckJob (3): checkout, python, mypy
+    - TestTestJob (5): checkout, python, pytest, coverage, codecov
+    - TestCIConcurrency (2): config, cancel-in-progress
+    - TestCISuccessJob (3): exists, depends on all, runs always
+    - TestAT203CIPipelinePasses (5): acceptance test validation
+    - TestPRDSection125Compliance (3): checkout v4, setup-python v5, dev deps
+    - TestGitHubActionsSecurityBestPractices (3): no direct interpolation, pinned versions, secrets
+  - Fixed pre-existing lint issues with ruff --fix
+  - YAML quirk: 'on' key parsed as boolean True
+  - Commands: python3 -m pytest tests/test_ci_workflow.py -v (38 passed)
+  - Full test suite: 1094 tests (all pass)
+  - Commit: f8e0d29

@@ -23,6 +23,7 @@ from assistant.services.timezone import (
 @dataclass
 class ExtractedPerson:
     """A person entity extracted from text."""
+
     name: str
     confidence: int  # 0-100
     context: str = ""  # The surrounding context where found
@@ -31,6 +32,7 @@ class ExtractedPerson:
 @dataclass
 class ExtractedPlace:
     """A place entity extracted from text."""
+
     name: str
     confidence: int  # 0-100
     context: str = ""
@@ -48,6 +50,7 @@ class ExtractedDate:
     - timezone field contains the IANA timezone name
     - Use to_iso8601() for proper ISO 8601 formatting with offset
     """
+
     datetime_value: datetime
     confidence: int  # 0-100
     original_text: str  # The matched text fragment
@@ -74,6 +77,7 @@ class ExtractedDate:
 @dataclass
 class ExtractedEntities:
     """Container for all extracted entities from text."""
+
     people: list[ExtractedPerson] = field(default_factory=list)
     places: list[ExtractedPlace] = field(default_factory=list)
     dates: list[ExtractedDate] = field(default_factory=list)
@@ -93,18 +97,52 @@ class EntityExtractor:
     """
 
     # Words that look like names but aren't people
-    NOT_PEOPLE = frozenset([
-        "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
-        "january", "february", "march", "april", "may", "june",
-        "july", "august", "september", "october", "november", "december",
-        "morning", "afternoon", "evening", "night",
-        "today", "tomorrow", "yesterday",
-    ])
+    NOT_PEOPLE = frozenset(
+        [
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday",
+            "january",
+            "february",
+            "march",
+            "april",
+            "may",
+            "june",
+            "july",
+            "august",
+            "september",
+            "october",
+            "november",
+            "december",
+            "morning",
+            "afternoon",
+            "evening",
+            "night",
+            "today",
+            "tomorrow",
+            "yesterday",
+        ]
+    )
 
     # Words that typically precede a proper noun but don't indicate a person
-    NON_PERSON_PREFIXES = frozenset([
-        "i", "the", "a", "an", "at", "on", "in", "to", "from", "by",
-    ])
+    NON_PERSON_PREFIXES = frozenset(
+        [
+            "i",
+            "the",
+            "a",
+            "an",
+            "at",
+            "on",
+            "in",
+            "to",
+            "from",
+            "by",
+        ]
+    )
 
     # Patterns for place detection
     PLACE_PATTERNS = [
@@ -126,9 +164,9 @@ class EntityExtractor:
 
     # Pattern for explicit timezone markers (e.g., "9am EST", "2pm PST")
     EXPLICIT_TZ_PATTERN = re.compile(
-        r"\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s+(" +
-        "|".join(re.escape(tz) for tz in TIMEZONE_ABBREVIATIONS.keys()) +
-        r")\b",
+        r"\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s+("
+        + "|".join(re.escape(tz) for tz in TIMEZONE_ABBREVIATIONS.keys())
+        + r")\b",
         re.IGNORECASE,
     )
 
@@ -181,11 +219,13 @@ class EntityExtractor:
         for match in with_matches:
             name = match.group(1)
             if name.lower() not in self.NOT_PEOPLE and name not in seen_names:
-                people.append(ExtractedPerson(
-                    name=name,
-                    confidence=90,
-                    context=match.group(0),
-                ))
+                people.append(
+                    ExtractedPerson(
+                        name=name,
+                        confidence=90,
+                        context=match.group(0),
+                    )
+                )
                 seen_names.add(name)
 
         # Strategy 2: "call/email/meet Name" patterns - high confidence
@@ -199,11 +239,13 @@ class EntityExtractor:
             for match in re.finditer(pattern, text):
                 name = match.group(1)
                 if name.lower() not in self.NOT_PEOPLE and name not in seen_names:
-                    people.append(ExtractedPerson(
-                        name=name,
-                        confidence=85,
-                        context=match.group(0),
-                    ))
+                    people.append(
+                        ExtractedPerson(
+                            name=name,
+                            confidence=85,
+                            context=match.group(0),
+                        )
+                    )
                     seen_names.add(name)
 
         # Strategy 3: Capitalized words (not at sentence start) - medium confidence
@@ -213,7 +255,7 @@ class EntityExtractor:
             if i == 0:
                 continue
             # Check previous word ends with sentence-ending punctuation
-            if i > 0 and words[i-1][-1] in ".!?":
+            if i > 0 and words[i - 1][-1] in ".!?":
                 continue
 
             # Check for capitalized word
@@ -224,16 +266,18 @@ class EntityExtractor:
                 # Skip if it's not a name-like word
                 if clean_word.lower() in self.NOT_PEOPLE:
                     continue
-                if i > 0 and words[i-1].lower() in self.NON_PERSON_PREFIXES:
+                if i > 0 and words[i - 1].lower() in self.NON_PERSON_PREFIXES:
                     continue
                 if clean_word in seen_names:
                     continue
 
-                people.append(ExtractedPerson(
-                    name=clean_word,
-                    confidence=60,
-                    context=f"...{words[max(0,i-2):i+2]}...",
-                ))
+                people.append(
+                    ExtractedPerson(
+                        name=clean_word,
+                        confidence=60,
+                        context=f"...{words[max(0, i - 2) : i + 2]}...",
+                    )
+                )
                 seen_names.add(clean_word)
 
         return people
@@ -257,11 +301,13 @@ class EntityExtractor:
             for match in re.finditer(pattern, text):
                 place_name = match.group(1)
                 if place_name.lower() not in self.NOT_PEOPLE and place_name not in seen_places:
-                    places.append(ExtractedPlace(
-                        name=place_name,
-                        confidence=80,
-                        context=match.group(0),
-                    ))
+                    places.append(
+                        ExtractedPlace(
+                            name=place_name,
+                            confidence=80,
+                            context=match.group(0),
+                        )
+                    )
                     seen_places.add(place_name)
 
         return places
@@ -312,14 +358,16 @@ class EntityExtractor:
                 dt = dt.replace(hour=hour, minute=minute, tzinfo=parse_tz)
             else:
                 dt = dt.replace(hour=9, minute=0, tzinfo=parse_tz)  # Default to 9am
-            dates.append(ExtractedDate(
-                datetime_value=dt,
-                confidence=95,
-                original_text="tomorrow",
-                timezone=parse_tz_name,
-                is_relative=True,
-                has_explicit_timezone=has_explicit_tz,
-            ))
+            dates.append(
+                ExtractedDate(
+                    datetime_value=dt,
+                    confidence=95,
+                    original_text="tomorrow",
+                    timezone=parse_tz_name,
+                    is_relative=True,
+                    has_explicit_timezone=has_explicit_tz,
+                )
+            )
 
         # Check for "today"
         if "today" in text_lower:
@@ -332,19 +380,26 @@ class EntityExtractor:
                     parse_tz = ZoneInfo(tz_name)
                     has_explicit_tz = True
                 dt = dt.replace(hour=hour, minute=minute, tzinfo=parse_tz)
-            dates.append(ExtractedDate(
-                datetime_value=dt,
-                confidence=95,
-                original_text="today",
-                timezone=parse_tz_name,
-                is_relative=True,
-                has_explicit_timezone=has_explicit_tz,
-            ))
+            dates.append(
+                ExtractedDate(
+                    datetime_value=dt,
+                    confidence=95,
+                    original_text="today",
+                    timezone=parse_tz_name,
+                    is_relative=True,
+                    has_explicit_timezone=has_explicit_tz,
+                )
+            )
 
         # Check for weekdays
         weekdays = {
-            "monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
-            "friday": 4, "saturday": 5, "sunday": 6,
+            "monday": 0,
+            "tuesday": 1,
+            "wednesday": 2,
+            "thursday": 3,
+            "friday": 4,
+            "saturday": 5,
+            "sunday": 6,
         }
         for day_name, day_num in weekdays.items():
             if day_name in text_lower:
@@ -362,14 +417,16 @@ class EntityExtractor:
                     dt = dt.replace(hour=hour, minute=minute, tzinfo=parse_tz)
                 else:
                     dt = dt.replace(hour=9, minute=0, tzinfo=parse_tz)
-                dates.append(ExtractedDate(
-                    datetime_value=dt,
-                    confidence=90,
-                    original_text=day_name,
-                    timezone=parse_tz_name,
-                    is_relative=True,
-                    has_explicit_timezone=has_explicit_tz,
-                ))
+                dates.append(
+                    ExtractedDate(
+                        datetime_value=dt,
+                        confidence=90,
+                        original_text=day_name,
+                        timezone=parse_tz_name,
+                        is_relative=True,
+                        has_explicit_timezone=has_explicit_tz,
+                    )
+                )
 
         # Check for relative time ("in X hours/days/minutes")
         relative_match = re.search(r"in (\d+) (day|hour|minute|week)s?", text_lower)
@@ -386,14 +443,16 @@ class EntityExtractor:
                 dt = now + timedelta(weeks=amount)
             else:
                 dt = now
-            dates.append(ExtractedDate(
-                datetime_value=dt,
-                confidence=90,
-                original_text=relative_match.group(0),
-                timezone=self._tz_name,  # Relative times always use user timezone
-                is_relative=True,
-                has_explicit_timezone=False,
-            ))
+            dates.append(
+                ExtractedDate(
+                    datetime_value=dt,
+                    confidence=90,
+                    original_text=relative_match.group(0),
+                    timezone=self._tz_name,  # Relative times always use user timezone
+                    is_relative=True,
+                    has_explicit_timezone=False,
+                )
+            )
 
         # Check for standalone time (if no date context found yet)
         if not dates:
@@ -407,14 +466,16 @@ class EntityExtractor:
                 dt = now.replace(hour=hour, minute=minute, tzinfo=parse_tz)
                 if dt < datetime.now(parse_tz):
                     dt += timedelta(days=1)
-                dates.append(ExtractedDate(
-                    datetime_value=dt,
-                    confidence=75,
-                    original_text=f"{hour}:{minute:02d}",
-                    timezone=parse_tz_name,
-                    is_relative=False,
-                    has_explicit_timezone=has_explicit_tz,
-                ))
+                dates.append(
+                    ExtractedDate(
+                        datetime_value=dt,
+                        confidence=75,
+                        original_text=f"{hour}:{minute:02d}",
+                        timezone=parse_tz_name,
+                        is_relative=False,
+                        has_explicit_timezone=has_explicit_tz,
+                    )
+                )
 
         return dates
 

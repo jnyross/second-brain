@@ -365,23 +365,17 @@ class ProjectsService:
             deadline = None
             if deadline_date and deadline_date.get("start"):
                 try:
-                    deadline = datetime.fromisoformat(
-                        deadline_date["start"].replace("Z", "+00:00")
-                    )
+                    deadline = datetime.fromisoformat(deadline_date["start"].replace("Z", "+00:00"))
                 except ValueError:
                     pass
 
             # Extract next_action
             next_action_prop = props.get("next_action", {})
             next_action_text = next_action_prop.get("rich_text", [])
-            next_action = (
-                next_action_text[0]["text"]["content"] if next_action_text else None
-            )
+            next_action = next_action_text[0]["text"]["content"] if next_action_text else None
 
             # Calculate confidence
-            confidence, matched_by = self._calculate_match_confidence(
-                search_lower, name, status
-            )
+            confidence, matched_by = self._calculate_match_confidence(search_lower, name, status)
 
             matches.append(
                 ProjectMatch(
@@ -483,9 +477,7 @@ async def lookup_or_create_project(
     context: str | None = None,
 ) -> ProjectLookupResult:
     """Look up a project, creating it if not found."""
-    return await get_projects_service().lookup_or_create(
-        name, project_type, status, context
-    )
+    return await get_projects_service().lookup_or_create(name, project_type, status, context)
 
 
 async def create_project(

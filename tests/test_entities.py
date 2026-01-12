@@ -331,14 +331,17 @@ class TestTimezoneAbbreviations:
     def setup_method(self):
         self.extractor = EntityExtractor(timezone="America/Los_Angeles")
 
-    @pytest.mark.parametrize("abbrev,expected_tz", [
-        ("EST", "America/New_York"),
-        ("PST", "America/Los_Angeles"),
-        ("CST", "America/Chicago"),
-        ("MST", "America/Denver"),
-        ("UTC", "UTC"),
-        ("GMT", "Europe/London"),
-    ])
+    @pytest.mark.parametrize(
+        "abbrev,expected_tz",
+        [
+            ("EST", "America/New_York"),
+            ("PST", "America/Los_Angeles"),
+            ("CST", "America/Chicago"),
+            ("MST", "America/Denver"),
+            ("UTC", "UTC"),
+            ("GMT", "Europe/London"),
+        ],
+    )
     def test_timezone_abbreviation_mapping(self, abbrev, expected_tz):
         """Common timezone abbreviations should map to IANA timezones."""
         result = self.extractor.extract_dates(f"Meeting at 9am {abbrev}")

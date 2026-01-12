@@ -1,24 +1,20 @@
 """Tests for the classification router."""
 
-import pytest
-from datetime import datetime
-
-from assistant.services.router import (
-    ClassificationRouter,
-    TargetDatabase,
-    RouteAction,
-    RoutingDecision,
-    classify_and_route,
-)
 from assistant.services.confidence import (
-    ConfidenceResult,
     ConfidenceBreakdown,
+    ConfidenceResult,
 )
 from assistant.services.entities import (
     ExtractedEntities,
     ExtractedPerson,
     ExtractedPlace,
-    ExtractedDate,
+)
+from assistant.services.router import (
+    ClassificationRouter,
+    RouteAction,
+    RoutingDecision,
+    TargetDatabase,
+    classify_and_route,
 )
 
 

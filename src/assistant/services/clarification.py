@@ -7,16 +7,13 @@ Provides functionality for the /debrief command and morning briefing.
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Any
 
 from assistant.config import settings
 from assistant.notion import NotionClient
 from assistant.notion.schemas import (
-    InboxItem,
-    InboxSource,
+    ActionType,
     Task,
     TaskSource,
-    ActionType,
 )
 
 logger = logging.getLogger(__name__)
@@ -28,7 +25,7 @@ class UnclearItem:
 
     id: str
     raw_input: str
-    interpretation: Optional[str]
+    interpretation: str | None
     confidence: int
     source: str
     timestamp: datetime
@@ -41,7 +38,7 @@ class ClarificationResult:
 
     item_id: str
     action: str  # "created_task", "dismissed", "clarified"
-    task_id: Optional[str] = None
+    task_id: str | None = None
     message: str = ""
 
 
@@ -55,7 +52,7 @@ class ClarificationService:
     - Dismiss false positives
     """
 
-    def __init__(self, notion: Optional[NotionClient] = None):
+    def __init__(self, notion: NotionClient | None = None):
         self.notion = notion or (NotionClient() if settings.has_notion else None)
 
     async def get_unclear_items(self, limit: int = 10) -> list[UnclearItem]:
@@ -97,21 +94,25 @@ class ClarificationService:
 
                 # Extract timestamp
                 timestamp_str = props.get("timestamp", {}).get("date", {}).get("start")
-                timestamp = datetime.fromisoformat(timestamp_str) if timestamp_str else datetime.utcnow()
+                timestamp = (
+                    datetime.fromisoformat(timestamp_str) if timestamp_str else datetime.utcnow()
+                )
 
                 # Check if from voice
                 voice_file = props.get("voice_file_id", {}).get("rich_text", [])
                 voice_transcript = bool(voice_file)
 
-                items.append(UnclearItem(
-                    id=result["id"],
-                    raw_input=raw_input,
-                    interpretation=interpretation,
-                    confidence=confidence,
-                    source=source,
-                    timestamp=timestamp,
-                    voice_transcript=voice_transcript,
-                ))
+                items.append(
+                    UnclearItem(
+                        id=result["id"],
+                        raw_input=raw_input,
+                        interpretation=interpretation,
+                        confidence=confidence,
+                        source=source,
+                        timestamp=timestamp,
+                        voice_transcript=voice_transcript,
+                    )
+                )
 
             return items
 
@@ -131,10 +132,10 @@ class ClarificationService:
         self,
         item_id: str,
         title: str,
-        due_date: Optional[datetime] = None,
-        chat_id: Optional[str] = None,
-        people_names: Optional[list[str]] = None,
-        place_names: Optional[list[str]] = None,
+        due_date: datetime | None = None,
+        chat_id: str | None = None,
+        people_names: list[str] | None = None,
+        place_names: list[str] | None = None,
     ) -> ClarificationResult:
         """Create a task from an unclear item after clarification.
 
@@ -186,7 +187,7 @@ class ClarificationService:
                 action_type=ActionType.CLASSIFY,
                 idempotency_key=idempotency_key,
                 input_text=title,
-                action_taken=f"Created task from clarified inbox item",
+                action_taken="Created task from clarified inbox item",
                 confidence=100,
                 entities_affected=entities_affected,
             )
@@ -237,7 +238,7 @@ class ClarificationService:
     async def dismiss_item(
         self,
         item_id: str,
-        reason: Optional[str] = None,
+        reason: str | None = None,
     ) -> ClarificationResult:
         """Dismiss an unclear item as not actionable.
 
@@ -304,7 +305,7 @@ class ClarificationService:
             # Add confidence indicator
             conf = f"[{item.confidence}%]"
 
-            lines.append(f"{i}. \"{item.raw_input}\"{voice}")
+            lines.append(f'{i}. "{item.raw_input}"{voice}')
 
             if item.interpretation:
                 lines.append(f"   _Possibly: {item.interpretation}_")

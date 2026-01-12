@@ -6,23 +6,22 @@ All messages are processed through the MessageProcessor pipeline.
 
 import logging
 from io import BytesIO
-from typing import Optional
 
-from aiogram import Router, F, Bot
-from aiogram.types import Message, Voice
+from aiogram import Bot, F, Router
 from aiogram.filters import Command, CommandStart
+from aiogram.types import Message, Voice
 
 from assistant.config import settings
-from assistant.services.processor import MessageProcessor
-from assistant.services.whisper import (
-    WhisperTranscriber,
-    TranscriptionResult,
-    TranscriptionError,
-)
 from assistant.services.corrections import (
     get_correction_handler,
     is_correction_message,
     track_created_task,
+)
+from assistant.services.processor import MessageProcessor
+from assistant.services.whisper import (
+    TranscriptionError,
+    TranscriptionResult,
+    WhisperTranscriber,
 )
 
 logger = logging.getLogger(__name__)
@@ -34,7 +33,7 @@ router = Router()
 processor = MessageProcessor()
 
 # Whisper transcriber instance (created lazily)
-_transcriber: Optional[WhisperTranscriber] = None
+_transcriber: WhisperTranscriber | None = None
 
 
 def get_transcriber() -> WhisperTranscriber:
@@ -95,8 +94,7 @@ async def cmd_today(message: Message) -> None:
     """Handle /today command - show today's schedule."""
     # TODO: Implement with BriefingGenerator
     await message.answer(
-        "Today's schedule feature coming soon.\n"
-        "For now, check your Notion Tasks database."
+        "Today's schedule feature coming soon.\nFor now, check your Notion Tasks database."
     )
 
 
@@ -104,10 +102,7 @@ async def cmd_today(message: Message) -> None:
 async def cmd_status(message: Message) -> None:
     """Handle /status command - show pending tasks."""
     # TODO: Implement with NotionClient task query
-    await message.answer(
-        "Status feature coming soon.\n"
-        "For now, check your Notion Tasks database."
-    )
+    await message.answer("Status feature coming soon.\nFor now, check your Notion Tasks database.")
 
 
 # Note: /debrief command is handled by debrief.py module with FSM support
@@ -134,8 +129,7 @@ async def handle_voice(message: Message, bot: Bot) -> None:
     # Check if OpenAI API is configured
     if not settings.has_openai:
         await message.answer(
-            "Voice transcription is not configured. "
-            "Please send text messages instead."
+            "Voice transcription is not configured. Please send text messages instead."
         )
         return
 
@@ -174,14 +168,12 @@ async def handle_voice(message: Message, bot: Bot) -> None:
     except TranscriptionError as e:
         logger.error(f"Transcription failed: {e}")
         await message.answer(
-            "Sorry, I couldn't transcribe that voice message. "
-            "Please try again or send as text."
+            "Sorry, I couldn't transcribe that voice message. Please try again or send as text."
         )
     except Exception as e:
         logger.exception(f"Voice handling failed: {e}")
         await message.answer(
-            "Sorry, something went wrong processing your voice message. "
-            "Please try again."
+            "Sorry, something went wrong processing your voice message. Please try again."
         )
 
 
@@ -199,7 +191,7 @@ async def _process_voice_transcription(
     # If transcription confidence is low, warn user
     if transcription.needs_review:
         prefix = (
-            f"I heard: \"{transcription.text}\"\n"
+            f'I heard: "{transcription.text}"\n'
             f"(Transcription confidence: {transcription.confidence}%)\n\n"
         )
     else:

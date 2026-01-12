@@ -1,14 +1,14 @@
-import pytest
 from datetime import datetime
+
 from assistant.notion.schemas import (
-    InboxItem,
-    Task,
-    Person,
-    LogEntry,
-    TaskStatus,
-    TaskPriority,
-    InboxSource,
     ActionType,
+    InboxItem,
+    InboxSource,
+    LogEntry,
+    Person,
+    Task,
+    TaskPriority,
+    TaskStatus,
 )
 
 

@@ -34,7 +34,6 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from assistant.google.auth import google_auth
-from assistant.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -119,11 +118,13 @@ class DraftResult:
         ]
         if self.cc:
             lines.append(f"**CC:** {', '.join(self.cc)}")
-        lines.extend([
-            f"**Subject:** {self.subject}",
-            "",
-            self.body[:500] + ("..." if len(self.body) > 500 else ""),
-        ])
+        lines.extend(
+            [
+                f"**Subject:** {self.subject}",
+                "",
+                self.body[:500] + ("..." if len(self.body) > 500 else ""),
+            ]
+        )
         return "\n".join(lines)
 
 
@@ -211,6 +212,7 @@ class GmailClient:
 
         try:
             import asyncio
+
             loop = asyncio.get_event_loop()
 
             # Build list request
@@ -279,6 +281,7 @@ class GmailClient:
         """
         try:
             import asyncio
+
             loop = asyncio.get_event_loop()
 
             def do_get():
@@ -380,7 +383,9 @@ class GmailClient:
             labels = msg.get("labelIds", [])
 
             # Parse headers
-            headers = {h["name"].lower(): h["value"] for h in msg.get("payload", {}).get("headers", [])}
+            headers = {
+                h["name"].lower(): h["value"] for h in msg.get("payload", {}).get("headers", [])
+            }
 
             subject = headers.get("subject", "(no subject)")
             from_header = headers.get("from", "")
@@ -499,11 +504,16 @@ class GmailClient:
         # High priority indicators
         if "IMPORTANT" in labels:
             return "high"
-        if any(word in text for word in ["urgent", "asap", "priority", "time-sensitive", "critical"]):
+        if any(
+            word in text for word in ["urgent", "asap", "priority", "time-sensitive", "critical"]
+        ):
             return "high"
 
         # Low priority indicators
-        if any(label in labels for label in ["CATEGORY_PROMOTIONS", "CATEGORY_SOCIAL", "CATEGORY_UPDATES"]):
+        if any(
+            label in labels
+            for label in ["CATEGORY_PROMOTIONS", "CATEGORY_SOCIAL", "CATEGORY_UPDATES"]
+        ):
             return "low"
 
         return "normal"
@@ -582,12 +592,7 @@ class GmailClient:
                 draft_body["message"]["threadId"] = thread_id
 
             def do_create():
-                return (
-                    self.service.users()
-                    .drafts()
-                    .create(userId="me", body=draft_body)
-                    .execute()
-                )
+                return self.service.users().drafts().create(userId="me", body=draft_body).execute()
 
             result = await loop.run_in_executor(None, do_create)
 
@@ -644,6 +649,7 @@ class GmailClient:
 
         try:
             import asyncio
+
             loop = asyncio.get_event_loop()
 
             def do_get():
@@ -662,8 +668,7 @@ class GmailClient:
 
             # Parse headers
             headers = {
-                h["name"].lower(): h["value"]
-                for h in msg.get("payload", {}).get("headers", [])
+                h["name"].lower(): h["value"] for h in msg.get("payload", {}).get("headers", [])
             }
 
             subject = headers.get("subject", "(no subject)")
@@ -727,14 +732,12 @@ class GmailClient:
 
         try:
             import asyncio
+
             loop = asyncio.get_event_loop()
 
             def do_send():
                 return (
-                    self.service.users()
-                    .drafts()
-                    .send(userId="me", body={"id": draft_id})
-                    .execute()
+                    self.service.users().drafts().send(userId="me", body={"id": draft_id}).execute()
                 )
 
             result = await loop.run_in_executor(None, do_send)
@@ -779,6 +782,7 @@ class GmailClient:
 
         try:
             import asyncio
+
             loop = asyncio.get_event_loop()
 
             def do_delete():
@@ -859,12 +863,7 @@ class GmailClient:
                 send_body["threadId"] = thread_id
 
             def do_send():
-                return (
-                    self.service.users()
-                    .messages()
-                    .send(userId="me", body=send_body)
-                    .execute()
-                )
+                return self.service.users().messages().send(userId="me", body=send_body).execute()
 
             result = await loop.run_in_executor(None, do_send)
 

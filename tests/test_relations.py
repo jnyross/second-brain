@@ -1,8 +1,18 @@
 """Tests for the relation linker service."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
+from assistant.services.entities import (
+    ExtractedEntities,
+    ExtractedPerson,
+    ExtractedPlace,
+)
+from assistant.services.people import LookupResult as PersonLookupResult
+from assistant.services.people import PersonMatch
+from assistant.services.places import PlaceLookupResult, PlaceMatch
+from assistant.services.projects import ProjectLookupResult, ProjectMatch
 from assistant.services.relations import (
     LinkedEntity,
     LinkedRelations,
@@ -13,14 +23,6 @@ from assistant.services.relations import (
     link_places_by_name,
     link_project_by_name,
 )
-from assistant.services.entities import (
-    ExtractedEntities,
-    ExtractedPerson,
-    ExtractedPlace,
-)
-from assistant.services.people import LookupResult as PersonLookupResult, PersonMatch
-from assistant.services.places import PlaceLookupResult, PlaceMatch
-from assistant.services.projects import ProjectLookupResult, ProjectMatch
 
 
 class TestLinkedEntity:
@@ -78,9 +80,7 @@ class TestLinkedRelations:
         assert relations.people_ids == ["id1", "id2"]
 
     def test_project_id_property(self):
-        relations = LinkedRelations(
-            project=LinkedEntity("proj-1", "project", "Alpha", 0.95)
-        )
+        relations = LinkedRelations(project=LinkedEntity("proj-1", "project", "Alpha", 0.95))
         assert relations.project_id == "proj-1"
 
     def test_place_ids_property(self):
@@ -140,9 +140,7 @@ class TestLinkedRelations:
         assert relations.new_entities_created == 3
 
     def test_summary_with_one_person(self):
-        relations = LinkedRelations(
-            people=[LinkedEntity("id1", "person", "Alice", 0.9)]
-        )
+        relations = LinkedRelations(people=[LinkedEntity("id1", "person", "Alice", 0.9)])
         assert relations.summary == "with Alice"
 
     def test_summary_with_multiple_people(self):
@@ -165,15 +163,11 @@ class TestLinkedRelations:
         assert relations.summary == "with Alice, Bob and Carol"
 
     def test_summary_with_project(self):
-        relations = LinkedRelations(
-            project=LinkedEntity("id1", "project", "Alpha", 0.95)
-        )
+        relations = LinkedRelations(project=LinkedEntity("id1", "project", "Alpha", 0.95))
         assert relations.summary == "for Alpha"
 
     def test_summary_with_places(self):
-        relations = LinkedRelations(
-            places=[LinkedEntity("id1", "place", "Starbucks", 0.9)]
-        )
+        relations = LinkedRelations(places=[LinkedEntity("id1", "place", "Starbucks", 0.9)])
         assert relations.summary == "at Starbucks"
 
     def test_summary_full(self):
@@ -205,9 +199,7 @@ class TestRelationLinker:
         return MagicMock()
 
     @pytest.fixture
-    def linker(
-        self, mock_notion, mock_people_service, mock_places_service, mock_projects_service
-    ):
+    def linker(self, mock_notion, mock_people_service, mock_places_service, mock_projects_service):
         return RelationLinker(
             notion_client=mock_notion,
             people_service=mock_people_service,
@@ -253,9 +245,7 @@ class TestRelationLinker:
             )
         )
 
-        entities = ExtractedEntities(
-            people=[ExtractedPerson("Alice", 90)]
-        )
+        entities = ExtractedEntities(people=[ExtractedPerson("Alice", 90)])
         result = await linker.link(entities)
 
         assert len(result.people) == 1
@@ -274,9 +264,7 @@ class TestRelationLinker:
             )
         )
 
-        entities = ExtractedEntities(
-            people=[ExtractedPerson("Bob", 85)]
-        )
+        entities = ExtractedEntities(people=[ExtractedPerson("Bob", 85)])
         result = await linker.link(entities)
 
         assert len(result.people) == 1
@@ -296,9 +284,7 @@ class TestRelationLinker:
             )
         )
 
-        entities = ExtractedEntities(
-            people=[ExtractedPerson("Sarah", 80)]
-        )
+        entities = ExtractedEntities(people=[ExtractedPerson("Sarah", 80)])
         result = await linker.link(entities)
 
         assert len(result.people) == 1
@@ -307,13 +293,9 @@ class TestRelationLinker:
 
     @pytest.mark.asyncio
     async def test_link_person_without_create(self, linker, mock_people_service):
-        mock_people_service.lookup = AsyncMock(
-            return_value=PersonLookupResult(found=False)
-        )
+        mock_people_service.lookup = AsyncMock(return_value=PersonLookupResult(found=False))
 
-        entities = ExtractedEntities(
-            people=[ExtractedPerson("Unknown", 60)]
-        )
+        entities = ExtractedEntities(people=[ExtractedPerson("Unknown", 60)])
         result = await linker.link(entities, create_missing=False)
 
         assert len(result.people) == 0
@@ -329,9 +311,7 @@ class TestRelationLinker:
             )
         )
 
-        entities = ExtractedEntities(
-            places=[ExtractedPlace("Starbucks", 80)]
-        )
+        entities = ExtractedEntities(places=[ExtractedPlace("Starbucks", 80)])
         result = await linker.link(entities)
 
         assert len(result.places) == 1
@@ -349,9 +329,7 @@ class TestRelationLinker:
             )
         )
 
-        entities = ExtractedEntities(
-            places=[ExtractedPlace("New Cafe", 75)]
-        )
+        entities = ExtractedEntities(places=[ExtractedPlace("New Cafe", 75)])
         result = await linker.link(entities)
 
         assert len(result.places) == 1
@@ -469,9 +447,7 @@ class TestRelationLinker:
 
     @pytest.mark.asyncio
     async def test_link_project_not_found_without_create(self, linker, mock_projects_service):
-        mock_projects_service.lookup = AsyncMock(
-            return_value=ProjectLookupResult(found=False)
-        )
+        mock_projects_service.lookup = AsyncMock(return_value=ProjectLookupResult(found=False))
 
         result = await linker.link_project("Unknown", create_missing=False)
 
@@ -518,6 +494,7 @@ class TestModuleFunctions:
     def reset_global_linker(self):
         """Reset the global linker before each test."""
         import assistant.services.relations as relations_module
+
         relations_module._linker = None
         yield
         relations_module._linker = None
@@ -541,9 +518,7 @@ class TestModuleFunctions:
 
     @pytest.mark.asyncio
     async def test_link_entities_function(self):
-        with patch.object(
-            RelationLinker, "link", new_callable=AsyncMock
-        ) as mock_link:
+        with patch.object(RelationLinker, "link", new_callable=AsyncMock) as mock_link:
             mock_link.return_value = LinkedRelations()
 
             entities = ExtractedEntities()
@@ -554,12 +529,8 @@ class TestModuleFunctions:
 
     @pytest.mark.asyncio
     async def test_link_people_by_name_function(self):
-        with patch.object(
-            RelationLinker, "link_people", new_callable=AsyncMock
-        ) as mock_link:
-            mock_link.return_value = [
-                LinkedEntity("p1", "person", "Alice", 0.9)
-            ]
+        with patch.object(RelationLinker, "link_people", new_callable=AsyncMock) as mock_link:
+            mock_link.return_value = [LinkedEntity("p1", "person", "Alice", 0.9)]
 
             result = await link_people_by_name(["Alice"])
 
@@ -568,12 +539,8 @@ class TestModuleFunctions:
 
     @pytest.mark.asyncio
     async def test_link_places_by_name_function(self):
-        with patch.object(
-            RelationLinker, "link_places", new_callable=AsyncMock
-        ) as mock_link:
-            mock_link.return_value = [
-                LinkedEntity("pl1", "place", "Office", 0.9)
-            ]
+        with patch.object(RelationLinker, "link_places", new_callable=AsyncMock) as mock_link:
+            mock_link.return_value = [LinkedEntity("pl1", "place", "Office", 0.9)]
 
             result = await link_places_by_name(["Office"])
 
@@ -582,9 +549,7 @@ class TestModuleFunctions:
 
     @pytest.mark.asyncio
     async def test_link_project_by_name_function(self):
-        with patch.object(
-            RelationLinker, "link_project", new_callable=AsyncMock
-        ) as mock_link:
+        with patch.object(RelationLinker, "link_project", new_callable=AsyncMock) as mock_link:
             mock_link.return_value = LinkedEntity("prj1", "project", "Alpha", 0.95)
 
             result = await link_project_by_name("Alpha")
@@ -595,9 +560,7 @@ class TestModuleFunctions:
 
     @pytest.mark.asyncio
     async def test_link_project_by_name_not_found(self):
-        with patch.object(
-            RelationLinker, "link_project", new_callable=AsyncMock
-        ) as mock_link:
+        with patch.object(RelationLinker, "link_project", new_callable=AsyncMock) as mock_link:
             mock_link.return_value = None
 
             result = await link_project_by_name("Unknown", create_missing=False)

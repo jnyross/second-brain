@@ -4,8 +4,8 @@ Validates Dockerfile structure, multi-stage build, security practices,
 and build success.
 """
 
-from pathlib import Path
 import re
+from pathlib import Path
 
 import pytest
 
@@ -111,8 +111,9 @@ class TestDockerfileSecurityPractices:
             r"secret_[a-zA-Z0-9]+",  # Notion secret pattern
         ]
         for pattern in secret_patterns:
-            assert not re.search(pattern, dockerfile_content), \
+            assert not re.search(pattern, dockerfile_content), (
                 f"Dockerfile should not contain secrets matching {pattern}"
+            )
 
     def test_no_password_in_dockerfile(self, dockerfile_content: str):
         """No passwords in Dockerfile."""
@@ -169,7 +170,9 @@ class TestDockerignore:
 
     def test_ignores_google_credentials(self, dockerignore_content: str):
         """Ignores Google credentials files (secrets)."""
-        assert "google_credentials" in dockerignore_content or "client_secret" in dockerignore_content
+        assert (
+            "google_credentials" in dockerignore_content or "client_secret" in dockerignore_content
+        )
 
 
 class TestAT201MultiStageDockerfile:
@@ -237,8 +240,7 @@ class TestDockerBuildValidation:
         from_lines = [line.strip() for line in lines if line.strip().startswith("FROM")]
 
         for line in from_lines:
-            assert re.match(from_pattern, line, re.IGNORECASE), \
-                f"Invalid FROM statement: {line}"
+            assert re.match(from_pattern, line, re.IGNORECASE), f"Invalid FROM statement: {line}"
 
     def test_no_syntax_errors_in_copy(self, dockerfile_content: str):
         """COPY statements have valid format."""
@@ -258,5 +260,6 @@ class TestDockerBuildValidation:
 
         # If there are ADD statements, they should be for archives
         for line in add_lines:
-            assert ".tar" in line or "http" in line, \
+            assert ".tar" in line or "http" in line, (
                 f"Use COPY instead of ADD for regular files: {line}"
+            )

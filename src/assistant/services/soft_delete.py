@@ -137,17 +137,14 @@ class SoftDeleteService:
                 entities_affected=[entity_id],
             )
 
-            logger.info(
-                f"Soft deleted {entity_type} '{title}' (id={entity_id}) "
-                f"for chat {chat_id}"
-            )
+            logger.info(f"Soft deleted {entity_type} '{title}' (id={entity_id}) for chat {chat_id}")
 
             return DeleteResult(
                 success=True,
                 entity_id=entity_id,
                 entity_type=entity_type,
                 title=title,
-                message=f"Done. Removed \"{title}\". Say \"undo\" to restore.",
+                message=f'Done. Removed "{title}". Say "undo" to restore.',
                 can_undo=True,
             )
 
@@ -180,7 +177,7 @@ class SoftDeleteService:
             return UndoResult(
                 success=False,
                 message=(
-                    f"Can't undo - \"{deleted.title}\" was deleted more than "
+                    f'Can\'t undo - "{deleted.title}" was deleted more than '
                     f"{UNDO_WINDOW_DAYS} days ago."
                 ),
             )
@@ -210,7 +207,7 @@ class SoftDeleteService:
                 entity_id=deleted.entity_id,
                 entity_type=deleted.entity_type,
                 title=deleted.title,
-                message=f"Restored \"{deleted.title}\".",
+                message=f'Restored "{deleted.title}".',
             )
 
         except Exception as e:
@@ -265,7 +262,7 @@ class SoftDeleteService:
                 entity_id=entity_id,
                 entity_type=entity_type,
                 title=title,
-                message=f"Restored \"{title}\".",
+                message=f'Restored "{title}".',
             )
 
         except Exception as e:
@@ -281,10 +278,9 @@ class SoftDeleteService:
         items.append(deleted)
 
         # Prune items outside undo window and limit size
-        self._deleted_items[chat_id] = [
-            d for d in items
-            if d.is_within_undo_window()
-        ][-self.MAX_DELETED_ITEMS:]
+        self._deleted_items[chat_id] = [d for d in items if d.is_within_undo_window()][
+            -self.MAX_DELETED_ITEMS :
+        ]
 
     def _get_last_deleted(
         self,
@@ -328,8 +324,7 @@ class SoftDeleteService:
         """Remove an item from deleted tracking (after restore)."""
         if chat_id in self._deleted_items:
             self._deleted_items[chat_id] = [
-                d for d in self._deleted_items[chat_id]
-                if d.entity_id != entity_id
+                d for d in self._deleted_items[chat_id] if d.entity_id != entity_id
             ]
 
     def get_pending_deletes_count(self, chat_id: str) -> int:

@@ -1,14 +1,13 @@
 """Tests for the Whisper transcription service."""
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
-from pathlib import Path
-import json
 
 from assistant.services.whisper import (
-    WhisperTranscriber,
-    TranscriptionResult,
     TranscriptionError,
+    TranscriptionResult,
+    WhisperTranscriber,
     transcribe_audio,
 )
 
@@ -385,9 +384,7 @@ class TestConvenienceFunction:
             mock_instance.__aexit__.return_value = None
             mock_client.return_value = mock_instance
 
-            result = await transcribe_audio(
-                b"\x00" * 100, "audio.ogg", api_key="test-key"
-            )
+            result = await transcribe_audio(b"\x00" * 100, "audio.ogg", api_key="test-key")
             assert isinstance(result, TranscriptionResult)
             assert result.text == "Hello"
 

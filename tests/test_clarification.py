@@ -1,16 +1,17 @@
 """Tests for the clarification service."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime
+from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from assistant.services.clarification import (
+    ClarificationResult,
     ClarificationService,
     UnclearItem,
-    ClarificationResult,
-    get_unclear_items,
-    get_unclear_count,
     format_debrief,
+    get_unclear_count,
+    get_unclear_items,
 )
 
 
@@ -196,9 +197,7 @@ class TestClarificationService:
         self.mock_notion.create_task.assert_called_once()
 
         # Should have marked inbox item as processed
-        self.mock_notion.mark_inbox_processed.assert_called_once_with(
-            "page-123", "task-456"
-        )
+        self.mock_notion.mark_inbox_processed.assert_called_once_with("page-123", "task-456")
 
         # Should have logged the action
         self.mock_notion.log_action.assert_called_once()
@@ -298,8 +297,8 @@ class TestClarificationService:
         result = self.service.format_for_debrief(items)
 
         assert "2 item(s) need clarification" in result
-        assert "1. \"first item\"" in result
-        assert "2. \"second item\"" in result
+        assert '1. "first item"' in result
+        assert '2. "second item"' in result
         assert "(voice)" in result  # Voice indicator
         assert "50%" in result
         assert "65%" in result
@@ -377,8 +376,10 @@ class TestConvenienceFunctions:
     @pytest.mark.asyncio
     async def test_format_debrief_function(self):
         """Convenience function should return formatted debrief."""
-        with patch.object(ClarificationService, "get_unclear_items") as mock_get, \
-             patch.object(ClarificationService, "format_for_debrief") as mock_format:
+        with (
+            patch.object(ClarificationService, "get_unclear_items") as mock_get,
+            patch.object(ClarificationService, "format_for_debrief") as mock_format,
+        ):
             mock_get.return_value = []
             mock_format.return_value = "No items"
             result = await format_debrief()

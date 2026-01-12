@@ -8,20 +8,20 @@ Covers T-071: Implement Places lookup/create service
 
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock
+
 import pytest
 
 from assistant.services.places import (
-    PlacesService,
-    PlaceMatch,
-    PlaceLookupResult,
-    PlaceType,
     TYPE_PRIORITY,
-    get_places_service,
-    lookup_place,
-    lookup_or_create_place,
+    PlaceLookupResult,
+    PlaceMatch,
+    PlacesService,
+    PlaceType,
     create_place,
+    get_places_service,
+    lookup_or_create_place,
+    lookup_place,
 )
-from assistant.notion.schemas import Place
 
 
 class TestPlaceMatch:
@@ -371,9 +371,7 @@ class TestPlacesService:
         assert result.needs_disambiguation is True
 
     @pytest.mark.asyncio
-    async def test_disambiguation_not_needed_for_home_or_office(
-        self, service, mock_notion_client
-    ):
+    async def test_disambiguation_not_needed_for_home_or_office(self, service, mock_notion_client):
         """Home/office places don't need disambiguation."""
         mock_notion_client.query_places.return_value = [
             {

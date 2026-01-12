@@ -15,9 +15,10 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from assistant.services.entities import ExtractedEntities, ExtractedPerson, ExtractedPlace
-from assistant.services.people import PeopleService, LookupResult as PersonLookupResult
-from assistant.services.places import PlacesService, PlaceLookupResult
-from assistant.services.projects import ProjectsService, ProjectLookupResult
+from assistant.services.people import LookupResult as PersonLookupResult
+from assistant.services.people import PeopleService
+from assistant.services.places import PlaceLookupResult, PlacesService
+from assistant.services.projects import ProjectLookupResult, ProjectsService
 
 if TYPE_CHECKING:
     from assistant.notion.client import NotionClient
@@ -456,9 +457,7 @@ async def link_entities(
     Returns:
         LinkedRelations with all Notion page IDs
     """
-    return await get_relation_linker().link(
-        entities, create_missing, project_name
-    )
+    return await get_relation_linker().link(entities, create_missing, project_name)
 
 
 async def link_people_by_name(

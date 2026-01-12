@@ -8,22 +8,23 @@ Tests cover:
 - Error handling
 """
 
-import pytest
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from assistant.google.calendar import (
+    DEFAULT_EVENT_DURATION_MINUTES,
+    UNDO_WINDOW_MINUTES,
     CalendarClient,
     CalendarEvent,
     EventCreationResult,
     EventDeletionResult,
-    get_calendar_client,
+    calendar_event_exists,
     create_calendar_event,
     delete_calendar_event,
-    calendar_event_exists,
-    DEFAULT_EVENT_DURATION_MINUTES,
-    UNDO_WINDOW_MINUTES,
+    get_calendar_client,
 )
 
 
@@ -176,10 +177,12 @@ class TestCalendarClientCreateEvent:
         mock_build.return_value = mock_service
 
         # Mock the events().insert().execute() chain
-        mock_execute = MagicMock(return_value={
-            "id": "event123",
-            "htmlLink": "https://calendar.google.com/event?eid=event123",
-        })
+        mock_execute = MagicMock(
+            return_value={
+                "id": "event123",
+                "htmlLink": "https://calendar.google.com/event?eid=event123",
+            }
+        )
         mock_service.events.return_value.insert.return_value.execute = mock_execute
 
         client = CalendarClient()
@@ -202,10 +205,12 @@ class TestCalendarClientCreateEvent:
         mock_service = MagicMock()
         mock_build.return_value = mock_service
 
-        mock_execute = MagicMock(return_value={
-            "id": "event456",
-            "htmlLink": "https://calendar.google.com/event?eid=event456",
-        })
+        mock_execute = MagicMock(
+            return_value={
+                "id": "event456",
+                "htmlLink": "https://calendar.google.com/event?eid=event456",
+            }
+        )
         mock_service.events.return_value.insert.return_value.execute = mock_execute
 
         client = CalendarClient()
@@ -358,16 +363,21 @@ class TestCalendarClientGetEvent:
         mock_service = MagicMock()
         mock_build.return_value = mock_service
 
-        mock_service.events.return_value.get.return_value.execute = MagicMock(return_value={
-            "id": "event123",
-            "summary": "Test Event",
-            "start": {"dateTime": "2026-01-15T14:00:00-08:00", "timeZone": "America/Los_Angeles"},
-            "end": {"dateTime": "2026-01-15T15:00:00-08:00", "timeZone": "America/Los_Angeles"},
-            "attendees": [{"email": "test@example.com"}],
-            "location": "Test Location",
-            "description": "Test Description",
-            "htmlLink": "https://calendar.google.com/event?eid=event123",
-        })
+        mock_service.events.return_value.get.return_value.execute = MagicMock(
+            return_value={
+                "id": "event123",
+                "summary": "Test Event",
+                "start": {
+                    "dateTime": "2026-01-15T14:00:00-08:00",
+                    "timeZone": "America/Los_Angeles",
+                },
+                "end": {"dateTime": "2026-01-15T15:00:00-08:00", "timeZone": "America/Los_Angeles"},
+                "attendees": [{"email": "test@example.com"}],
+                "location": "Test Location",
+                "description": "Test Description",
+                "htmlLink": "https://calendar.google.com/event?eid=event123",
+            }
+        )
 
         client = CalendarClient()
         event = await client.get_event("event123")
@@ -413,12 +423,14 @@ class TestCalendarClientEventExists:
         mock_service = MagicMock()
         mock_build.return_value = mock_service
 
-        mock_service.events.return_value.get.return_value.execute = MagicMock(return_value={
-            "id": "event123",
-            "summary": "Test",
-            "start": {"dateTime": "2026-01-15T14:00:00Z"},
-            "end": {"dateTime": "2026-01-15T15:00:00Z"},
-        })
+        mock_service.events.return_value.get.return_value.execute = MagicMock(
+            return_value={
+                "id": "event123",
+                "summary": "Test",
+                "start": {"dateTime": "2026-01-15T14:00:00Z"},
+                "end": {"dateTime": "2026-01-15T15:00:00Z"},
+            }
+        )
 
         client = CalendarClient()
         exists = await client.event_exists("event123")
@@ -455,6 +467,7 @@ class TestModuleLevelFunctions:
         """Test get_calendar_client returns singleton."""
         # Reset global state
         import assistant.google.calendar as cal_module
+
         cal_module._calendar_client = None
 
         client1 = get_calendar_client()
@@ -535,10 +548,12 @@ class TestAT110GoogleCalendarCreation:
         mock_service = MagicMock()
         mock_build.return_value = mock_service
 
-        mock_service.events.return_value.insert.return_value.execute = MagicMock(return_value={
-            "id": "meeting_mike_123",
-            "htmlLink": "https://calendar.google.com/event?eid=meeting_mike_123",
-        })
+        mock_service.events.return_value.insert.return_value.execute = MagicMock(
+            return_value={
+                "id": "meeting_mike_123",
+                "htmlLink": "https://calendar.google.com/event?eid=meeting_mike_123",
+            }
+        )
 
         # Calculate tomorrow at 2pm
         tomorrow_2pm = (datetime.now() + timedelta(days=1)).replace(
@@ -570,10 +585,12 @@ class TestAT110GoogleCalendarCreation:
         mock_service = MagicMock()
         mock_build.return_value = mock_service
 
-        mock_service.events.return_value.insert.return_value.execute = MagicMock(return_value={
-            "id": "notion_link_event",
-            "htmlLink": "https://calendar.google.com/event?eid=notion_link_event",
-        })
+        mock_service.events.return_value.insert.return_value.execute = MagicMock(
+            return_value={
+                "id": "notion_link_event",
+                "htmlLink": "https://calendar.google.com/event?eid=notion_link_event",
+            }
+        )
 
         client = CalendarClient()
         result = await client.create_event(
@@ -607,10 +624,12 @@ class TestAT116CalendarUndoWindow:
         mock_build.return_value = mock_service
 
         # First create an event
-        mock_service.events.return_value.insert.return_value.execute = MagicMock(return_value={
-            "id": "meeting_bob_456",
-            "htmlLink": "https://calendar.google.com/event?eid=meeting_bob_456",
-        })
+        mock_service.events.return_value.insert.return_value.execute = MagicMock(
+            return_value={
+                "id": "meeting_bob_456",
+                "htmlLink": "https://calendar.google.com/event?eid=meeting_bob_456",
+            }
+        )
 
         client = CalendarClient()
         create_result = await client.create_event(
@@ -716,10 +735,12 @@ class TestTimezoneHandling:
         mock_service = MagicMock()
         mock_build.return_value = mock_service
 
-        mock_service.events.return_value.insert.return_value.execute = MagicMock(return_value={
-            "id": "tz_event",
-            "htmlLink": "",
-        })
+        mock_service.events.return_value.insert.return_value.execute = MagicMock(
+            return_value={
+                "id": "tz_event",
+                "htmlLink": "",
+            }
+        )
 
         client = CalendarClient()
         await client.create_event(
@@ -740,10 +761,12 @@ class TestTimezoneHandling:
         mock_service = MagicMock()
         mock_build.return_value = mock_service
 
-        mock_service.events.return_value.insert.return_value.execute = MagicMock(return_value={
-            "id": "tz_override",
-            "htmlLink": "",
-        })
+        mock_service.events.return_value.insert.return_value.execute = MagicMock(
+            return_value={
+                "id": "tz_override",
+                "htmlLink": "",
+            }
+        )
 
         client = CalendarClient()
         await client.create_event(
@@ -843,23 +866,37 @@ class TestCalendarClientListEvents:
         mock_build.return_value = mock_service
 
         # Mock API response with multiple events
-        mock_service.events.return_value.list.return_value.execute = MagicMock(return_value={
-            "items": [
-                {
-                    "id": "event1",
-                    "summary": "Standup with Mike",
-                    "start": {"dateTime": "2026-01-15T09:00:00-08:00", "timeZone": "America/Los_Angeles"},
-                    "end": {"dateTime": "2026-01-15T09:30:00-08:00", "timeZone": "America/Los_Angeles"},
-                },
-                {
-                    "id": "event2",
-                    "summary": "Dentist appointment",
-                    "start": {"dateTime": "2026-01-15T14:00:00-08:00", "timeZone": "America/Los_Angeles"},
-                    "end": {"dateTime": "2026-01-15T15:00:00-08:00", "timeZone": "America/Los_Angeles"},
-                    "location": "123 Main St",
-                },
-            ]
-        })
+        mock_service.events.return_value.list.return_value.execute = MagicMock(
+            return_value={
+                "items": [
+                    {
+                        "id": "event1",
+                        "summary": "Standup with Mike",
+                        "start": {
+                            "dateTime": "2026-01-15T09:00:00-08:00",
+                            "timeZone": "America/Los_Angeles",
+                        },
+                        "end": {
+                            "dateTime": "2026-01-15T09:30:00-08:00",
+                            "timeZone": "America/Los_Angeles",
+                        },
+                    },
+                    {
+                        "id": "event2",
+                        "summary": "Dentist appointment",
+                        "start": {
+                            "dateTime": "2026-01-15T14:00:00-08:00",
+                            "timeZone": "America/Los_Angeles",
+                        },
+                        "end": {
+                            "dateTime": "2026-01-15T15:00:00-08:00",
+                            "timeZone": "America/Los_Angeles",
+                        },
+                        "location": "123 Main St",
+                    },
+                ]
+            }
+        )
 
         client = CalendarClient()
         events = await client.list_events(
@@ -885,16 +922,18 @@ class TestCalendarClientListEvents:
         mock_build.return_value = mock_service
 
         # All-day event uses "date" instead of "dateTime"
-        mock_service.events.return_value.list.return_value.execute = MagicMock(return_value={
-            "items": [
-                {
-                    "id": "allday1",
-                    "summary": "Jess's Birthday",
-                    "start": {"date": "2026-01-15"},
-                    "end": {"date": "2026-01-16"},
-                },
-            ]
-        })
+        mock_service.events.return_value.list.return_value.execute = MagicMock(
+            return_value={
+                "items": [
+                    {
+                        "id": "allday1",
+                        "summary": "Jess's Birthday",
+                        "start": {"date": "2026-01-15"},
+                        "end": {"date": "2026-01-16"},
+                    },
+                ]
+            }
+        )
 
         client = CalendarClient()
         events = await client.list_events(
@@ -919,9 +958,9 @@ class TestCalendarClientListEvents:
         mock_service = MagicMock()
         mock_build.return_value = mock_service
 
-        mock_service.events.return_value.list.return_value.execute = MagicMock(return_value={
-            "items": []
-        })
+        mock_service.events.return_value.list.return_value.execute = MagicMock(
+            return_value={"items": []}
+        )
 
         client = CalendarClient()
         events = await client.list_events(
@@ -970,20 +1009,22 @@ class TestCalendarClientListEvents:
         mock_service = MagicMock()
         mock_build.return_value = mock_service
 
-        mock_service.events.return_value.list.return_value.execute = MagicMock(return_value={
-            "items": [
-                {
-                    "id": "meeting1",
-                    "summary": "Team sync",
-                    "start": {"dateTime": "2026-01-15T10:00:00Z"},
-                    "end": {"dateTime": "2026-01-15T11:00:00Z"},
-                    "attendees": [
-                        {"email": "mike@example.com"},
-                        {"email": "sarah@example.com"},
-                    ],
-                },
-            ]
-        })
+        mock_service.events.return_value.list.return_value.execute = MagicMock(
+            return_value={
+                "items": [
+                    {
+                        "id": "meeting1",
+                        "summary": "Team sync",
+                        "start": {"dateTime": "2026-01-15T10:00:00Z"},
+                        "end": {"dateTime": "2026-01-15T11:00:00Z"},
+                        "attendees": [
+                            {"email": "mike@example.com"},
+                            {"email": "sarah@example.com"},
+                        ],
+                    },
+                ]
+            }
+        )
 
         client = CalendarClient()
         events = await client.list_events(
@@ -1127,8 +1168,8 @@ class TestT102BriefingIntegration:
     @patch("assistant.services.briefing.settings")
     async def test_briefing_includes_calendar_events(self, mock_settings, mock_build, mock_auth):
         """Test morning briefing includes calendar events."""
-        from assistant.services.briefing import BriefingGenerator
         from assistant.google.calendar import CalendarClient
+        from assistant.services.briefing import BriefingGenerator
 
         mock_settings.user_timezone = "America/Los_Angeles"
         mock_settings.has_notion = False  # Skip Notion
@@ -1137,22 +1178,24 @@ class TestT102BriefingIntegration:
         mock_build.return_value = mock_service
 
         # Mock calendar events for today
-        mock_service.events.return_value.list.return_value.execute = MagicMock(return_value={
-            "items": [
-                {
-                    "id": "standup",
-                    "summary": "Standup with Mike",
-                    "start": {"dateTime": "2026-01-15T09:00:00-08:00"},
-                    "end": {"dateTime": "2026-01-15T09:30:00-08:00"},
-                },
-                {
-                    "id": "dentist",
-                    "summary": "Dentist appointment",
-                    "start": {"dateTime": "2026-01-15T14:00:00-08:00"},
-                    "end": {"dateTime": "2026-01-15T15:00:00-08:00"},
-                },
-            ]
-        })
+        mock_service.events.return_value.list.return_value.execute = MagicMock(
+            return_value={
+                "items": [
+                    {
+                        "id": "standup",
+                        "summary": "Standup with Mike",
+                        "start": {"dateTime": "2026-01-15T09:00:00-08:00"},
+                        "end": {"dateTime": "2026-01-15T09:30:00-08:00"},
+                    },
+                    {
+                        "id": "dentist",
+                        "summary": "Dentist appointment",
+                        "start": {"dateTime": "2026-01-15T14:00:00-08:00"},
+                        "end": {"dateTime": "2026-01-15T15:00:00-08:00"},
+                    },
+                ]
+            }
+        )
 
         calendar_client = CalendarClient()
         generator = BriefingGenerator(notion_client=None, calendar_client=calendar_client)
@@ -1168,8 +1211,8 @@ class TestT102BriefingIntegration:
     @patch("assistant.services.briefing.settings")
     async def test_briefing_skips_calendar_when_not_authenticated(self, mock_settings):
         """Test briefing gracefully skips calendar when not authenticated."""
-        from assistant.services.briefing import BriefingGenerator
         from assistant.google.calendar import CalendarClient
+        from assistant.services.briefing import BriefingGenerator
 
         mock_settings.user_timezone = "America/Los_Angeles"
         mock_settings.has_notion = False
@@ -1189,8 +1232,8 @@ class TestT102BriefingIntegration:
     @patch("assistant.services.briefing.settings")
     async def test_briefing_calendar_event_formatting(self, mock_settings, mock_build, mock_auth):
         """Test calendar events are formatted correctly in briefing."""
-        from assistant.services.briefing import BriefingGenerator
         from assistant.google.calendar import CalendarClient
+        from assistant.services.briefing import BriefingGenerator
 
         mock_settings.user_timezone = "America/Los_Angeles"
         mock_settings.has_notion = False
@@ -1198,17 +1241,19 @@ class TestT102BriefingIntegration:
         mock_service = MagicMock()
         mock_build.return_value = mock_service
 
-        mock_service.events.return_value.list.return_value.execute = MagicMock(return_value={
-            "items": [
-                {
-                    "id": "cinema",
-                    "summary": "Cinema with Jess",
-                    "start": {"dateTime": "2026-01-15T20:00:00-08:00"},
-                    "end": {"dateTime": "2026-01-15T22:00:00-08:00"},
-                    "location": "Everyman Cinema",
-                },
-            ]
-        })
+        mock_service.events.return_value.list.return_value.execute = MagicMock(
+            return_value={
+                "items": [
+                    {
+                        "id": "cinema",
+                        "summary": "Cinema with Jess",
+                        "start": {"dateTime": "2026-01-15T20:00:00-08:00"},
+                        "end": {"dateTime": "2026-01-15T22:00:00-08:00"},
+                        "location": "Everyman Cinema",
+                    },
+                ]
+            }
+        )
 
         calendar_client = CalendarClient()
         generator = BriefingGenerator(notion_client=None, calendar_client=calendar_client)
@@ -1229,8 +1274,8 @@ class TestT102BriefingIntegration:
     @patch("assistant.services.briefing.settings")
     async def test_briefing_all_day_event_formatting(self, mock_settings, mock_build, mock_auth):
         """Test all-day events show 'All day' instead of time."""
-        from assistant.services.briefing import BriefingGenerator
         from assistant.google.calendar import CalendarClient
+        from assistant.services.briefing import BriefingGenerator
 
         mock_settings.user_timezone = "UTC"
         mock_settings.has_notion = False
@@ -1238,16 +1283,18 @@ class TestT102BriefingIntegration:
         mock_service = MagicMock()
         mock_build.return_value = mock_service
 
-        mock_service.events.return_value.list.return_value.execute = MagicMock(return_value={
-            "items": [
-                {
-                    "id": "birthday",
-                    "summary": "Jess's Birthday",
-                    "start": {"date": "2026-01-15"},
-                    "end": {"date": "2026-01-16"},
-                },
-            ]
-        })
+        mock_service.events.return_value.list.return_value.execute = MagicMock(
+            return_value={
+                "items": [
+                    {
+                        "id": "birthday",
+                        "summary": "Jess's Birthday",
+                        "start": {"date": "2026-01-15"},
+                        "end": {"date": "2026-01-16"},
+                    },
+                ]
+            }
+        )
 
         calendar_client = CalendarClient()
         generator = BriefingGenerator(notion_client=None, calendar_client=calendar_client)
@@ -1275,9 +1322,10 @@ class TestT102PRDBriefingFormat:
         • 14:00 - Dentist appointment
         • 20:00 - Cinema with Jess (Everyman)
         """
-        from assistant.services.briefing import BriefingGenerator
-        from assistant.google.calendar import CalendarClient, CalendarEvent
         from zoneinfo import ZoneInfo
+
+        from assistant.google.calendar import CalendarEvent
+        from assistant.services.briefing import BriefingGenerator
 
         mock_settings.user_timezone = "America/Los_Angeles"
         mock_settings.has_notion = False

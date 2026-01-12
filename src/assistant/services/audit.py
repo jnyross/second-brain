@@ -33,6 +33,7 @@ UNDO_WINDOW_MINUTES = 5
 
 class DedupeResult(str, Enum):
     """Result of deduplication check."""
+
     NEW = "new"  # No existing entry, proceed with action
     DUPLICATE = "duplicate"  # Existing entry found, skip action
     RETRY = "retry"  # Existing entry with error, may retry
@@ -41,6 +42,7 @@ class DedupeResult(str, Enum):
 @dataclass
 class AuditEntry:
     """Structured audit log entry for tracking."""
+
     log_id: str | None = None
     action_type: ActionType = ActionType.CAPTURE
     idempotency_key: str | None = None
@@ -87,6 +89,7 @@ class AuditLogger:
         """Get or create Notion client."""
         if self._notion is None:
             from assistant.notion import NotionClient
+
             self._notion = NotionClient() if settings.has_notion else None
         return self._notion
 
@@ -212,9 +215,7 @@ class AuditLogger:
 
         # Set undo window for reversible actions
         if include_undo_window:
-            entry.undo_available_until = datetime.utcnow() + timedelta(
-                minutes=UNDO_WINDOW_MINUTES
-            )
+            entry.undo_available_until = datetime.utcnow() + timedelta(minutes=UNDO_WINDOW_MINUTES)
 
         if not self.notion:
             logger.debug(f"No Notion client, logging locally: {action_type.value}")
@@ -588,22 +589,28 @@ class AuditLogger:
         filters = []
 
         if action_type:
-            filters.append({
-                "property": "action_type",
-                "select": {"equals": action_type.value},
-            })
+            filters.append(
+                {
+                    "property": "action_type",
+                    "select": {"equals": action_type.value},
+                }
+            )
 
         if since:
-            filters.append({
-                "property": "timestamp",
-                "date": {"on_or_after": since.isoformat()},
-            })
+            filters.append(
+                {
+                    "property": "timestamp",
+                    "date": {"on_or_after": since.isoformat()},
+                }
+            )
 
         if entity_id:
-            filters.append({
-                "property": "entities_affected",
-                "rich_text": {"contains": entity_id},
-            })
+            filters.append(
+                {
+                    "property": "entities_affected",
+                    "rich_text": {"contains": entity_id},
+                }
+            )
 
         query_filter = {"and": filters} if len(filters) > 1 else (filters[0] if filters else None)
 
@@ -615,7 +622,9 @@ class AuditLogger:
                     "filter": query_filter,
                     "page_size": limit,
                     "sorts": [{"property": "timestamp", "direction": "descending"}],
-                } if query_filter else {
+                }
+                if query_filter
+                else {
                     "page_size": limit,
                     "sorts": [{"property": "timestamp", "direction": "descending"}],
                 },

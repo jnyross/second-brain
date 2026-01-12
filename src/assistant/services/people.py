@@ -163,11 +163,11 @@ class PeopleService:
 
         return LookupResult(
             found=True,
-            person_id=person.id if hasattr(person, 'id') else None,
+            person_id=person.id if hasattr(person, "id") else None,
             person=person if isinstance(person, Person) else None,
             matches=[
                 PersonMatch(
-                    person_id=person.id if hasattr(person, 'id') else "",
+                    person_id=person.id if hasattr(person, "id") else "",
                     name=name,
                     confidence=1.0,
                     matched_by="created",
@@ -302,15 +302,17 @@ class PeopleService:
                 search_lower, name, aliases, relationship
             )
 
-            matches.append(PersonMatch(
-                person_id=result["id"],
-                name=name,
-                confidence=confidence,
-                relationship=relationship,
-                last_contact=last_contact,
-                aliases=aliases,
-                matched_by=matched_by,
-            ))
+            matches.append(
+                PersonMatch(
+                    person_id=result["id"],
+                    name=name,
+                    confidence=confidence,
+                    relationship=relationship,
+                    last_contact=last_contact,
+                    aliases=aliases,
+                    matched_by=matched_by,
+                )
+            )
 
         return matches
 
@@ -369,7 +371,11 @@ class PeopleService:
 
         # Boost for close relationships
         if relationship:
-            rel_enum = Relationship(relationship) if relationship in [r.value for r in Relationship] else None
+            rel_enum = (
+                Relationship(relationship)
+                if relationship in [r.value for r in Relationship]
+                else None
+            )
             if rel_enum and rel_enum in RELATIONSHIP_PRIORITY:
                 boost = RELATIONSHIP_PRIORITY[rel_enum] / 1000  # Small boost
                 confidence = min(1.0, confidence + boost)
