@@ -15,6 +15,15 @@ from assistant.services.corrections import (
     process_correction,
     track_created_task,
 )
+from assistant.services.patterns import (
+    CorrectionRecord,
+    DetectedPattern,
+    PatternDetector,
+    add_correction,
+    get_pattern_detector,
+    load_and_analyze_patterns,
+    store_pending_patterns,
+)
 from assistant.services.entities import EntityExtractor, ExtractedEntities
 from assistant.services.parser import ParsedIntent, Parser
 from assistant.services.people import PeopleService
@@ -40,6 +49,14 @@ __all__ = [
     "is_correction_message",
     "process_correction",
     "track_created_task",
+    # Patterns
+    "CorrectionRecord",
+    "DetectedPattern",
+    "PatternDetector",
+    "add_correction",
+    "get_pattern_detector",
+    "load_and_analyze_patterns",
+    "store_pending_patterns",
     # Entities
     "EntityExtractor",
     "ExtractedEntities",

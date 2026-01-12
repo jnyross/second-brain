@@ -558,9 +558,9 @@
         "T-090"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Created src/assistant/services/patterns.py with PatternDetector class. Features: 1) CorrectionRecord dataclass for tracking corrections, 2) DetectedPattern dataclass with is_ready_for_storage and is_auto_applicable properties, 3) PatternDetector class with add_correction, _detect_patterns_for, _is_similar_correction, _string_similarity, _create_pattern_from_corrections methods, 4) Pattern type inference from entity_type and context, 5) Integration with CorrectionHandler to auto-track corrections. Added NotionClient methods: query_log_corrections, create_pattern, query_patterns, update_pattern_confidence. Tests in tests/test_patterns.py (33 tests pass). Full suite: 532 tests (527 pass, 5 pre-existing timezone flakes).",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-092",

@@ -610,6 +610,175 @@ class NotionClient:
         )
         return await self.create_log_entry(entry)
 
+    async def query_log_corrections(
+        self,
+        since: datetime | None = None,
+        limit: int = 100,
+    ) -> list[LogEntry]:
+        """Query log entries that contain corrections.
+
+        Args:
+            since: Only return corrections after this timestamp
+            limit: Maximum number of results
+
+        Returns:
+            List of LogEntry objects with correction data
+        """
+        filters: list[dict[str, Any]] = [
+            {
+                "property": "correction",
+                "rich_text": {"is_not_empty": True},
+            }
+        ]
+
+        if since:
+            filters.append({
+                "property": "timestamp",
+                "date": {"on_or_after": since.isoformat()},
+            })
+
+        query_filter = {"and": filters} if len(filters) > 1 else filters[0]
+
+        result = await self._request(
+            "POST",
+            f"/databases/{settings.notion_log_db_id}/query",
+            {
+                "filter": query_filter,
+                "page_size": limit,
+                "sorts": [{"property": "timestamp", "direction": "descending"}],
+            },
+        )
+
+        entries = []
+        for page in result.get("results", []):
+            props = page.get("properties", {})
+
+            # Extract timestamp
+            timestamp_prop = props.get("timestamp", {}).get("date", {})
+            timestamp_str = timestamp_prop.get("start") if timestamp_prop else None
+            timestamp = datetime.fromisoformat(timestamp_str) if timestamp_str else datetime.utcnow()
+
+            # Extract correction
+            correction_prop = props.get("correction", {}).get("rich_text", [])
+            correction = correction_prop[0]["text"]["content"] if correction_prop else None
+
+            # Extract corrected_at
+            corrected_at_prop = props.get("corrected_at", {}).get("date", {})
+            corrected_at_str = corrected_at_prop.get("start") if corrected_at_prop else None
+            corrected_at = datetime.fromisoformat(corrected_at_str) if corrected_at_str else None
+
+            # Extract action_type
+            action_type_prop = props.get("action_type", {}).get("select", {})
+            action_type_name = action_type_prop.get("name") if action_type_prop else "update"
+
+            entry = LogEntry(
+                id=page["id"],
+                timestamp=timestamp,
+                action_type=ActionType(action_type_name),
+                correction=correction,
+                corrected_at=corrected_at,
+            )
+            entries.append(entry)
+
+        return entries
+
+    async def create_pattern(self, pattern: Pattern) -> str:
+        """Create a new pattern in Notion's Patterns database.
+
+        Args:
+            pattern: Pattern object to create
+
+        Returns:
+            Notion page ID of the created pattern
+        """
+        properties = self._model_to_notion_properties(pattern, "patterns")
+        result = await self._request(
+            "POST",
+            "/pages",
+            {
+                "parent": {"database_id": settings.notion_patterns_db_id},
+                "properties": properties,
+            },
+        )
+        return result["id"]
+
+    async def query_patterns(
+        self,
+        trigger: str | None = None,
+        min_confidence: int | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        """Query patterns with optional filters.
+
+        Args:
+            trigger: Filter by trigger text (partial match)
+            min_confidence: Minimum confidence score
+            limit: Maximum number of results
+
+        Returns:
+            List of pattern results from Notion
+        """
+        filters: list[dict[str, Any]] = []
+
+        if trigger:
+            filters.append({
+                "property": "trigger",
+                "title": {"contains": trigger},
+            })
+
+        if min_confidence is not None:
+            filters.append({
+                "property": "confidence",
+                "number": {"greater_than_or_equal_to": min_confidence},
+            })
+
+        query_filter = {"and": filters} if len(filters) > 1 else (filters[0] if filters else None)
+
+        result = await self._request(
+            "POST",
+            f"/databases/{settings.notion_patterns_db_id}/query",
+            {
+                "filter": query_filter,
+                "page_size": limit,
+                "sorts": [{"property": "confidence", "direction": "descending"}],
+            } if query_filter else {
+                "page_size": limit,
+                "sorts": [{"property": "confidence", "direction": "descending"}],
+            },
+        )
+
+        return result.get("results", [])
+
+    async def update_pattern_confidence(
+        self,
+        page_id: str,
+        times_confirmed: int | None = None,
+        times_wrong: int | None = None,
+        confidence: int | None = None,
+    ) -> None:
+        """Update a pattern's confirmation counts and confidence.
+
+        Args:
+            page_id: Notion page ID of the pattern
+            times_confirmed: New confirmation count (or None to leave unchanged)
+            times_wrong: New wrong count (or None to leave unchanged)
+            confidence: New confidence score (or None to leave unchanged)
+        """
+        update: dict[str, Any] = {"properties": {}}
+
+        if times_confirmed is not None:
+            update["properties"]["times_confirmed"] = {"number": times_confirmed}
+
+        if times_wrong is not None:
+            update["properties"]["times_wrong"] = {"number": times_wrong}
+
+        if confidence is not None:
+            update["properties"]["confidence"] = {"number": confidence}
+
+        update["properties"]["last_used"] = {"date": {"start": datetime.utcnow().isoformat()}}
+
+        await self._request("PATCH", f"/pages/{page_id}", update)
+
     async def process_offline_queue(self) -> int:
         if not OFFLINE_QUEUE_PATH.exists():
             return 0

@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-090 complete (Phase 4 Briefings + Phase 5 corrections). Next: T-091 (Build pattern detection).
+- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-091 complete (Phase 4 Briefings + Phase 5 corrections/patterns). Next: T-092 (Implement pattern storage).
 
 ## Iteration Log
 
@@ -378,3 +378,43 @@
   - Commands: PYTHONPATH=src python3 -m pytest tests/test_corrections.py -v (66 passed)
   - Full test suite: 499 tests (494 pass, 5 pre-existing timezone failures)
   - Commit: 2eb6bfd
+- Iteration 32 (T-091) - Pattern Detection Service
+  - Created src/assistant/services/patterns.py with PatternDetector class
+  - Core components:
+    - CorrectionRecord: dataclass for tracking corrections with original/corrected values, context, entity_type, timestamp
+    - DetectedPattern: dataclass with trigger/meaning, occurrences, confidence, examples; properties is_ready_for_storage (>=3 occurrences), is_auto_applicable (confidence>=70)
+    - PatternDetector: main class with in-memory correction history, string normalization, similarity matching
+  - Detection logic:
+    - add_correction(): adds record, checks for patterns via _detect_patterns_for()
+    - _is_similar_correction(): matches by exact normalized values or string similarity >0.8
+    - _string_similarity(): character-based similarity score 0.0-1.0
+    - _create_pattern_from_corrections(): creates DetectedPattern from list of similar corrections
+    - _infer_pattern_type(): infers "person"/"name"/"priority"/"date" from entity_type and context
+  - Pattern storage preparation:
+    - store_pattern(): creates Pattern in Notion Patterns database
+    - store_pending_patterns(): stores all patterns meeting threshold
+    - load_corrections_from_log(): loads correction history from Notion Log (parses "X → Y" format)
+    - analyze_correction_patterns(): bulk analysis of loaded history
+  - Confidence calculation:
+    - Initial: 50 (INITIAL_PATTERN_CONFIDENCE)
+    - +10 per confirmation beyond threshold (CONFIDENCE_BOOST_PER_CONFIRMATION)
+    - Extra +10 for consistent corrections (all to same value)
+  - Integration with CorrectionHandler:
+    - Corrections now auto-feed into pattern detection via add_correction()
+    - When pattern detected (3+ occurrences), returns special message to user
+  - Added NotionClient methods:
+    - query_log_corrections(): fetches log entries with correction field set
+    - create_pattern(): creates pattern in Patterns database
+    - query_patterns(): queries patterns by trigger and min_confidence
+    - update_pattern_confidence(): updates times_confirmed/times_wrong/confidence
+  - Updated services/__init__.py with pattern exports
+  - Added tests/test_patterns.py (33 tests):
+    - TestCorrectionRecord, TestDetectedPattern, TestPatternDetectorNormalization
+    - TestPatternDetectorSimilarity, TestPatternDetectorAddCorrection
+    - TestPatternDetectorPendingPatterns, TestPatternDetectorStorePattern
+    - TestPatternDetectorLoadCorrections, TestPatternDetectorAnalyze
+    - TestPatternDetectorClearHistory, TestModuleLevelFunctions
+    - TestPatternIntegrationWithCorrections, TestPRDPatternExample, TestConstants
+  - Commands: PYTHONPATH=src python3 -m pytest tests/test_patterns.py -v (33 passed)
+  - Full test suite: 532 tests (527 pass, 5 pre-existing timezone failures)
+  - Commit: d76eba8

@@ -432,6 +432,31 @@ class CorrectionHandler:
                 corrected_value=correct_value,
             )
 
+            # Track this correction for pattern detection
+            from assistant.services.patterns import add_correction as add_pattern_correction
+            detected_patterns = add_pattern_correction(
+                original_value=original_value,
+                corrected_value=correct_value,
+                entity_type=entity_type,
+            )
+
+            # If patterns detected, notify in message
+            if detected_patterns:
+                pattern = detected_patterns[0]
+                return CorrectionResult(
+                    is_correction=True,
+                    original_value=original_value,
+                    corrected_value=correct_value,
+                    correction_type="title",
+                    entity_id=action.entity_id,
+                    success=True,
+                    message=(
+                        f"Fixed. Changed \"{original_value}\" to \"{correct_value}\".\n\n"
+                        f"I've noticed you correct '{pattern.trigger}' to '{pattern.meaning}' "
+                        f"frequently ({pattern.occurrences} times). I'll remember this!"
+                    ),
+                )
+
             # Update our tracked action with the new title
             action.title = correct_value
 

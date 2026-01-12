@@ -36,7 +36,7 @@ This file tracks the prioritized work items for Ralph autonomous loops. Update a
 - [x] T-082: Implement /debrief command
 - [x] T-083: Build interactive clarification flow
 - [x] T-090: Implement correction handler
-- [ ] T-091: Build pattern detection
+- [x] T-091: Build pattern detection
 - [ ] T-092: Implement pattern storage
 - [ ] T-093: Apply patterns to new inputs
 - [ ] T-100: Implement Google Calendar OAuth
