@@ -7,6 +7,16 @@ confidence scoring, and more.
 from assistant.services.briefing import BriefingGenerator, generate_briefing
 from assistant.services.clarification import ClarificationService
 from assistant.services.confidence import ConfidenceScorer
+from assistant.services.offline_queue import (
+    OfflineQueue,
+    QueuedAction,
+    QueuedActionType,
+    QueueProcessResult,
+    get_offline_queue,
+    get_offline_response,
+    process_offline_queue,
+    queue_for_offline_sync,
+)
 from assistant.services.corrections import (
     CorrectionHandler,
     CorrectionResult,
@@ -51,6 +61,15 @@ __all__ = [
     "ClarificationService",
     # Confidence
     "ConfidenceScorer",
+    # Offline Queue (T-114)
+    "OfflineQueue",
+    "QueuedAction",
+    "QueuedActionType",
+    "QueueProcessResult",
+    "get_offline_queue",
+    "get_offline_response",
+    "process_offline_queue",
+    "queue_for_offline_sync",
     # Corrections
     "CorrectionHandler",
     "CorrectionResult",

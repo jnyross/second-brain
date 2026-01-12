@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-093 complete (Phase 4 Briefings + Phase 5 corrections/patterns fully complete). T-100 complete (Google Calendar OAuth). T-101 complete (Calendar event creator with undo support). T-102 complete (Calendar reading for briefings). Next: T-110 (Implement comprehensive audit logging).
+- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-093 complete (Phase 4 Briefings + Phase 5 corrections/patterns fully complete). T-100 through T-102 complete (Google Calendar). T-110 complete (Audit logging). T-114 complete (Offline queue). Next: T-115 (Soft delete and undo).
 
 ## Iteration Log
 
@@ -612,3 +612,37 @@
   - Commands: python3 -m pytest tests/test_audit.py -v (30 passed)
   - Full test suite: 727 tests (722 pass, 5 pre-existing timezone failures in test_entities.py)
   - Commit: c4fe4a1
+- Iteration 39 (T-114) - Offline Queue and Recovery
+  - Task: Implement offline queue and recovery per PRD Section 4.8 (AT-114, AT-115)
+  - Created src/assistant/services/offline_queue.py with OfflineQueue class:
+    - QueuedActionType enum: CREATE_INBOX, CREATE_TASK, UPDATE_ENTITY, DELETE_ENTITY
+    - QueuedAction dataclass: action_type, idempotency_key, raw_input, payload, queued_at, retry_count
+    - QueueProcessResult dataclass: successful, failed, duplicate counts
+    - OfflineQueue class with JSONL persistence at ~/.second-brain/queue/pending.jsonl
+    - enqueue(): appends action to queue file
+    - queue_inbox_item(): convenience method for inbox items with confidence/interpretation
+    - queue_task(): convenience method for task creation
+    - get_pending_count(): counts queued items
+    - process_queue(): processes all queued items with deduplication by idempotency_key
+    - Module-level convenience functions: get_offline_queue(), queue_for_offline_sync(), process_offline_queue(), get_offline_response()
+    - get_offline_response(): returns "Saved locally, will sync when Notion is back" per PRD 4.8
+  - Updated src/assistant/services/__init__.py:
+    - Added all offline_queue exports
+  - Updated src/assistant/cli.py:
+    - Enhanced sync command to use OfflineQueue service
+    - Reports pending count, successful/failed/duplicate results
+  - Created tests/test_offline_queue.py (26 tests):
+    - TestOfflineQueue (5): creates directory, enqueues to file, loads entries, clears queue, empty queue
+    - TestQueueInboxItem (3): creates action, uses idempotency key, includes metadata
+    - TestQueueTask (3): creates action, uses idempotency key, includes payload
+    - TestQueueProcessing (5): processes in order, handles failure, deduplicates, retries failed, respects max retries
+    - TestAT114OfflineCapture (2): user receives immediate response, item queued for later
+    - TestAT115RecoverySync (2): items synced in order, queue cleared after success
+    - TestConvenienceFunctions (4): singleton, queue_for_offline_sync, process returns result, offline response
+    - TestQueuedAction (2): to_dict, from_dict
+  - AT-114 Verification: get_offline_response() returns "Saved locally, will sync when Notion is back"
+  - AT-115 Verification: 3 items queued, processed in order, queue cleared, all 3 successful
+  - Ruff fixes applied (16 issues: unused imports, unsorted imports)
+  - Commands: python3 -m pytest tests/test_offline_queue.py -v (26 passed)
+  - Full test suite: 753 tests (748 pass, 5 pre-existing timezone failures in test_entities.py)
+  - Commit: 9d1adbf

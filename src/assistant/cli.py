@@ -26,8 +26,8 @@ async def run_bot() -> None:
 
 
 async def send_briefing() -> None:
-    from assistant.telegram import SecondBrainBot
     from assistant.services import BriefingGenerator
+    from assistant.telegram import SecondBrainBot
 
     if not settings.has_telegram:
         print("Error: TELEGRAM_BOT_TOKEN not configured")
@@ -78,18 +78,41 @@ async def check_config() -> None:
 
 
 async def process_queue() -> None:
-    from assistant.notion import NotionClient
+    """Process offline queue and sync to Notion (AT-115)."""
+    from assistant.services.offline_queue import (
+        get_offline_queue,
+        process_offline_queue,
+    )
 
     if not settings.has_notion:
         print("Error: NOTION_API_KEY not configured")
         sys.exit(1)
 
-    notion = NotionClient()
-    try:
-        count = await notion.process_offline_queue()
-        print(f"Processed {count} queued items")
-    finally:
-        await notion.close()
+    queue = get_offline_queue()
+    pending_count = queue.get_pending_count()
+
+    if pending_count == 0:
+        print("No pending items in offline queue")
+        return
+
+    print(f"Processing {pending_count} queued items...")
+
+    result = await process_offline_queue()
+
+    print("\nSync results:")
+    print(f"  Successful: {result.successful}")
+    print(f"  Deduplicated: {result.deduplicated}")
+    print(f"  Failed: {result.failed}")
+
+    if result.errors:
+        print("\nErrors:")
+        for error in result.errors:
+            print(f"  - {error}")
+
+    if result.all_successful:
+        print("\nAll items synced successfully!")
+    elif result.failed > 0:
+        print(f"\n{result.failed} items remain in queue for retry")
 
 
 def main() -> None:

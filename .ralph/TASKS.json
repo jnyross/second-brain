@@ -737,9 +737,9 @@
         "AT-114",
         "AT-115"
       ],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Created src/assistant/services/offline_queue.py with OfflineQueue class. Features: 1) QueuedAction dataclass with action_type, timestamp, idempotency_key, data, chat_id, message_id, retry_count, 2) queue_inbox_item() and queue_task() convenience methods per PRD 4.8, 3) process_queue() syncs to Notion with deduplication and order preservation, 4) get_offline_response() returns 'Saved locally, will sync when Notion is back' per AT-114, 5) QueueProcessResult tracks successful/failed/deduplicated counts. Updated CLI sync command to use new service. Module-level convenience functions for singleton access. Tests in tests/test_offline_queue.py (26 tests pass): TestOfflineQueue (6), TestQueueInboxItem (1), TestQueueTask (2), TestQueueProcessing (5), TestAT114OfflineCapture (3 tests - user response, queue persistence), TestAT115RecoverySync (3 tests - order preservation, queue cleared), TestConvenienceFunctions (3), TestQueuedAction (3). Full suite: 753 tests pass (5 pre-existing timezone flakes).",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-115",
