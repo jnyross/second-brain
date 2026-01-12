@@ -1199,3 +1199,24 @@
   - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_research_formatter.py -v (45 passed)
   - Full test suite: 1406 tests (all pass)
   - Commit: pending
+- Iteration 48 (T-111) - Today I Learned Summary
+  - Task: Build 'Today I Learned' summary - Include learned patterns in daily briefing
+  - Updated src/assistant/notion/client.py:
+    - Added created_after parameter to query_patterns() for filtering recently learned patterns
+    - Sort by created_at descending when filtering by creation time
+  - Updated src/assistant/services/briefing.py:
+    - Added _generate_til_section() method to query patterns learned in last 24 hours
+    - Added _format_til_section() method with type icons (👤 person, 📍 place, 📁 project, ⚙️ preference)
+    - Added _extract_number() helper for confidence extraction
+    - Integrated TIL section into generate_morning_briefing() after THIS WEEK section
+  - Format: "🧠 **TODAY I LEARNED**" header followed by patterns as "trigger" → "meaning"
+  - Filters: min_confidence=70, created_after=last 24 hours, limit=5
+  - Added tests/test_briefing.py (22 new tests):
+    - TestBriefingGeneratorTILSection: no_notion, no_patterns, with_patterns, correct_filters, api_error
+    - TestBriefingGeneratorFormatTIL: empty, basic, truncates, icons for types, limits to 5, skips incomplete
+    - TestBriefingGeneratorExtractNumber: present, missing, zero
+    - TestBriefingTILIntegration: included when patterns exist, omitted when no patterns
+    - TestT111AcceptanceTest: learned patterns appear in briefing
+  - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_briefing.py -v (76 passed)
+  - Full test suite: 1428 tests (all pass)
+  - Commit: pending

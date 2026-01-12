@@ -691,9 +691,9 @@
         "T-092"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Added TIL section to BriefingGenerator. Features: _generate_til_section() queries patterns learned in last 24h with min_confidence=70, _format_til_section() with type icons (person/place/project/preference), _extract_number() helper. Updated query_patterns() with created_after filter. Tests in test_briefing.py (22 new tests: TILSection, FormatTIL, ExtractNumber, TILIntegration, T111AcceptanceTest). Full suite: 1428 tests pass.",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-112",
