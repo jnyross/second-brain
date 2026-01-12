@@ -1,14 +1,14 @@
 """Tests for the entity extraction service."""
 
-import pytest
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
+import pytest
 
 from assistant.services.entities import (
     EntityExtractor,
-    ExtractedEntities,
-    ExtractedPerson,
-    ExtractedPlace,
     ExtractedDate,
+    ExtractedEntities,
 )
 
 
@@ -17,6 +17,7 @@ class TestEntityExtractor:
 
     def setup_method(self):
         self.extractor = EntityExtractor(timezone="America/Los_Angeles")
+        self.tz = ZoneInfo("America/Los_Angeles")
 
     # === People Extraction Tests ===
 
@@ -90,19 +91,27 @@ class TestEntityExtractor:
     # === Date Extraction Tests ===
 
     def test_extract_tomorrow(self):
-        """'tomorrow' should extract a date."""
+        """'tomorrow' should extract a date in user timezone."""
         result = self.extractor.extract_dates("Call dentist tomorrow")
         assert len(result) >= 1
-        tomorrow = datetime.now().date() + timedelta(days=1)
+
+        # Use timezone-aware comparison
+        now = datetime.now(self.tz)
+        tomorrow = (now + timedelta(days=1)).date()
         assert result[0].datetime_value.date() == tomorrow
         assert result[0].is_relative is True
         assert result[0].confidence >= 90
+        assert result[0].timezone == "America/Los_Angeles"
 
     def test_extract_today(self):
-        """'today' should extract today's date."""
+        """'today' should extract today's date in user timezone."""
         result = self.extractor.extract_dates("Finish report today")
         assert len(result) >= 1
-        assert result[0].datetime_value.date() == datetime.now().date()
+
+        # Use timezone-aware comparison
+        now = datetime.now(self.tz)
+        assert result[0].datetime_value.date() == now.date()
+        assert result[0].timezone == "America/Los_Angeles"
 
     def test_extract_weekday(self):
         """Weekday names should extract the next occurrence."""
@@ -116,9 +125,7 @@ class TestEntityExtractor:
         result = self.extractor.extract_dates("Remind me in 2 hours")
         assert len(result) >= 1
         # Compare timezone-aware datetimes properly
-        import pytz
-        tz = pytz.timezone("America/Los_Angeles")
-        expected = datetime.now(tz) + timedelta(hours=2)
+        expected = datetime.now(self.tz) + timedelta(hours=2)
         actual = result[0].datetime_value
         assert abs((actual - expected).total_seconds()) < 120
 
@@ -126,7 +133,10 @@ class TestEntityExtractor:
         """'in X days' should extract relative date."""
         result = self.extractor.extract_dates("Due in 3 days")
         assert len(result) >= 1
-        expected = datetime.now().date() + timedelta(days=3)
+
+        # Use timezone-aware comparison
+        now = datetime.now(self.tz)
+        expected = (now + timedelta(days=3)).date()
         assert result[0].datetime_value.date() == expected
 
     def test_extract_time_pm(self):
@@ -146,7 +156,10 @@ class TestEntityExtractor:
         """'tomorrow at 2pm' should combine date and time."""
         result = self.extractor.extract_dates("Meeting tomorrow at 2pm")
         assert len(result) >= 1
-        tomorrow = datetime.now().date() + timedelta(days=1)
+
+        # Use timezone-aware comparison
+        now = datetime.now(self.tz)
+        tomorrow = (now + timedelta(days=1)).date()
         assert result[0].datetime_value.date() == tomorrow
         assert result[0].datetime_value.hour == 14
 
@@ -174,3 +187,166 @@ class TestEntityExtractor:
         text = "Call Bob tomorrow"
         result = self.extractor.extract(text)
         assert result.raw_text == text
+
+
+class TestTimezoneHandling:
+    """Tests for PRD Section 5.4 timezone handling (AT-119)."""
+
+    def setup_method(self):
+        # User timezone is America/Los_Angeles (PST/PDT)
+        self.extractor = EntityExtractor(timezone="America/Los_Angeles")
+        self.tz = ZoneInfo("America/Los_Angeles")
+
+    def test_times_parsed_in_user_timezone(self):
+        """Times should be parsed in user's configured timezone."""
+        result = self.extractor.extract_dates("Meeting tomorrow at 2pm")
+        assert len(result) >= 1
+        assert result[0].timezone == "America/Los_Angeles"
+        assert result[0].datetime_value.tzinfo is not None
+
+    def test_due_timezone_field_set(self):
+        """ExtractedDate.timezone should contain IANA timezone name."""
+        result = self.extractor.extract_dates("Call at 3pm")
+        assert len(result) >= 1
+        assert result[0].timezone == "America/Los_Angeles"
+
+    def test_explicit_timezone_est_respected(self):
+        """'9am EST' should use America/New_York timezone."""
+        result = self.extractor.extract_dates("Call at 9am EST")
+        assert len(result) >= 1
+        assert result[0].timezone == "America/New_York"
+        assert result[0].has_explicit_timezone is True
+        assert result[0].datetime_value.hour == 9
+
+    def test_explicit_timezone_pst_respected(self):
+        """'2pm PST' should use America/Los_Angeles timezone."""
+        result = self.extractor.extract_dates("Meeting at 2pm PST")
+        assert len(result) >= 1
+        assert result[0].timezone == "America/Los_Angeles"
+        assert result[0].has_explicit_timezone is True
+
+    def test_explicit_timezone_utc_respected(self):
+        """'10am UTC' should use UTC timezone."""
+        result = self.extractor.extract_dates("Meeting at 10am UTC")
+        assert len(result) >= 1
+        assert result[0].timezone == "UTC"
+        assert result[0].has_explicit_timezone is True
+
+    def test_explicit_timezone_with_tomorrow(self):
+        """'tomorrow 9am EST' should combine date with explicit timezone."""
+        result = self.extractor.extract_dates("Meeting tomorrow at 9am EST")
+        assert len(result) >= 1
+        assert result[0].timezone == "America/New_York"
+        assert result[0].has_explicit_timezone is True
+        assert result[0].datetime_value.hour == 9
+
+    def test_no_explicit_timezone_flag_default(self):
+        """has_explicit_timezone should be False when not specified."""
+        result = self.extractor.extract_dates("Meeting tomorrow at 2pm")
+        assert len(result) >= 1
+        assert result[0].has_explicit_timezone is False
+
+    def test_iso8601_formatting(self):
+        """ExtractedDate should format as ISO 8601 with timezone offset."""
+        result = self.extractor.extract_dates("Meeting at 2pm")
+        assert len(result) >= 1
+        iso_str = result[0].to_iso8601()
+        # Should contain offset like -08:00 or -07:00
+        assert "+" in iso_str or "-" in iso_str[-6:]
+
+    def test_iso8601_utc_formatting(self):
+        """ExtractedDate should format as ISO 8601 UTC with Z suffix."""
+        result = self.extractor.extract_dates("Meeting at 2pm")
+        assert len(result) >= 1
+        utc_str = result[0].to_iso8601_utc()
+        assert utc_str.endswith("Z")
+
+    def test_at119_acceptance(self):
+        """AT-119: Full acceptance test for timezone parsing.
+
+        Given: User timezone is "America/Los_Angeles" (PST/PDT)
+        When: User sends "tomorrow 2pm"
+        Then: due_date stored as 2pm in PST/PDT
+        And: due_timezone field set to "America/Los_Angeles"
+        """
+        result = self.extractor.extract_dates("tomorrow 2pm")
+        assert len(result) >= 1
+        assert result[0].datetime_value.hour == 14
+        assert result[0].timezone == "America/Los_Angeles"
+
+        # Verify ISO 8601 includes timezone offset (PST is -08:00, PDT is -07:00)
+        iso_str = result[0].to_iso8601()
+        assert "T14:" in iso_str  # Hour is 14 (2pm)
+        assert "-08:00" in iso_str or "-07:00" in iso_str  # PST/PDT offset
+
+
+class TestExtractedDate:
+    """Tests for ExtractedDate dataclass."""
+
+    def test_to_iso8601(self):
+        """to_iso8601 should include timezone offset."""
+        tz = ZoneInfo("America/Los_Angeles")
+        dt = datetime(2024, 1, 15, 14, 0, 0, tzinfo=tz)
+        extracted = ExtractedDate(
+            datetime_value=dt,
+            confidence=95,
+            original_text="2pm",
+            timezone="America/Los_Angeles",
+        )
+        iso_str = extracted.to_iso8601()
+        assert iso_str.startswith("2024-01-15T14:00:00")
+        # Should have offset
+        assert "-08:00" in iso_str or "-07:00" in iso_str
+
+    def test_to_iso8601_utc(self):
+        """to_iso8601_utc should convert to UTC with Z suffix."""
+        tz = ZoneInfo("America/Los_Angeles")
+        dt = datetime(2024, 1, 15, 14, 0, 0, tzinfo=tz)  # 2pm PST = 10pm UTC
+        extracted = ExtractedDate(
+            datetime_value=dt,
+            confidence=95,
+            original_text="2pm",
+            timezone="America/Los_Angeles",
+        )
+        utc_str = extracted.to_iso8601_utc()
+        assert utc_str.endswith("Z")
+        # 2pm PST is 10pm UTC
+        assert "T22:00:00Z" in utc_str
+
+    def test_has_explicit_timezone_default(self):
+        """has_explicit_timezone should default to False."""
+        dt = datetime.now(ZoneInfo("UTC"))
+        extracted = ExtractedDate(
+            datetime_value=dt,
+            confidence=95,
+            original_text="now",
+            timezone="UTC",
+        )
+        assert extracted.has_explicit_timezone is False
+
+
+class TestTimezoneAbbreviations:
+    """Tests for timezone abbreviation support."""
+
+    def setup_method(self):
+        self.extractor = EntityExtractor(timezone="America/Los_Angeles")
+
+    @pytest.mark.parametrize("abbrev,expected_tz", [
+        ("EST", "America/New_York"),
+        ("PST", "America/Los_Angeles"),
+        ("CST", "America/Chicago"),
+        ("MST", "America/Denver"),
+        ("UTC", "UTC"),
+        ("GMT", "Europe/London"),
+    ])
+    def test_timezone_abbreviation_mapping(self, abbrev, expected_tz):
+        """Common timezone abbreviations should map to IANA timezones."""
+        result = self.extractor.extract_dates(f"Meeting at 9am {abbrev}")
+        assert len(result) >= 1
+        assert result[0].timezone == expected_tz
+
+    def test_timezone_case_insensitive(self):
+        """Timezone abbreviations should be case-insensitive."""
+        result = self.extractor.extract_dates("Meeting at 9am est")
+        assert len(result) >= 1
+        assert result[0].timezone == "America/New_York"

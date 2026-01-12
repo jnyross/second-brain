@@ -769,9 +769,9 @@
       "acceptance_tests": [
         "AT-119"
       ],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Created src/assistant/services/timezone.py with TimezoneService class. Features: 1) TIMEZONE_ABBREVIATIONS mapping (EST/PST/UTC/GMT etc. to IANA names), 2) TimezoneAwareDateTime with to_iso8601() and to_iso8601_utc() for PRD-compliant formatting, 3) parse_explicit_timezone() detects '9am EST' patterns, 4) parse_time_with_timezone() respects explicit markers. Updated entities.py: EntityExtractor uses zoneinfo instead of pytz, ExtractedDate.has_explicit_timezone flag, _extract_time_with_explicit_tz() parses with timezone context. Tests in tests/test_timezone.py (41 tests pass): TestTimezoneAbbreviations (4), TestTimezoneAwareDateTime (6), TestTimezoneService (14), TestModuleLevelFunctions (6), TestAT119Acceptance (3), TestPRDSection54Examples (4). Updated tests/test_entities.py: TestTimezoneHandling (12 tests), TestExtractedDate (3 tests), TestTimezoneAbbreviations (7 tests). Fixed tests/test_parser.py with timezone-aware comparison. Full suite: 873 tests pass.",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-117",

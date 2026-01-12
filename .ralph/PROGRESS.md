@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-093 complete (Phase 4 Briefings + Phase 5 corrections/patterns fully complete). T-100 through T-102 complete (Google Calendar). T-110 complete (Audit logging). T-114 complete (Offline queue). Next: T-115 (Soft delete and undo).
+- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-093 complete (Phase 4 Briefings + Phase 5 corrections/patterns fully complete). T-100 through T-102 complete (Google Calendar). T-110 complete (Audit logging). T-114 complete (Offline queue). T-115 complete (Soft delete). T-116 complete (Timezone handling). All P1 tasks done. Next: T-120 (Gmail read integration).
 
 ## Iteration Log
 
@@ -682,3 +682,51 @@
   - Commands: python3 -m pytest tests/test_soft_delete.py -v (54 passed)
   - Full test suite: 807 tests (802 pass, 5 pre-existing timezone failures in test_entities.py)
   - Commit: 9344e29
+- Iteration 41 (T-116) - Timezone Handling
+  - Task: Implement timezone handling per PRD Section 5.4 and AT-119
+  - Created src/assistant/services/timezone.py with TimezoneService class:
+    - TIMEZONE_ABBREVIATIONS: dict mapping EST/PST/CST/MST/UTC/GMT etc. to IANA names
+    - ParsedTimezone dataclass: timezone_name, original_text, confidence
+    - TimezoneAwareDateTime dataclass: datetime_value, timezone_name
+      - is_utc property, to_iso8601(), to_iso8601_utc(), to_utc(), to_timezone()
+    - TimezoneService class:
+      - default_timezone from settings or explicit parameter
+      - now(), today(): current time in user timezone
+      - parse_explicit_timezone(): extracts "9am EST" patterns
+      - create_datetime(): creates timezone-aware datetime
+      - localize(): attaches timezone to naive or converts aware datetime
+      - parse_time_with_timezone(): parses time respecting explicit markers
+      - format_for_display(): "2pm" or "2:30pm" format
+    - Module-level singleton and convenience functions
+  - Updated src/assistant/services/entities.py:
+    - Replaced pytz with zoneinfo (modern Python 3.9+ stdlib)
+    - Added has_explicit_timezone field to ExtractedDate
+    - Added to_iso8601() and to_iso8601_utc() methods to ExtractedDate
+    - Added EXPLICIT_TZ_PATTERN regex and _extract_time_with_explicit_tz()
+    - Modified extract_dates() to detect explicit timezone markers
+  - Updated src/assistant/services/__init__.py:
+    - Added timezone service exports
+  - Created tests/test_timezone.py (41 tests):
+    - TestTimezoneAbbreviations: US/EU/UTC mapping, IANA validation
+    - TestTimezoneAwareDateTime: creation, is_utc, ISO formatting, conversion
+    - TestTimezoneService: all methods
+    - TestModuleLevelFunctions: singleton, convenience functions
+    - TestAT119Acceptance: full acceptance test, explicit timezone override, relative time
+    - TestPRDSection54Examples: all PRD examples covered
+  - Updated tests/test_entities.py:
+    - Fixed all timezone-aware comparisons using datetime.now(self.tz)
+    - Added TestTimezoneHandling, TestExtractedDate, TestTimezoneAbbreviations classes
+    - All 27 existing tests now use timezone-aware comparisons
+  - Fixed tests/test_parser.py:
+    - test_parse_task_with_tomorrow now uses timezone-aware comparison
+  - AT-119 Verification:
+    - Given: User timezone is "America/Los_Angeles" (PST/PDT)
+    - When: User sends "tomorrow 2pm"
+    - Then: due_date stored as 2pm in PST/PDT
+    - And: due_timezone field set to "America/Los_Angeles"
+    - When: User sends "9am EST"
+    - Then: due_timezone set to "America/New_York", has_explicit_timezone=True
+  - Ruff fixes: 22 issues (unused imports, unsorted imports, deprecated Optional)
+  - Commands: python3 -m pytest tests/test_timezone.py tests/test_entities.py -v (all passed)
+  - Full test suite: 873 tests (all pass, fixed 5 pre-existing timezone failures)
+  - Commit: 5dba2b0

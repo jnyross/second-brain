@@ -18,7 +18,10 @@ class TestParser:
         result = self.parser.parse("Call dentist tomorrow")
         assert result.intent_type == "task"
         assert result.due_date is not None
-        assert result.due_date.date() == (datetime.now().date() + timedelta(days=1))
+        # Use timezone-aware comparison since parser uses configured timezone
+        tz = pytz.timezone("America/Los_Angeles")
+        tomorrow_in_tz = (datetime.now(tz) + timedelta(days=1)).date()
+        assert result.due_date.date() == tomorrow_in_tz
 
     def test_parse_task_with_time(self):
         result = self.parser.parse("Meeting at 2pm")

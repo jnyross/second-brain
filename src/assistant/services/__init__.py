@@ -43,7 +43,19 @@ from assistant.services.pattern_applicator import (
     get_pattern_applicator,
     load_patterns,
 )
-from assistant.services.entities import EntityExtractor, ExtractedEntities
+from assistant.services.entities import EntityExtractor, ExtractedDate, ExtractedEntities
+from assistant.services.timezone import (
+    ParsedTimezone,
+    TIMEZONE_ABBREVIATIONS,
+    TimezoneAwareDateTime,
+    TimezoneService,
+    get_timezone_service,
+    localize,
+    now,
+    parse_time_with_timezone,
+    reset_timezone_service,
+    today,
+)
 from assistant.services.parser import ParsedIntent, Parser
 from assistant.services.people import PeopleService
 from assistant.services.places import PlacesService
@@ -107,7 +119,19 @@ __all__ = [
     "load_patterns",
     # Entities
     "EntityExtractor",
+    "ExtractedDate",
     "ExtractedEntities",
+    # Timezone (T-116)
+    "ParsedTimezone",
+    "TIMEZONE_ABBREVIATIONS",
+    "TimezoneAwareDateTime",
+    "TimezoneService",
+    "get_timezone_service",
+    "localize",
+    "now",
+    "parse_time_with_timezone",
+    "reset_timezone_service",
+    "today",
     # Parser
     "ParsedIntent",
     "Parser",
