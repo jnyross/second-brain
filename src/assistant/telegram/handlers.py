@@ -414,7 +414,7 @@ async def handle_voice(message: Message, bot: Bot) -> None:
         if isinstance(file_data, BytesIO):
             audio_bytes = file_data.read()
         elif file_data is not None:
-            audio_bytes = file_data  # type: ignore[assignment]
+            audio_bytes = file_data
         else:
             await message.answer("Sorry, I couldn't download the voice file. Please try again.")
             return
