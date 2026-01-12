@@ -438,11 +438,7 @@ class ResearchFormatter:
             await self._notion._request(
                 "PATCH",
                 f"/pages/{task_id}",
-                {
-                    "properties": {
-                        "notes": {"rich_text": [{"text": {"content": truncated}}]}
-                    }
-                },
+                {"properties": {"notes": {"rich_text": [{"text": {"content": truncated}}]}}},
             )
             logger.info(f"Stored research result in task {task_id}")
             return True

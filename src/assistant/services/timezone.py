@@ -8,7 +8,7 @@ Implements PRD Section 5.4:
 
 import re
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, tzinfo
 from zoneinfo import ZoneInfo
 
 from assistant.config import settings
@@ -332,6 +332,7 @@ class TimezoneService:
 
         if include_timezone:
             # Get timezone abbreviation
+            tz: tzinfo
             if isinstance(dt, TimezoneAwareDateTime):
                 tz = ZoneInfo(dt.timezone_name)
             elif dt_value.tzinfo:

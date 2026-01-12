@@ -387,11 +387,11 @@ class OfflineQueue:
                 priority = TaskPriority.MEDIUM
 
             # Parse source enum
-            source_str = data.get("source", "telegram")
+            task_source_str = data.get("source", "telegram")
             try:
-                source = TaskSource(source_str)
+                task_source = TaskSource(task_source_str)
             except ValueError:
-                source = TaskSource.TELEGRAM
+                task_source = TaskSource.TELEGRAM
 
             # Parse due_date if present
             due_date = None
@@ -402,7 +402,7 @@ class OfflineQueue:
                 title=data["title"],
                 due_date=due_date,
                 due_timezone=data.get("due_timezone"),
-                source=source,
+                source=task_source,
                 confidence=data.get("confidence", 80),
                 priority=priority,
                 created_by=data.get("created_by", "ai"),

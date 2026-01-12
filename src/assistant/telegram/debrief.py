@@ -19,7 +19,7 @@ import logging
 import re
 from datetime import datetime
 
-from aiogram import F, Router
+from aiogram import Dispatcher, F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -664,6 +664,6 @@ def _format_due_date(due_date: datetime) -> str:
         return due_date.strftime("%B %d")  # "January 15"
 
 
-def setup_debrief_handlers(dp) -> None:
+def setup_debrief_handlers(dp: Dispatcher) -> None:
     """Set up debrief handlers on the dispatcher."""
     dp.include_router(router)

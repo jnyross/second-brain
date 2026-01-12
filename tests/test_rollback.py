@@ -371,7 +371,7 @@ class TestRollbackDryRun:
         """Dry run exits with success."""
         content = SCRIPT_PATH.read_text()
         # Should have successful exit after dry run section
-        lines = content.split('\n')
+        lines = content.split("\n")
         in_dry_run = False
         for line in lines:
             if '"$DRY_RUN" = true' in line:

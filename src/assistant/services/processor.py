@@ -41,7 +41,7 @@ class ProcessResult:
 
 
 class MessageProcessor:
-    def __init__(self):
+    def __init__(self) -> None:
         self.parser = Parser()
         self.notion = NotionClient() if settings.has_notion else None
         self.pattern_applicator = PatternApplicator(notion_client=self.notion)
@@ -76,10 +76,7 @@ class MessageProcessor:
 
         # T-117: For low-confidence Whisper transcriptions, always flag for review
         # regardless of parser confidence
-        force_low_confidence = (
-            transcript_confidence is not None
-            and transcript_confidence < 80
-        )
+        force_low_confidence = transcript_confidence is not None and transcript_confidence < 80
 
         if parsed.confidence < settings.confidence_threshold or force_low_confidence:
             return await self._handle_low_confidence(
@@ -121,20 +118,26 @@ class MessageProcessor:
                 # Update people list with corrected names
                 if result.corrected_people != result.original_people:
                     parsed.people = result.corrected_people
-                    orig, corr = result.original_people, result.corrected_people
-                    logger.info(f"Pattern corrected people: {orig} → {corr}")
+                    logger.info(
+                        f"Pattern corrected people: "
+                        f"{result.original_people} → {result.corrected_people}"
+                    )
 
                 # Update places list with corrected names
                 if result.corrected_places != result.original_places:
                     parsed.places = result.corrected_places
-                    orig, corr = result.original_places, result.corrected_places
-                    logger.info(f"Pattern corrected places: {orig} → {corr}")
+                    logger.info(
+                        f"Pattern corrected places: "
+                        f"{result.original_places} → {result.corrected_places}"
+                    )
 
                 # Update title with corrected names
                 if result.corrected_title != result.original_title:
                     parsed.title = result.corrected_title
-                    orig, corr = result.original_title, result.corrected_title
-                    logger.info(f"Pattern corrected title: '{orig}' → '{corr}'")
+                    logger.info(
+                        f"Pattern corrected title: "
+                        f"'{result.original_title}' → '{result.corrected_title}'"
+                    )
 
             return result
 

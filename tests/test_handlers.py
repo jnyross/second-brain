@@ -101,12 +101,9 @@ class TestCommandHandlers:
         """Today command should show events and tasks."""
         message = AsyncMock()
 
-        with patch(
-            "assistant.telegram.handlers._generate_today_message"
-        ) as mock_gen:
+        with patch("assistant.telegram.handlers._generate_today_message") as mock_gen:
             mock_gen.return_value = (
-                "📆 **Monday, January 12**\n\n"
-                "📅 **TODAY'S SCHEDULE**\n• 09:00 - Meeting"
+                "📆 **Monday, January 12**\n\n📅 **TODAY'S SCHEDULE**\n• 09:00 - Meeting"
             )
             await cmd_today(message)
 
@@ -119,9 +116,7 @@ class TestCommandHandlers:
         """Today command should handle errors gracefully."""
         message = AsyncMock()
 
-        with patch(
-            "assistant.telegram.handlers._generate_today_message"
-        ) as mock_gen:
+        with patch("assistant.telegram.handlers._generate_today_message") as mock_gen:
             mock_gen.side_effect = Exception("API error")
             await cmd_today(message)
 
@@ -134,12 +129,9 @@ class TestCommandHandlers:
         """Status command should show tasks and flagged items."""
         message = AsyncMock()
 
-        with patch(
-            "assistant.telegram.handlers._generate_status_message"
-        ) as mock_gen:
+        with patch("assistant.telegram.handlers._generate_status_message") as mock_gen:
             mock_gen.return_value = (
-                "🔄 **IN PROGRESS**\n• Test task\n\n"
-                "📊 _Total: 1 tasks, 0 flagged_"
+                "🔄 **IN PROGRESS**\n• Test task\n\n📊 _Total: 1 tasks, 0 flagged_"
             )
             await cmd_status(message)
 
@@ -152,9 +144,7 @@ class TestCommandHandlers:
         """Status command should handle errors gracefully."""
         message = AsyncMock()
 
-        with patch(
-            "assistant.telegram.handlers._generate_status_message"
-        ) as mock_gen:
+        with patch("assistant.telegram.handlers._generate_status_message") as mock_gen:
             mock_gen.side_effect = Exception("API error")
             await cmd_status(message)
 
@@ -171,46 +161,22 @@ class TestStatusHelpers:
 
     def test_extract_task_prop_title(self):
         """Should extract title from task properties."""
-        task = {
-            "properties": {
-                "title": {
-                    "title": [{"text": {"content": "Buy groceries"}}]
-                }
-            }
-        }
+        task = {"properties": {"title": {"title": [{"text": {"content": "Buy groceries"}}]}}}
         assert _extract_task_prop(task, "title") == "Buy groceries"
 
     def test_extract_task_prop_due_date(self):
         """Should extract due date from task properties."""
-        task = {
-            "properties": {
-                "due_date": {
-                    "date": {"start": "2026-01-15"}
-                }
-            }
-        }
+        task = {"properties": {"due_date": {"date": {"start": "2026-01-15"}}}}
         assert _extract_task_prop(task, "due_date") == "2026-01-15"
 
     def test_extract_task_prop_priority(self):
         """Should extract priority from task properties."""
-        task = {
-            "properties": {
-                "priority": {
-                    "select": {"name": "high"}
-                }
-            }
-        }
+        task = {"properties": {"priority": {"select": {"name": "high"}}}}
         assert _extract_task_prop(task, "priority") == "high"
 
     def test_extract_task_prop_status(self):
         """Should extract status from task properties."""
-        task = {
-            "properties": {
-                "status": {
-                    "select": {"name": "doing"}
-                }
-            }
-        }
+        task = {"properties": {"status": {"select": {"name": "doing"}}}}
         assert _extract_task_prop(task, "status") == "doing"
 
     def test_extract_task_prop_missing(self):
@@ -222,11 +188,7 @@ class TestStatusHelpers:
     def test_extract_inbox_prop_raw_input(self):
         """Should extract raw_input from inbox properties."""
         item = {
-            "properties": {
-                "raw_input": {
-                    "rich_text": [{"text": {"content": "Something unclear"}}]
-                }
-            }
+            "properties": {"raw_input": {"rich_text": [{"text": {"content": "Something unclear"}}]}}
         }
         assert _extract_inbox_prop(item, "raw_input") == "Something unclear"
 
@@ -246,18 +208,14 @@ class TestStatusHelpers:
         """Should format tomorrow's date."""
         from datetime import datetime, timedelta
 
-        tomorrow = (datetime.now(UTC) + timedelta(days=1)).strftime(
-            "%Y-%m-%d"
-        )
+        tomorrow = (datetime.now(UTC) + timedelta(days=1)).strftime("%Y-%m-%d")
         assert _format_due_brief(tomorrow) == "tomorrow"
 
     def test_format_due_brief_overdue(self):
         """Should format overdue dates."""
         from datetime import datetime, timedelta
 
-        yesterday = (datetime.now(UTC) - timedelta(days=2)).strftime(
-            "%Y-%m-%d"
-        )
+        yesterday = (datetime.now(UTC) - timedelta(days=2)).strftime("%Y-%m-%d")
         assert "overdue" in _format_due_brief(yesterday)
 
     def test_format_due_brief_week(self):
@@ -269,8 +227,13 @@ class TestStatusHelpers:
         result = _format_due_brief(due_str)
         # Should be a day name like "Monday", "Tuesday", etc.
         assert result in [
-            "Monday", "Tuesday", "Wednesday", "Thursday",
-            "Friday", "Saturday", "Sunday"
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
         ]
 
     def test_format_due_brief_future(self):
@@ -313,9 +276,9 @@ class TestGenerateStatusMessage:
             mock_cls.return_value = mock_client
             mock_client.query_tasks.side_effect = [
                 [],  # todo tasks
-                [{"properties": {"title": {"title": [
-                    {"text": {"content": "Working on it"}}
-                ]}}}],  # doing tasks
+                [
+                    {"properties": {"title": {"title": [{"text": {"content": "Working on it"}}]}}}
+                ],  # doing tasks
             ]
             mock_client.query_inbox.return_value = []
 
@@ -331,9 +294,9 @@ class TestGenerateStatusMessage:
             mock_client = AsyncMock()
             mock_cls.return_value = mock_client
             mock_client.query_tasks.side_effect = [
-                [{"properties": {"title": {"title": [
-                    {"text": {"content": "Buy milk"}}
-                ]}}}],  # todo tasks
+                [
+                    {"properties": {"title": {"title": [{"text": {"content": "Buy milk"}}]}}}
+                ],  # todo tasks
                 [],  # doing tasks
             ]
             mock_client.query_inbox.return_value = []
@@ -350,14 +313,14 @@ class TestGenerateStatusMessage:
             mock_client = AsyncMock()
             mock_cls.return_value = mock_client
             mock_client.query_tasks.side_effect = [
-                [{
-                    "properties": {
-                        "title": {"title": [
-                            {"text": {"content": "Urgent task"}}
-                        ]},
-                        "priority": {"select": {"name": "high"}}
+                [
+                    {
+                        "properties": {
+                            "title": {"title": [{"text": {"content": "Urgent task"}}]},
+                            "priority": {"select": {"name": "high"}},
+                        }
                     }
-                }],  # todo tasks
+                ],  # todo tasks
                 [],  # doing tasks
             ]
             mock_client.query_inbox.return_value = []
@@ -375,9 +338,11 @@ class TestGenerateStatusMessage:
             mock_cls.return_value = mock_client
             mock_client.query_tasks.return_value = []
             mock_client.query_inbox.return_value = [
-                {"properties": {"raw_input": {"rich_text": [
-                    {"text": {"content": "Something unclear"}}
-                ]}}}
+                {
+                    "properties": {
+                        "raw_input": {"rich_text": [{"text": {"content": "Something unclear"}}]}
+                    }
+                }
             ]
 
             result = await _generate_status_message()
@@ -393,12 +358,8 @@ class TestGenerateStatusMessage:
             mock_client = AsyncMock()
             mock_cls.return_value = mock_client
             mock_client.query_tasks.side_effect = [
-                [{"properties": {"title": {"title": [
-                    {"text": {"content": "Task 1"}}
-                ]}}}],  # todo
-                [{"properties": {"title": {"title": [
-                    {"text": {"content": "Task 2"}}
-                ]}}}],  # doing
+                [{"properties": {"title": {"title": [{"text": {"content": "Task 1"}}]}}}],  # todo
+                [{"properties": {"title": {"title": [{"text": {"content": "Task 2"}}]}}}],  # doing
             ]
             mock_client.query_inbox.return_value = []
 
@@ -513,9 +474,7 @@ class TestGenerateTodayMessage:
             mock_client = AsyncMock()
             mock_notion_cls.return_value = mock_client
             mock_client.query_tasks.return_value = [
-                {"properties": {"title": {"title": [
-                    {"text": {"content": "Submit report"}}
-                ]}}}
+                {"properties": {"title": {"title": [{"text": {"content": "Submit report"}}]}}}
             ]
 
             result = await _generate_today_message()
@@ -538,10 +497,8 @@ class TestGenerateTodayMessage:
             mock_client.query_tasks.return_value = [
                 {
                     "properties": {
-                        "title": {"title": [
-                            {"text": {"content": "Critical task"}}
-                        ]},
-                        "priority": {"select": {"name": "high"}}
+                        "title": {"title": [{"text": {"content": "Critical task"}}]},
+                        "priority": {"select": {"name": "high"}},
                     }
                 }
             ]

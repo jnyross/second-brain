@@ -158,7 +158,7 @@ class ClassificationRouter:
 
         Returns dict with 'people' and 'places' lists of names to link.
         """
-        result = {"people": [], "places": []}
+        result: dict[str, list[str]] = {"people": [], "places": []}
 
         if not entities:
             return result
