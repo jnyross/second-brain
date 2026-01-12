@@ -118,23 +118,50 @@ class NotionClient:
         content = "|".join(str(a) for a in args)
         return hashlib.sha256(content.encode()).hexdigest()[:16]
 
+    # Properties that exist in each Notion database
+    NOTION_DB_PROPERTIES: dict[str, set[str]] = {
+        "inbox": {"raw_input", "source", "confidence", "processed", "timestamp",
+                  "needs_clarification", "dedupe_key"},
+        "tasks": {"title", "status", "priority", "due_date", "confidence", "deleted_at"},
+        "people": {"name", "email", "relationship", "deleted_at", "archived"},
+        "places": {"name", "place_type", "address"},
+        "projects": {"name", "status", "deadline"},
+        "log": {"action_type", "action_taken", "timestamp", "idempotency_key", "confidence"},
+        "patterns": {"trigger", "meaning", "confidence"},
+        "preferences": {"preference", "category", "value", "last_updated"},
+        "emails": {"subject", "from_address", "to_address", "thread_id", "message_id",
+                   "received_at", "snippet", "has_attachments", "labels", "processed"},
+    }
+
     def _model_to_notion_properties(
         self,
         model: BaseModel,
         db_type: str,
     ) -> dict[str, Any]:
+        from enum import Enum
         data = model.model_dump(exclude_none=True)
         properties: dict[str, Any] = {}
+
+        # Get valid properties for this database type
+        valid_properties = self.NOTION_DB_PROPERTIES.get(db_type, set())
 
         for key, value in data.items():
             if key == "id":
                 continue
 
+            # Skip properties not in the Notion database
+            if valid_properties and key not in valid_properties:
+                continue
+
+            # Handle enum values - extract the string value
+            if isinstance(value, Enum):
+                value = value.value
+
             if isinstance(value, datetime):
                 properties[key] = {"date": {"start": value.isoformat()}}
             elif isinstance(value, bool):
                 properties[key] = {"checkbox": value}
-            elif isinstance(value, int):
+            elif isinstance(value, (int, float)) and not isinstance(value, bool):
                 properties[key] = {"number": value}
             elif isinstance(value, list):
                 if all(isinstance(v, str) for v in value):
@@ -142,9 +169,9 @@ class NotionClient:
                         "multi_select": [{"name": v} for v in value]
                     }
             elif isinstance(value, str):
-                if key in ("title", "name", "preference", "trigger", "subject"):
+                if key in ("title", "name", "preference", "trigger", "subject", "raw_input"):
                     properties[key] = {"title": [{"text": {"content": value}}]}
-                elif key in ("status", "priority", "source", "relationship", 
+                elif key in ("status", "priority", "source", "relationship",
                            "action_type", "category", "place_type", "project_type"):
                     properties[key] = {"select": {"name": value}}
                 else:

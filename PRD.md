@@ -1,8 +1,8 @@
 # PRD.md — Product Requirements Document (Project-Specific)
 
-**PRD version:** 0.5.0
+**PRD version:** 0.6.0
 **Status:** Draft
-**Last updated:** 2026-01-11
+**Last updated:** 2026-01-12
 **Completion promise (must match Prompt.md):** `<promise>COMPLETE</promise>`
 
 > Rule: if a requirement cannot be verified by an automated test/check with an indisputable pass/fail result, rewrite it until it can.
@@ -1443,7 +1443,441 @@ When models are more capable:
 
 ---
 
-## 12. Changelog
+## 12. Deployment & Operations
+
+### 12.1 Deployment Strategy
+
+**Philosophy:** Simple, reproducible, observable. Personal project = minimal infrastructure complexity.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        DEPLOYMENT PIPELINE                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   Developer                GitHub                 DigitalOcean           │
+│   ─────────                ──────                 ────────────           │
+│                                                                          │
+│   git push ──────────►  GitHub Actions  ────────►  Docker Pull           │
+│                         │                         │                      │
+│                         ├─► Run tests             ├─► Stop old container │
+│                         ├─► Build Docker image    ├─► Start new container│
+│                         ├─► Push to GHCR          ├─► Health check       │
+│                         └─► Deploy (on main)      └─► Notify on failure  │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 12.2 Infrastructure Requirements
+
+**DigitalOcean Droplet Specification:**
+
+| Resource | Minimum | Recommended |
+|----------|---------|-------------|
+| CPU | 1 vCPU | 1 vCPU |
+| RAM | 1 GB | 2 GB |
+| Storage | 25 GB SSD | 50 GB SSD |
+| OS | Ubuntu 24.04 LTS | Ubuntu 24.04 LTS |
+| Region | Any | Closest to user |
+
+**Monthly Cost:** ~$6-12/month
+
+**Required Software on Droplet:**
+- Docker Engine 24+
+- Docker Compose v2
+- fail2ban (security)
+- ufw (firewall)
+- certbot (if webhook mode, not needed for long-polling)
+
+### 12.3 Repository Structure for Deployment
+
+```
+├── .github/
+│   └── workflows/
+│       ├── ci.yml              # Run on every PR: lint, type-check, test
+│       ├── cd.yml              # Run on main push: build, push, deploy
+│       └── scheduled.yml       # Weekly: dependency updates, security scan
+├── deploy/
+│   ├── Dockerfile              # Multi-stage production image
+│   ├── docker-compose.yml      # Production compose file
+│   ├── docker-compose.dev.yml  # Development compose file
+│   ├── .env.example            # Template for required env vars
+│   ├── scripts/
+│   │   ├── deploy.sh           # Remote deployment script
+│   │   ├── rollback.sh         # Rollback to previous version
+│   │   ├── health-check.sh     # Verify service is healthy
+│   │   └── backup.sh           # Backup state files
+│   └── systemd/
+│       ├── second-brain.service
+│       ├── second-brain-briefing.timer
+│       └── second-brain-nudge.timer
+└── pyproject.toml
+```
+
+### 12.4 Docker Configuration
+
+**Dockerfile (Multi-stage):**
+```dockerfile
+# Stage 1: Build
+FROM python:3.12-slim as builder
+WORKDIR /app
+COPY pyproject.toml ./
+RUN pip install build && python -m build --wheel
+
+# Stage 2: Runtime
+FROM python:3.12-slim
+WORKDIR /app
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -u 1000 assistant
+USER assistant
+
+# Install wheel from builder
+COPY --from=builder /app/dist/*.whl /tmp/
+RUN pip install --user /tmp/*.whl && rm /tmp/*.whl
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import assistant; print('ok')" || exit 1
+
+ENV PATH="/home/assistant/.local/bin:$PATH"
+CMD ["assistant", "run"]
+```
+
+**docker-compose.yml:**
+```yaml
+version: "3.8"
+services:
+  bot:
+    image: ghcr.io/${GITHUB_REPOSITORY}:latest
+    container_name: second-brain
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data:/home/assistant/.second-brain
+      - ./logs:/app/logs
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import assistant; print('ok')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+### 12.5 CI/CD Pipeline
+
+**GitHub Actions - CI (ci.yml):**
+```yaml
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - run: ruff check src tests
+      - run: mypy src
+      - run: pytest --cov=assistant --cov-report=xml
+      - uses: codecov/codecov-action@v4
+```
+
+**GitHub Actions - CD (cd.yml):**
+```yaml
+name: CD
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Build and push Docker image
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}:latest
+
+      # Deploy to DigitalOcean
+      - uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          script: |
+            cd /opt/second-brain
+            docker compose pull
+            docker compose up -d
+            ./scripts/health-check.sh
+```
+
+### 12.6 Environment Configuration
+
+**Production Environment Variables (.env):**
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `TELEGRAM_BOT_TOKEN` | Yes | From @BotFather |
+| `TELEGRAM_CHAT_ID` | Yes | Your chat ID for briefings |
+| `NOTION_API_KEY` | Yes | From notion.so/my-integrations |
+| `NOTION_*_DB_ID` | Yes | Database IDs (9 total) |
+| `OPENAI_API_KEY` | Yes | For Whisper |
+| `GOOGLE_CLIENT_ID` | Optional | OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | Optional | OAuth client secret |
+| `USER_TIMEZONE` | Yes | e.g., "America/Los_Angeles" |
+| `LOG_LEVEL` | No | DEBUG/INFO/WARNING (default: INFO) |
+| `CONFIDENCE_THRESHOLD` | No | 0-100 (default: 80) |
+
+**GitHub Secrets Required:**
+
+| Secret | Purpose |
+|--------|---------|
+| `DO_HOST` | Droplet IP address |
+| `DO_USER` | SSH username (e.g., `deploy`) |
+| `DO_SSH_KEY` | Private SSH key for deployment |
+
+### 12.7 Initial Server Setup
+
+**One-time setup script (run manually on new droplet):**
+
+```bash
+#!/bin/bash
+# setup-server.sh - Run once on fresh Ubuntu 24.04 droplet
+
+set -euo pipefail
+
+# Update system
+apt update && apt upgrade -y
+
+# Install Docker
+curl -fsSL https://get.docker.com | sh
+usermod -aG docker $USER
+
+# Install fail2ban
+apt install -y fail2ban
+systemctl enable fail2ban
+
+# Configure firewall
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow ssh
+ufw --force enable
+
+# Create deploy user
+useradd -m -s /bin/bash deploy
+usermod -aG docker deploy
+mkdir -p /home/deploy/.ssh
+# Add your public key to /home/deploy/.ssh/authorized_keys
+
+# Create app directory
+mkdir -p /opt/second-brain/{data,logs,scripts}
+chown -R deploy:deploy /opt/second-brain
+
+# Copy systemd timers
+cp deploy/systemd/*.service /etc/systemd/system/
+cp deploy/systemd/*.timer /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable second-brain-briefing.timer
+systemctl enable second-brain-nudge.timer
+
+echo "Server setup complete. Deploy from GitHub Actions."
+```
+
+### 12.8 Health Checks & Monitoring
+
+**Health Check Script (health-check.sh):**
+```bash
+#!/bin/bash
+# Verify bot is healthy after deployment
+
+MAX_RETRIES=10
+RETRY_INTERVAL=3
+
+for i in $(seq 1 $MAX_RETRIES); do
+    if docker exec second-brain python -c "import assistant; print('ok')" 2>/dev/null; then
+        echo "✓ Health check passed"
+        exit 0
+    fi
+    echo "Waiting for container... ($i/$MAX_RETRIES)"
+    sleep $RETRY_INTERVAL
+done
+
+echo "✗ Health check failed"
+exit 1
+```
+
+**Monitoring Options:**
+
+| Tool | Purpose | Cost |
+|------|---------|------|
+| UptimeRobot | Ping monitoring (5 min) | Free |
+| Telegram alerts | Failed deploys, errors | Free (via bot) |
+| DigitalOcean Monitoring | CPU, memory, disk | Included |
+| Sentry | Error tracking | Free tier |
+
+**Self-Monitoring (via Telegram):**
+- Bot sends alert to owner on startup failure
+- Bot sends alert if Notion sync fails 3x
+- Bot sends daily health summary (optional)
+
+### 12.9 Backup Strategy
+
+**What to backup:**
+- `~/.second-brain/queue/` - Offline queue (critical during outages)
+- `~/.second-brain/google_token.json` - OAuth tokens
+- `~/.second-brain/nudges/sent.json` - Dedup state
+
+**Backup script (backup.sh):**
+```bash
+#!/bin/bash
+BACKUP_DIR="/opt/second-brain/backups"
+DATE=$(date +%Y%m%d-%H%M%S)
+
+mkdir -p $BACKUP_DIR
+tar -czf "$BACKUP_DIR/state-$DATE.tar.gz" \
+    /opt/second-brain/data/
+
+# Keep last 7 days
+find $BACKUP_DIR -name "state-*.tar.gz" -mtime +7 -delete
+```
+
+**Notion is the primary backup:**
+- All data lives in Notion (externally hosted, backed up by Notion)
+- Local state is ephemeral/recoverable
+
+### 12.10 Rollback Strategy
+
+**Automatic rollback on failed health check:**
+```bash
+#!/bin/bash
+# rollback.sh - Revert to previous image
+
+PREVIOUS_IMAGE=$(docker images ghcr.io/$REPO --format "{{.Tag}}" | sed -n '2p')
+
+if [ -z "$PREVIOUS_IMAGE" ]; then
+    echo "No previous image found"
+    exit 1
+fi
+
+docker compose down
+docker tag ghcr.io/$REPO:$PREVIOUS_IMAGE ghcr.io/$REPO:latest
+docker compose up -d
+
+echo "Rolled back to $PREVIOUS_IMAGE"
+```
+
+**Manual rollback:**
+```bash
+ssh deploy@droplet "cd /opt/second-brain && ./scripts/rollback.sh"
+```
+
+### 12.11 Deployment Acceptance Tests
+
+### AT-201 — Docker Build Success
+- **Given:** Code passes all tests
+- **When:** Docker build runs
+- **Then:** Image builds without errors
+- **And:** Image size < 500MB
+- **Pass condition:** `docker build` exits 0
+
+### AT-202 — Container Starts Healthy
+- **Given:** Valid .env file present
+- **When:** `docker compose up -d` runs
+- **Then:** Container reaches healthy state within 60s
+- **Pass condition:** `docker inspect --format='{{.State.Health.Status}}'` returns "healthy"
+
+### AT-203 — CI Pipeline Passes
+- **Given:** PR opened against main
+- **When:** GitHub Actions CI runs
+- **Then:** All jobs pass (lint, type-check, test)
+- **Pass condition:** GitHub checks show green
+
+### AT-204 — CD Pipeline Deploys
+- **Given:** Merge to main branch
+- **When:** GitHub Actions CD runs
+- **Then:** New image pushed to GHCR
+- **And:** Droplet pulls and starts new container
+- **And:** Health check passes
+- **Pass condition:** Container running with new image SHA
+
+### AT-205 — Rollback Works
+- **Given:** Current deployment is broken
+- **When:** `./scripts/rollback.sh` executed
+- **Then:** Previous image restored
+- **And:** Container healthy
+- **Pass condition:** Bot responds to Telegram message
+
+### AT-206 — Scheduled Timers Work
+- **Given:** Deployed to droplet with systemd timers
+- **When:** Timer triggers (briefing at 7am, nudge at 2pm)
+- **Then:** Command executes successfully
+- **Pass condition:** Log shows successful execution
+
+### AT-207 — Zero-Downtime Deploy
+- **Given:** Bot is running and receiving messages
+- **When:** New deployment triggered
+- **Then:** Messages during deploy are not lost
+- **And:** Downtime < 30 seconds
+- **Pass condition:** No messages lost (queue persists)
+
+### AT-208 — Security Hardening
+- **Given:** Fresh droplet with setup script run
+- **Then:** SSH password auth disabled
+- **And:** UFW enabled (only SSH open)
+- **And:** fail2ban running
+- **And:** Docker container runs as non-root
+- **Pass condition:** Security audit script passes
+
+### 12.12 Deployment Tasks
+
+| Task ID | Pri | Title | Depends On | Acceptance Test |
+|---------|-----|-------|------------|-----------------|
+| T-200 | P0 | Create Dockerfile (multi-stage) | — | AT-201 |
+| T-201 | P0 | Create docker-compose.yml | T-200 | AT-202 |
+| T-202 | P0 | Set up GitHub Actions CI | — | AT-203 |
+| T-203 | P0 | Set up GitHub Actions CD | T-200, T-202 | AT-204 |
+| T-204 | P0 | Create server setup script | — | AT-208 |
+| T-205 | P0 | Create health check script | T-201 | AT-202 |
+| T-206 | P0 | Create rollback script | T-203 | AT-205 |
+| T-207 | P1 | Configure systemd timers on server | T-204 | AT-206 |
+| T-208 | P1 | Add Telegram deployment notifications | T-203 | — |
+| T-209 | P1 | Create backup script | T-204 | — |
+| T-210 | P2 | Add Sentry error tracking | T-201 | — |
+| T-211 | P2 | Set up UptimeRobot monitoring | T-204 | — |
+
+---
+
+## 13. Changelog
+
+- 0.6.0 (2026-01-12): Deployment & Operations
+  - Added Section 12: Deployment & Operations (DigitalOcean, Docker, CI/CD)
+  - Added Section 12.1-12.3: Deployment strategy, infrastructure requirements, repo structure
+  - Added Section 12.4-12.5: Docker configuration, CI/CD pipeline (GitHub Actions)
+  - Added Section 12.6-12.7: Environment configuration, server setup script
+  - Added Section 12.8-12.10: Health checks, monitoring, backup, rollback strategies
+  - Added acceptance tests AT-201 through AT-208 (deployment)
+  - Added deployment tasks T-200 through T-211
+  - Renumbered Changelog to Section 13
 
 - 0.5.0 (2026-01-11): Google integrations expansion
   - Added Section 4.6: Google Maps API (place enrichment, travel times, proximity)

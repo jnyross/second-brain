@@ -4,8 +4,8 @@ Execute one iteration of the Ralph Loop Contract (Prompt.md).
 
 ## Your Task NOW
 
-1. **Read** `@fix_plan.md` to find the next incomplete task (marked `[ ]`)
-2. **Read** `.ralph/TASKS.json` for task details and dependencies
+1. **Read** `.ralph/TASKS.json` to find the next task where `passes: false`
+2. **Check** task dependencies are satisfied (all `depends_on` tasks have `passes: true`)
 3. **Implement** the task with tests that would fail without the implementation
 4. **Run** `scripts/verify.sh` (or equivalent) to validate
 5. **Update** `.ralph/TASKS.json` (mark task complete with evidence)
