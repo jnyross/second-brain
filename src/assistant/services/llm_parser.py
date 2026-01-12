@@ -5,12 +5,14 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import httpx
+from assistant.services.intent import ParsedIntent
 
-from assistant.config import settings
-from assistant.services.parser import ParsedIntent, Parser
+if TYPE_CHECKING:
+    import httpx
+
+    from assistant.services.parser import Parser
 
 logger = logging.getLogger(__name__)
 
@@ -27,13 +29,35 @@ class LLMIntentParser:
         api_key: str | None = None,
         model: str | None = None,
         base_parser: Parser | None = None,
-        client: httpx.Client | None = None,
+        client: "httpx.Client | None" = None,
         timeout: float = DEFAULT_TIMEOUT_SECONDS,
     ) -> None:
-        self.api_key = api_key or settings.gemini_api_key
-        self.model = model or settings.gemini_model or DEFAULT_MODEL
-        self.base_parser = base_parser or Parser()
-        self.client = client or httpx.Client(timeout=timeout)
+        resolved_api_key = api_key
+        resolved_model = model
+
+        if resolved_api_key is None:
+            from assistant.config import settings
+
+            resolved_api_key = settings.gemini_api_key
+            if resolved_model is None:
+                resolved_model = settings.gemini_model or DEFAULT_MODEL
+        elif resolved_model is None:
+            resolved_model = DEFAULT_MODEL
+
+        self.api_key = resolved_api_key
+        self.model = resolved_model
+        if base_parser is None:
+            from assistant.services.parser import Parser
+
+            self.base_parser = Parser()
+        else:
+            self.base_parser = base_parser
+        if client is None:
+            import httpx
+
+            self.client = httpx.Client(timeout=timeout)
+        else:
+            self.client = client
         self.timeout = timeout
 
     def parse(self, text: str) -> ParsedIntent:

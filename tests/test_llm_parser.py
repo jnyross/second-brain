@@ -1,7 +1,7 @@
 from datetime import datetime
 
+from assistant.services.intent import ParsedIntent
 from assistant.services.llm_parser import LLMIntentParser
-from assistant.services.parser import ParsedIntent
 
 
 class DummyParser:

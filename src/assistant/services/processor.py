@@ -21,7 +21,7 @@ from assistant.notion.schemas import (
     TaskSource,
 )
 from assistant.services.llm_parser import get_intent_parser
-from assistant.services.parser import ParsedIntent
+from assistant.services.intent import ParsedIntent
 from assistant.services.pattern_applicator import (
     AppliedPattern,
     PatternApplicationResult,
