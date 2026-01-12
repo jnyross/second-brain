@@ -1242,3 +1242,26 @@
   - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_handlers.py -v (38 passed)
   - Full test suite: 1448 tests (all pass)
   - Commit: pending
+- Iteration 50 (T-113) - Create /today command
+  - Task: Show today's schedule and due tasks
+  - Updated src/assistant/telegram/handlers.py:
+    - Implemented cmd_today() with _generate_today_message() async helper
+    - Added _format_event_time(): formats event times (All day, HH:MM-HH:MM, HH:MM)
+    - Updated imports: datetime, UTC at module level
+  - Features:
+    - Queries Google Calendar via list_todays_events() from T-102
+    - Queries Notion for today's due tasks (due_before/due_after with exclude_statuses)
+    - Date header: 📆 **Monday, January 12**
+    - Sections: 📅 TODAY'S SCHEDULE, ✅ DUE TODAY
+    - Event time formatting: All day (midnight-midnight), HH:MM-HH:MM (range), HH:MM (no duration)
+    - Location display: @ Location after event title
+    - Priority indicators: 🔴 for high/urgent tasks
+    - Empty state: ✨ Nothing scheduled! with friendly message
+    - Calendar errors handled gracefully (continues with tasks)
+  - Added tests in tests/test_handlers.py (11 new tests):
+    - TestCommandHandlers: cmd_today_with_events_and_tasks, cmd_today_handles_error
+    - TestTodayHelpers (4 tests): format_event_time_normal, _all_day, _same_time, _midnight_start_not_all_day
+    - TestGenerateTodayMessage (5 tests): nothing_scheduled, with_calendar_events, with_due_tasks, with_high_priority_task, shows_date_header
+  - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_handlers.py -v (48 passed)
+  - Full test suite: 1458 tests (all pass)
+  - Commit: pending

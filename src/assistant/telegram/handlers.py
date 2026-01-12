@@ -5,7 +5,7 @@ All messages are processed through the MessageProcessor pipeline.
 """
 
 import logging
-from datetime import UTC
+from datetime import UTC, datetime
 from io import BytesIO
 
 from aiogram import Bot, F, Router
@@ -92,11 +92,119 @@ async def cmd_help(message: Message) -> None:
 
 @router.message(Command("today"))
 async def cmd_today(message: Message) -> None:
-    """Handle /today command - show today's schedule."""
-    # TODO: Implement with BriefingGenerator
-    await message.answer(
-        "Today's schedule feature coming soon.\nFor now, check your Notion Tasks database."
-    )
+    """Handle /today command - show today's schedule and due tasks."""
+    try:
+        today_message = await _generate_today_message()
+        await message.answer(today_message, parse_mode="Markdown")
+    except Exception as e:
+        logger.exception(f"Today command failed: {e}")
+        await message.answer(
+            "Sorry, couldn't fetch today's schedule. Please try again later."
+        )
+
+
+async def _generate_today_message() -> str:
+    """Generate today's schedule message with calendar events and due tasks.
+
+    Returns formatted message showing:
+    - Today's calendar events
+    - Tasks due today
+    """
+    from datetime import timedelta
+
+    from assistant.notion.client import NotionClient
+
+    sections = []
+
+    # Get calendar events
+    try:
+        from assistant.google.calendar import list_todays_events
+
+        events = await list_todays_events()
+
+        if events:
+            lines = ["📅 **TODAY'S SCHEDULE**"]
+            for event in events[:10]:
+                # Format time
+                time_str = _format_event_time(event.start_time, event.end_time)
+                line = f"• {time_str} - {event.title}"
+                if event.location:
+                    line += f" @ {event.location}"
+                lines.append(line)
+            sections.append("\n".join(lines))
+    except Exception as e:
+        logger.warning(f"Could not fetch calendar events: {e}")
+        # Calendar not configured is ok, continue with tasks
+
+    # Get tasks due today
+    client = NotionClient()
+    try:
+        today = datetime.now(UTC).date()
+        today_start = datetime.combine(today, datetime.min.time()).replace(
+            tzinfo=UTC
+        )
+        today_end = datetime.combine(today, datetime.max.time()).replace(
+            tzinfo=UTC
+        )
+
+        due_tasks = await client.query_tasks(
+            due_before=today_end + timedelta(days=1),
+            due_after=today_start - timedelta(days=1),
+            exclude_statuses=["done", "cancelled"],
+            limit=10,
+        )
+
+        if due_tasks:
+            lines = ["✅ **DUE TODAY**"]
+            for task in due_tasks[:10]:
+                title = _extract_task_prop(task, "title")
+                priority = _extract_task_prop(task, "priority")
+
+                if title:
+                    line = f"• {title}"
+                    if priority in ("urgent", "high"):
+                        line = f"🔴 {line[2:]}"  # Replace bullet with priority
+                    lines.append(line)
+            sections.append("\n".join(lines))
+
+    finally:
+        await client.close()
+
+    # Build final message
+    if sections:
+        message = "\n\n".join(sections)
+
+        # Add date header
+        today_str = datetime.now(UTC).strftime("%A, %B %d")
+        header = f"📆 **{today_str}**\n\n"
+
+        return header + message
+    else:
+        today_str = datetime.now(UTC).strftime("%A, %B %d")
+        return (
+            f"📆 **{today_str}**\n\n"
+            "✨ **Nothing scheduled!**\n\n"
+            "No calendar events or tasks due today.\n"
+            "Enjoy your free time!"
+        )
+
+
+def _format_event_time(start: datetime, end: datetime) -> str:
+    """Format event time range for display."""
+    # Check if all-day event (start and end at midnight)
+    if start.hour == 0 and start.minute == 0:
+        if end.hour == 0 and end.minute == 0:
+            return "All day"
+
+    # Format as HH:MM - HH:MM
+    start_str = start.strftime("%H:%M")
+    end_str = end.strftime("%H:%M")
+
+    # If same time (event with no duration), just show start
+    if start_str == end_str:
+        return start_str
+
+    return f"{start_str}-{end_str}"
 
 
 @router.message(Command("status"))
@@ -242,8 +350,6 @@ def _extract_inbox_prop(item: dict, prop: str) -> str | None:
 
 def _format_due_brief(due_str: str) -> str:
     """Format a due date string briefly for status display."""
-    from datetime import datetime
-
     try:
         # Parse ISO format date
         if "T" in due_str:

@@ -12,7 +12,9 @@ from assistant.telegram.handlers import (
     _extract_inbox_prop,
     _extract_task_prop,
     _format_due_brief,
+    _format_event_time,
     _generate_status_message,
+    _generate_today_message,
     _process_voice_transcription,
     cmd_help,
     cmd_start,
@@ -95,14 +97,37 @@ class TestCommandHandlers:
         assert "/status" in call_args
 
     @pytest.mark.asyncio
-    async def test_cmd_today(self):
-        """Today command should respond."""
+    async def test_cmd_today_with_events_and_tasks(self):
+        """Today command should show events and tasks."""
         message = AsyncMock()
-        await cmd_today(message)
+
+        with patch(
+            "assistant.telegram.handlers._generate_today_message"
+        ) as mock_gen:
+            mock_gen.return_value = (
+                "📆 **Monday, January 12**\n\n"
+                "📅 **TODAY'S SCHEDULE**\n• 09:00 - Meeting"
+            )
+            await cmd_today(message)
+
+        message.answer.assert_called_once()
+        call_kwargs = message.answer.call_args[1]
+        assert call_kwargs.get("parse_mode") == "Markdown"
+
+    @pytest.mark.asyncio
+    async def test_cmd_today_handles_error(self):
+        """Today command should handle errors gracefully."""
+        message = AsyncMock()
+
+        with patch(
+            "assistant.telegram.handlers._generate_today_message"
+        ) as mock_gen:
+            mock_gen.side_effect = Exception("API error")
+            await cmd_today(message)
 
         message.answer.assert_called_once()
         call_args = message.answer.call_args[0][0]
-        assert "schedule" in call_args.lower() or "today" in call_args.lower()
+        assert "couldn't fetch" in call_args.lower()
 
     @pytest.mark.asyncio
     async def test_cmd_status_with_tasks_and_flagged(self):
@@ -381,6 +406,169 @@ class TestGenerateStatusMessage:
 
             assert "Total:" in result
             assert "2 tasks" in result
+
+
+class TestTodayHelpers:
+    """Tests for /today command helper functions."""
+
+    def test_format_event_time_normal(self):
+        """Should format normal event time range."""
+        from datetime import datetime
+
+        start = datetime(2026, 1, 12, 9, 0)
+        end = datetime(2026, 1, 12, 10, 30)
+        assert _format_event_time(start, end) == "09:00-10:30"
+
+    def test_format_event_time_all_day(self):
+        """Should format all-day event."""
+        from datetime import datetime
+
+        start = datetime(2026, 1, 12, 0, 0)
+        end = datetime(2026, 1, 13, 0, 0)
+        assert _format_event_time(start, end) == "All day"
+
+    def test_format_event_time_same_time(self):
+        """Should format event with same start/end as single time."""
+        from datetime import datetime
+
+        start = datetime(2026, 1, 12, 14, 0)
+        end = datetime(2026, 1, 12, 14, 0)
+        assert _format_event_time(start, end) == "14:00"
+
+    def test_format_event_time_midnight_start_not_all_day(self):
+        """Should format midnight event that isn't all-day."""
+        from datetime import datetime
+
+        start = datetime(2026, 1, 12, 0, 0)
+        end = datetime(2026, 1, 12, 1, 0)
+        assert _format_event_time(start, end) == "00:00-01:00"
+
+
+class TestGenerateTodayMessage:
+    """Tests for _generate_today_message function."""
+
+    @pytest.mark.asyncio
+    async def test_generate_today_nothing_scheduled(self):
+        """Should show 'Nothing scheduled' when no items."""
+        with (
+            patch("assistant.notion.client.NotionClient") as mock_notion_cls,
+            patch(
+                "assistant.google.calendar.list_todays_events",
+                side_effect=Exception("No calendar"),
+            ),
+        ):
+            mock_client = AsyncMock()
+            mock_notion_cls.return_value = mock_client
+            mock_client.query_tasks.return_value = []
+
+            result = await _generate_today_message()
+
+            assert "Nothing scheduled" in result
+            mock_client.close.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_generate_today_with_calendar_events(self):
+        """Should show calendar events."""
+        from datetime import datetime
+
+        from assistant.google.calendar import CalendarEvent
+
+        mock_event = CalendarEvent(
+            event_id="evt1",
+            title="Team Meeting",
+            start_time=datetime(2026, 1, 12, 9, 0),
+            end_time=datetime(2026, 1, 12, 10, 0),
+            timezone="UTC",
+            attendees=[],
+            location="Room A",
+        )
+
+        with (
+            patch("assistant.notion.client.NotionClient") as mock_notion_cls,
+            patch(
+                "assistant.google.calendar.list_todays_events",
+                return_value=[mock_event],
+            ),
+        ):
+            mock_client = AsyncMock()
+            mock_notion_cls.return_value = mock_client
+            mock_client.query_tasks.return_value = []
+
+            result = await _generate_today_message()
+
+            assert "TODAY'S SCHEDULE" in result
+            assert "Team Meeting" in result
+            assert "Room A" in result
+
+    @pytest.mark.asyncio
+    async def test_generate_today_with_due_tasks(self):
+        """Should show due tasks."""
+        with (
+            patch("assistant.notion.client.NotionClient") as mock_notion_cls,
+            patch(
+                "assistant.google.calendar.list_todays_events",
+                side_effect=Exception("No calendar"),
+            ),
+        ):
+            mock_client = AsyncMock()
+            mock_notion_cls.return_value = mock_client
+            mock_client.query_tasks.return_value = [
+                {"properties": {"title": {"title": [
+                    {"text": {"content": "Submit report"}}
+                ]}}}
+            ]
+
+            result = await _generate_today_message()
+
+            assert "DUE TODAY" in result
+            assert "Submit report" in result
+
+    @pytest.mark.asyncio
+    async def test_generate_today_with_high_priority_task(self):
+        """Should highlight high priority tasks."""
+        with (
+            patch("assistant.notion.client.NotionClient") as mock_notion_cls,
+            patch(
+                "assistant.google.calendar.list_todays_events",
+                side_effect=Exception("No calendar"),
+            ),
+        ):
+            mock_client = AsyncMock()
+            mock_notion_cls.return_value = mock_client
+            mock_client.query_tasks.return_value = [
+                {
+                    "properties": {
+                        "title": {"title": [
+                            {"text": {"content": "Critical task"}}
+                        ]},
+                        "priority": {"select": {"name": "high"}}
+                    }
+                }
+            ]
+
+            result = await _generate_today_message()
+
+            assert "🔴" in result
+            assert "Critical task" in result
+
+    @pytest.mark.asyncio
+    async def test_generate_today_shows_date_header(self):
+        """Should show date header."""
+        with (
+            patch("assistant.notion.client.NotionClient") as mock_notion_cls,
+            patch(
+                "assistant.google.calendar.list_todays_events",
+                return_value=[],
+            ),
+        ):
+            mock_client = AsyncMock()
+            mock_notion_cls.return_value = mock_client
+            mock_client.query_tasks.return_value = []
+
+            result = await _generate_today_message()
+
+            # Should have date like "Monday, January 12"
+            assert "📆" in result
 
 
 class TestTextHandler:
