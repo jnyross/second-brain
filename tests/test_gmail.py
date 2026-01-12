@@ -5,6 +5,13 @@ Tests T-120 acceptance criteria:
 - Can list recent emails
 - Can detect emails needing response
 - Integrates with morning briefing
+
+Tests T-121 acceptance criteria (Gmail draft creation):
+- Can create drafts with preview
+- Can retrieve draft details
+- Can send drafts with confirmation
+- Can delete cancelled drafts
+- Draft flow: create → preview → send (with user confirmation)
 """
 
 import pytest
@@ -16,11 +23,18 @@ from assistant.google.gmail import (
     GmailClient,
     EmailMessage,
     EmailListResult,
+    DraftResult,
+    SendResult,
     get_gmail_client,
     list_emails,
     list_unread_emails,
     list_emails_needing_response,
     get_email_by_id,
+    create_draft,
+    get_draft,
+    send_draft,
+    delete_draft,
+    send_email,
     DEFAULT_EMAIL_LIMIT,
     SKIP_LABELS,
     ACTION_PATTERNS,
@@ -707,3 +721,576 @@ class TestBriefingEmailIntegration:
         assert generator._format_time_ago(now - timedelta(hours=5), now) == "5 hours ago"
         assert generator._format_time_ago(now - timedelta(days=1), now) == "1 day ago"
         assert generator._format_time_ago(now - timedelta(days=3), now) == "3 days ago"
+
+
+# =============================================================================
+# T-121: Gmail Draft Creation Tests
+# =============================================================================
+
+
+class TestDraftResult:
+    """Test DraftResult dataclass."""
+
+    def test_draft_result_success(self):
+        """Test successful draft result."""
+        result = DraftResult(
+            success=True,
+            draft_id="draft123",
+            message_id="msg456",
+            thread_id="thread789",
+            subject="Test Subject",
+            to=["test@example.com"],
+            cc=["cc@example.com"],
+            body="Hello, this is a test email.",
+            html_link="https://mail.google.com/mail/u/0/#drafts?compose=draft123",
+        )
+
+        assert result.success is True
+        assert result.draft_id == "draft123"
+        assert result.message_id == "msg456"
+        assert result.subject == "Test Subject"
+        assert result.to == ["test@example.com"]
+        assert result.cc == ["cc@example.com"]
+        assert result.html_link is not None
+
+    def test_draft_result_error(self):
+        """Test error draft result."""
+        result = DraftResult(
+            success=False,
+            error="API error occurred",
+        )
+
+        assert result.success is False
+        assert result.error == "API error occurred"
+        assert result.draft_id is None
+
+    def test_draft_preview_generation(self):
+        """Test draft preview generation for user confirmation."""
+        result = DraftResult(
+            success=True,
+            draft_id="draft123",
+            subject="Re: Project Update",
+            to=["mike@example.com"],
+            cc=["team@example.com"],
+            body="Hi Mike,\n\nI'll send the Q4 numbers today.\n\nJohn",
+        )
+
+        preview = result.preview
+
+        assert "mike@example.com" in preview
+        assert "team@example.com" in preview
+        assert "Re: Project Update" in preview
+        assert "I'll send the Q4 numbers today" in preview
+
+    def test_draft_preview_error(self):
+        """Test draft preview when failed."""
+        result = DraftResult(
+            success=False,
+            error="Not authenticated",
+        )
+
+        preview = result.preview
+
+        assert "Draft failed" in preview
+        assert "Not authenticated" in preview
+
+    def test_draft_preview_truncation(self):
+        """Test long body truncation in preview."""
+        long_body = "A" * 600  # Exceeds 500 char limit
+        result = DraftResult(
+            success=True,
+            draft_id="draft123",
+            subject="Test",
+            to=["test@example.com"],
+            body=long_body,
+        )
+
+        preview = result.preview
+
+        assert len(preview) < len(long_body) + 100  # Should be truncated
+        assert "..." in preview
+
+
+class TestSendResult:
+    """Test SendResult dataclass."""
+
+    def test_send_result_success(self):
+        """Test successful send result."""
+        result = SendResult(
+            success=True,
+            message_id="msg123",
+            thread_id="thread456",
+        )
+
+        assert result.success is True
+        assert result.message_id == "msg123"
+        assert result.thread_id == "thread456"
+        assert result.error is None
+
+    def test_send_result_error(self):
+        """Test error send result."""
+        result = SendResult(
+            success=False,
+            error="Failed to send",
+        )
+
+        assert result.success is False
+        assert result.error == "Failed to send"
+
+
+class TestGmailClientDrafts:
+    """Test GmailClient draft methods (T-121)."""
+
+    @pytest.mark.asyncio
+    async def test_create_draft_not_authenticated(self):
+        """Test create_draft when not authenticated."""
+        client = GmailClient()
+
+        with patch("assistant.google.gmail.google_auth") as mock_auth:
+            mock_auth.credentials = None
+            mock_auth.load_saved_credentials.return_value = False
+
+            result = await client.create_draft(
+                to=["test@example.com"],
+                subject="Test",
+                body="Hello",
+            )
+
+            assert result.success is False
+            assert "not authenticated" in result.error.lower()
+
+    @pytest.mark.asyncio
+    async def test_create_draft_no_recipients(self):
+        """Test create_draft with empty recipient list."""
+        client = GmailClient()
+        client._service = MagicMock()
+
+        result = await client.create_draft(
+            to=[],
+            subject="Test",
+            body="Hello",
+        )
+
+        assert result.success is False
+        assert "recipient" in result.error.lower()
+
+    @pytest.mark.asyncio
+    async def test_create_draft_success(self):
+        """Test successful draft creation."""
+        client = GmailClient()
+        mock_service = MagicMock()
+        client._service = mock_service
+
+        # Mock the drafts().create() chain
+        create_response = {
+            "id": "draft123",
+            "message": {
+                "id": "msg456",
+                "threadId": "thread789",
+            }
+        }
+
+        mock_users = MagicMock()
+        mock_drafts = MagicMock()
+        mock_service.users.return_value = mock_users
+        mock_users.drafts.return_value = mock_drafts
+
+        mock_create = MagicMock()
+        mock_create.execute.return_value = create_response
+        mock_drafts.create.return_value = mock_create
+
+        result = await client.create_draft(
+            to=["mike@example.com"],
+            subject="Q4 Numbers",
+            body="Hi Mike, here are the Q4 numbers.",
+            cc=["team@example.com"],
+        )
+
+        assert result.success is True
+        assert result.draft_id == "draft123"
+        assert result.message_id == "msg456"
+        assert result.subject == "Q4 Numbers"
+        assert result.to == ["mike@example.com"]
+        assert result.cc == ["team@example.com"]
+        assert "drafts" in result.html_link
+
+    @pytest.mark.asyncio
+    async def test_create_draft_with_reply(self):
+        """Test draft creation as reply to thread."""
+        client = GmailClient()
+        mock_service = MagicMock()
+        client._service = mock_service
+
+        create_response = {
+            "id": "draft123",
+            "message": {
+                "id": "msg456",
+                "threadId": "existing_thread",
+            }
+        }
+
+        mock_users = MagicMock()
+        mock_drafts = MagicMock()
+        mock_service.users.return_value = mock_users
+        mock_users.drafts.return_value = mock_drafts
+
+        mock_create = MagicMock()
+        mock_create.execute.return_value = create_response
+        mock_drafts.create.return_value = mock_create
+
+        result = await client.create_draft(
+            to=["mike@example.com"],
+            subject="Re: Q4 Numbers",
+            body="Thanks for the reminder, sending now.",
+            thread_id="existing_thread",
+            in_reply_to="original_msg_id",
+        )
+
+        assert result.success is True
+        assert result.thread_id == "existing_thread"
+
+        # Verify the API was called with thread ID
+        call_kwargs = mock_drafts.create.call_args
+        assert "body" in call_kwargs.kwargs
+        assert call_kwargs.kwargs["body"]["message"]["threadId"] == "existing_thread"
+
+    @pytest.mark.asyncio
+    async def test_get_draft_success(self):
+        """Test retrieving a draft."""
+        client = GmailClient()
+        mock_service = MagicMock()
+        client._service = mock_service
+
+        get_response = {
+            "id": "draft123",
+            "message": {
+                "id": "msg456",
+                "threadId": "thread789",
+                "payload": {
+                    "headers": [
+                        {"name": "Subject", "value": "Test Subject"},
+                        {"name": "To", "value": "test@example.com"},
+                        {"name": "CC", "value": "cc@example.com"},
+                    ],
+                    "body": {
+                        "data": "SGVsbG8gV29ybGQ=",  # "Hello World" base64
+                    },
+                },
+            },
+        }
+
+        mock_users = MagicMock()
+        mock_drafts = MagicMock()
+        mock_service.users.return_value = mock_users
+        mock_users.drafts.return_value = mock_drafts
+
+        mock_get = MagicMock()
+        mock_get.execute.return_value = get_response
+        mock_drafts.get.return_value = mock_get
+
+        result = await client.get_draft("draft123")
+
+        assert result.success is True
+        assert result.draft_id == "draft123"
+        assert result.subject == "Test Subject"
+        assert "test@example.com" in result.to
+        assert "cc@example.com" in result.cc
+        assert "Hello World" in result.body
+
+    @pytest.mark.asyncio
+    async def test_send_draft_success(self):
+        """Test sending a draft."""
+        client = GmailClient()
+        mock_service = MagicMock()
+        client._service = mock_service
+
+        send_response = {
+            "id": "sent_msg_123",
+            "threadId": "thread456",
+        }
+
+        mock_users = MagicMock()
+        mock_drafts = MagicMock()
+        mock_service.users.return_value = mock_users
+        mock_users.drafts.return_value = mock_drafts
+
+        mock_send = MagicMock()
+        mock_send.execute.return_value = send_response
+        mock_drafts.send.return_value = mock_send
+
+        result = await client.send_draft("draft123")
+
+        assert result.success is True
+        assert result.message_id == "sent_msg_123"
+        assert result.thread_id == "thread456"
+
+        # Verify the API was called with draft ID
+        call_kwargs = mock_drafts.send.call_args
+        assert call_kwargs.kwargs["body"]["id"] == "draft123"
+
+    @pytest.mark.asyncio
+    async def test_send_draft_not_authenticated(self):
+        """Test send_draft when not authenticated."""
+        client = GmailClient()
+
+        with patch("assistant.google.gmail.google_auth") as mock_auth:
+            mock_auth.credentials = None
+            mock_auth.load_saved_credentials.return_value = False
+
+            result = await client.send_draft("draft123")
+
+            assert result.success is False
+            assert "not authenticated" in result.error.lower()
+
+    @pytest.mark.asyncio
+    async def test_delete_draft_success(self):
+        """Test deleting a draft."""
+        client = GmailClient()
+        mock_service = MagicMock()
+        client._service = mock_service
+
+        mock_users = MagicMock()
+        mock_drafts = MagicMock()
+        mock_service.users.return_value = mock_users
+        mock_users.drafts.return_value = mock_drafts
+
+        mock_delete = MagicMock()
+        mock_delete.execute.return_value = None
+        mock_drafts.delete.return_value = mock_delete
+
+        result = await client.delete_draft("draft123")
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_delete_draft_not_authenticated(self):
+        """Test delete_draft when not authenticated."""
+        client = GmailClient()
+
+        with patch("assistant.google.gmail.google_auth") as mock_auth:
+            mock_auth.credentials = None
+            mock_auth.load_saved_credentials.return_value = False
+
+            result = await client.delete_draft("draft123")
+
+            assert result is False
+
+    @pytest.mark.asyncio
+    async def test_send_email_direct_success(self):
+        """Test sending email directly (not via draft)."""
+        client = GmailClient()
+        mock_service = MagicMock()
+        client._service = mock_service
+
+        send_response = {
+            "id": "msg123",
+            "threadId": "thread456",
+        }
+
+        mock_users = MagicMock()
+        mock_messages = MagicMock()
+        mock_service.users.return_value = mock_users
+        mock_users.messages.return_value = mock_messages
+
+        mock_send = MagicMock()
+        mock_send.execute.return_value = send_response
+        mock_messages.send.return_value = mock_send
+
+        result = await client.send_email(
+            to=["test@example.com"],
+            subject="Direct Send Test",
+            body="This was sent directly.",
+        )
+
+        assert result.success is True
+        assert result.message_id == "msg123"
+
+
+class TestDraftConvenienceFunctions:
+    """Test module-level convenience functions for drafts."""
+
+    @pytest.mark.asyncio
+    async def test_create_draft_convenience(self):
+        """Test create_draft convenience function."""
+        with patch("assistant.google.gmail.get_gmail_client") as mock_get:
+            mock_client = AsyncMock()
+            mock_client.create_draft.return_value = DraftResult(
+                success=True,
+                draft_id="draft123",
+                subject="Test",
+                to=["test@example.com"],
+            )
+            mock_get.return_value = mock_client
+
+            result = await create_draft(
+                to=["test@example.com"],
+                subject="Test",
+                body="Hello",
+            )
+
+            assert result.success is True
+            mock_client.create_draft.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_draft_convenience(self):
+        """Test get_draft convenience function."""
+        with patch("assistant.google.gmail.get_gmail_client") as mock_get:
+            mock_client = AsyncMock()
+            mock_client.get_draft.return_value = DraftResult(success=True)
+            mock_get.return_value = mock_client
+
+            result = await get_draft("draft123")
+
+            mock_client.get_draft.assert_called_once_with("draft123")
+
+    @pytest.mark.asyncio
+    async def test_send_draft_convenience(self):
+        """Test send_draft convenience function."""
+        with patch("assistant.google.gmail.get_gmail_client") as mock_get:
+            mock_client = AsyncMock()
+            mock_client.send_draft.return_value = SendResult(
+                success=True,
+                message_id="msg123",
+            )
+            mock_get.return_value = mock_client
+
+            result = await send_draft("draft123")
+
+            assert result.success is True
+            mock_client.send_draft.assert_called_once_with("draft123")
+
+    @pytest.mark.asyncio
+    async def test_delete_draft_convenience(self):
+        """Test delete_draft convenience function."""
+        with patch("assistant.google.gmail.get_gmail_client") as mock_get:
+            mock_client = AsyncMock()
+            mock_client.delete_draft.return_value = True
+            mock_get.return_value = mock_client
+
+            result = await delete_draft("draft123")
+
+            assert result is True
+            mock_client.delete_draft.assert_called_once_with("draft123")
+
+    @pytest.mark.asyncio
+    async def test_send_email_convenience(self):
+        """Test send_email convenience function."""
+        with patch("assistant.google.gmail.get_gmail_client") as mock_get:
+            mock_client = AsyncMock()
+            mock_client.send_email.return_value = SendResult(
+                success=True,
+                message_id="msg123",
+            )
+            mock_get.return_value = mock_client
+
+            result = await send_email(
+                to=["test@example.com"],
+                subject="Test",
+                body="Hello",
+            )
+
+            assert result.success is True
+            mock_client.send_email.assert_called_once()
+
+
+class TestDraftWorkflow:
+    """Test the complete draft workflow per PRD Section 4.5.
+
+    The flow is:
+    1. User: "Email Mike about the Q4 numbers"
+    2. AI: Creates draft, shows preview
+    3. User: "Send it" or "Edit" or "Cancel"
+    4. AI: Sends/updates/deletes accordingly
+    """
+
+    @pytest.mark.asyncio
+    async def test_complete_draft_send_workflow(self):
+        """Test: create draft → preview → confirm → send."""
+        client = GmailClient()
+        mock_service = MagicMock()
+        client._service = mock_service
+
+        # Step 1: Create draft
+        create_response = {
+            "id": "draft123",
+            "message": {"id": "msg_in_draft", "threadId": "thread1"},
+        }
+
+        mock_users = MagicMock()
+        mock_drafts = MagicMock()
+        mock_service.users.return_value = mock_users
+        mock_users.drafts.return_value = mock_drafts
+
+        mock_create = MagicMock()
+        mock_create.execute.return_value = create_response
+        mock_drafts.create.return_value = mock_create
+
+        draft_result = await client.create_draft(
+            to=["mike@example.com"],
+            subject="Q4 Numbers",
+            body="Hi Mike,\n\nHere are the Q4 numbers.\n\nJohn",
+        )
+
+        assert draft_result.success is True
+        draft_id = draft_result.draft_id
+
+        # Step 2: Generate preview for user
+        preview = draft_result.preview
+        assert "mike@example.com" in preview
+        assert "Q4 Numbers" in preview
+        assert "Q4 numbers" in preview
+
+        # Step 3: User confirms "Send it"
+        send_response = {
+            "id": "sent_msg_123",
+            "threadId": "thread1",
+        }
+
+        mock_send = MagicMock()
+        mock_send.execute.return_value = send_response
+        mock_drafts.send.return_value = mock_send
+
+        send_result = await client.send_draft(draft_id)
+
+        assert send_result.success is True
+        assert send_result.message_id == "sent_msg_123"
+
+    @pytest.mark.asyncio
+    async def test_draft_cancel_workflow(self):
+        """Test: create draft → preview → cancel (delete draft)."""
+        client = GmailClient()
+        mock_service = MagicMock()
+        client._service = mock_service
+
+        # Step 1: Create draft
+        create_response = {
+            "id": "draft123",
+            "message": {"id": "msg_in_draft", "threadId": "thread1"},
+        }
+
+        mock_users = MagicMock()
+        mock_drafts = MagicMock()
+        mock_service.users.return_value = mock_users
+        mock_users.drafts.return_value = mock_drafts
+
+        mock_create = MagicMock()
+        mock_create.execute.return_value = create_response
+        mock_drafts.create.return_value = mock_create
+
+        draft_result = await client.create_draft(
+            to=["mike@example.com"],
+            subject="Q4 Numbers",
+            body="Hi Mike,\n\nHere are the Q4 numbers.\n\nJohn",
+        )
+
+        assert draft_result.success is True
+        draft_id = draft_result.draft_id
+
+        # Step 2: User says "Cancel" - delete the draft
+        mock_delete = MagicMock()
+        mock_delete.execute.return_value = None
+        mock_drafts.delete.return_value = mock_delete
+
+        delete_result = await client.delete_draft(draft_id)
+
+        assert delete_result is True

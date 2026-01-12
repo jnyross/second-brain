@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-093 complete (Phase 4 Briefings + Phase 5 corrections/patterns fully complete). T-100 through T-102 complete (Google Calendar). T-110 complete (Audit logging). T-114 complete (Offline queue). T-115 complete (Soft delete). T-116 complete (Timezone handling). All P1 tasks done. T-120 complete (Gmail read integration). Next: T-121 (Gmail draft creation) or other P2 tasks.
+- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-093 complete (Phase 4 Briefings + Phase 5 corrections/patterns fully complete). T-100 through T-102 complete (Google Calendar). T-110 complete (Audit logging). T-114 complete (Offline queue). T-115 complete (Soft delete). T-116 complete (Timezone handling). All P1 tasks done. T-120 complete (Gmail read integration). T-121 complete (Gmail draft creation). Next: T-130 (Proactive nudges) or other P2 tasks.
 
 ## Iteration Log
 
@@ -767,4 +767,30 @@
     - TestBriefingEmailIntegration: email section no gmail, no emails, with emails, time formatting
   - Commands: python3 -m pytest tests/test_gmail.py -v (33 passed)
   - Full test suite: 906 tests (all pass)
-  - Commit: pending
+  - Commit: 2965eca
+
+- Iteration 28 (T-121): Gmail draft creation
+  - Task: Add Gmail draft creation and sending capabilities per PRD Section 4.5/6.3
+  - PRD Compliance:
+    - Section 4.5: "Draft only (default) - Creates draft, notifies you"
+    - Section 6.3: "Send email - Yes - show draft first"
+    - Section 6.2: "Email sent - Cannot undo - Log only"
+  - Updated src/assistant/google/gmail.py:
+    - Added DraftResult dataclass: draft_id, message_id, thread_id, subject, to/cc/bcc, body, html_link, preview property
+    - Added SendResult dataclass: success, message_id, thread_id, error
+    - GmailClient.create_draft(): creates MIME message with base64 encoding, supports thread_id/in_reply_to for replies
+    - GmailClient.get_draft(): retrieves draft details with _extract_body() for multipart
+    - GmailClient.send_draft(): sends existing draft, logs sent message
+    - GmailClient.delete_draft(): removes draft when user cancels
+    - GmailClient.send_email(): direct send convenience (for post-confirmation)
+    - _extract_body(): extracts plain text from MIME payload (handles multipart)
+  - Added convenience functions: create_draft, get_draft, send_draft, delete_draft, send_email
+  - Updated tests/test_gmail.py (24 new tests, 57 total):
+    - TestDraftResult: success, error, preview generation, preview error, truncation (5)
+    - TestSendResult: success, error (2)
+    - TestGmailClientDrafts: auth, no recipients, success, reply, get, send, delete (10)
+    - TestDraftConvenienceFunctions: all 5 functions
+    - TestDraftWorkflow: complete send flow, cancel flow (2)
+  - Commands: python3 -m pytest tests/test_gmail.py -v (57 passed)
+  - Full test suite: 930 tests (all pass)
+  - Commit: 55a83c5

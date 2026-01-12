@@ -813,9 +813,9 @@
         "T-120"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Added Gmail draft creation to src/assistant/google/gmail.py. Features: 1) DraftResult dataclass with draft_id, message_id, thread_id, subject, to/cc/bcc, body, html_link, preview property for user display, 2) SendResult dataclass with message_id, thread_id for send confirmations, 3) create_draft() creates MIME message with base64 encoding, supports thread_id/in_reply_to for replies, 4) get_draft() retrieves draft details with body extraction, 5) send_draft() sends existing draft per PRD 6.3 confirmation requirement, 6) delete_draft() for user cancellation flow, 7) send_email() direct send convenience method, 8) _extract_body() handles plain text and multipart MIME. Module convenience functions: create_draft, get_draft, send_draft, delete_draft, send_email. Tests in tests/test_gmail.py (24 new tests): TestDraftResult (5), TestSendResult (2), TestGmailClientDrafts (10), TestDraftConvenienceFunctions (5), TestDraftWorkflow (2 - complete send and cancel flows). All 57 Gmail tests pass. Full suite: 930 tests pass.",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-122",

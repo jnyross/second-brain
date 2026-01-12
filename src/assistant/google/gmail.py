@@ -1,6 +1,7 @@
 """Gmail integration for Second Brain.
 
 Read emails for morning briefings and context.
+Create drafts and send emails with user confirmation.
 
 Per PRD Section 4.5:
 - Fetch recent emails for morning briefing
@@ -8,9 +9,16 @@ Per PRD Section 4.5:
 - Extract action items from emails
 - Identify emails needing response
 - Link email threads to People and Projects
+- Draft emails for review
+- Send emails with confirmation
+
+Per PRD Section 6.3:
+- Send email requires confirmation (show draft first)
 
 OAuth scopes required:
 - https://www.googleapis.com/auth/gmail.readonly
+- https://www.googleapis.com/auth/gmail.send
+- https://www.googleapis.com/auth/gmail.compose
 """
 
 import base64
@@ -76,14 +84,77 @@ class EmailListResult:
     total_count: int = 0
 
 
-class GmailClient:
-    """Gmail client for reading emails.
+@dataclass
+class DraftResult:
+    """Result of creating or retrieving a draft.
 
-    Provides read-only access to Gmail:
+    Per PRD Section 4.5, drafts are created for review before sending.
+    The html_link allows the user to view/edit the draft in Gmail UI.
+    """
+
+    success: bool
+    draft_id: str | None = None
+    message_id: str | None = None
+    thread_id: str | None = None
+    subject: str = ""
+    to: list[str] = field(default_factory=list)
+    cc: list[str] = field(default_factory=list)
+    bcc: list[str] = field(default_factory=list)
+    body: str = ""
+    html_link: str | None = None
+    error: str | None = None
+
+    @property
+    def preview(self) -> str:
+        """Generate a preview of the draft for display to user.
+
+        Returns:
+            Formatted preview string
+        """
+        if not self.success:
+            return f"Draft failed: {self.error}"
+
+        lines = [
+            f"**To:** {', '.join(self.to)}",
+        ]
+        if self.cc:
+            lines.append(f"**CC:** {', '.join(self.cc)}")
+        lines.extend([
+            f"**Subject:** {self.subject}",
+            "",
+            self.body[:500] + ("..." if len(self.body) > 500 else ""),
+        ])
+        return "\n".join(lines)
+
+
+@dataclass
+class SendResult:
+    """Result of sending an email.
+
+    Per PRD Section 6.3, emails require confirmation before sending.
+    The sent email cannot be undone (Table row: "Email sent - Cannot undo").
+    """
+
+    success: bool
+    message_id: str | None = None
+    thread_id: str | None = None
+    error: str | None = None
+
+
+class GmailClient:
+    """Gmail client for reading emails and composing drafts.
+
+    Provides Gmail access per PRD Section 4.5:
+    Read (Low-risk, autonomous):
     - List recent emails
     - Search emails by query
     - Get email details
     - Detect emails needing response
+
+    Write (Medium-risk, tiered autonomy per PRD Section 6.3):
+    - Create drafts for review (default)
+    - Send emails with confirmation
+    - Reply to threads (with learned patterns)
     """
 
     def __init__(self):
@@ -437,6 +508,420 @@ class GmailClient:
 
         return "normal"
 
+    # =========================================================================
+    # Draft and Send Methods (PRD Section 4.5 - Write capabilities)
+    # =========================================================================
+
+    async def create_draft(
+        self,
+        to: list[str],
+        subject: str,
+        body: str,
+        cc: list[str] | None = None,
+        bcc: list[str] | None = None,
+        thread_id: str | None = None,
+        in_reply_to: str | None = None,
+    ) -> DraftResult:
+        """Create an email draft for review before sending.
+
+        Per PRD Section 4.5: "Draft only (default) - Creates draft, notifies you"
+        Per PRD Section 6.3: "Send email - Yes - show draft first"
+
+        Args:
+            to: List of recipient email addresses
+            subject: Email subject line
+            body: Plain text email body
+            cc: Optional list of CC recipients
+            bcc: Optional list of BCC recipients
+            thread_id: Optional thread ID for replies
+            in_reply_to: Optional message ID being replied to
+
+        Returns:
+            DraftResult with draft details and preview
+        """
+        if not self.is_authenticated():
+            return DraftResult(
+                success=False,
+                error="Gmail not authenticated. Please run OAuth flow first.",
+            )
+
+        if not to:
+            return DraftResult(
+                success=False,
+                error="At least one recipient is required.",
+            )
+
+        try:
+            import asyncio
+            from email.mime.text import MIMEText
+
+            loop = asyncio.get_event_loop()
+
+            # Build the MIME message
+            message = MIMEText(body)
+            message["to"] = ", ".join(to)
+            message["subject"] = subject
+            if cc:
+                message["cc"] = ", ".join(cc)
+            if bcc:
+                message["bcc"] = ", ".join(bcc)
+            if in_reply_to:
+                message["In-Reply-To"] = in_reply_to
+                message["References"] = in_reply_to
+
+            # Encode the message
+            raw = base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
+
+            # Create the draft body
+            draft_body: dict[str, Any] = {
+                "message": {
+                    "raw": raw,
+                }
+            }
+            if thread_id:
+                draft_body["message"]["threadId"] = thread_id
+
+            def do_create():
+                return (
+                    self.service.users()
+                    .drafts()
+                    .create(userId="me", body=draft_body)
+                    .execute()
+                )
+
+            result = await loop.run_in_executor(None, do_create)
+
+            draft_id = result.get("id", "")
+            msg = result.get("message", {})
+            message_id = msg.get("id", "")
+            result_thread_id = msg.get("threadId", "")
+
+            # Generate Gmail web link to the draft
+            html_link = f"https://mail.google.com/mail/u/0/#drafts?compose={draft_id}"
+
+            logger.info(f"Created Gmail draft {draft_id} to {to}")
+
+            return DraftResult(
+                success=True,
+                draft_id=draft_id,
+                message_id=message_id,
+                thread_id=result_thread_id,
+                subject=subject,
+                to=to,
+                cc=cc or [],
+                bcc=bcc or [],
+                body=body,
+                html_link=html_link,
+            )
+
+        except HttpError as e:
+            logger.exception(f"Gmail API error creating draft: {e}")
+            return DraftResult(
+                success=False,
+                error=f"Gmail API error: {e.reason if hasattr(e, 'reason') else str(e)}",
+            )
+        except Exception as e:
+            logger.exception(f"Failed to create draft: {e}")
+            return DraftResult(
+                success=False,
+                error=f"Failed to create draft: {str(e)}",
+            )
+
+    async def get_draft(self, draft_id: str) -> DraftResult:
+        """Retrieve an existing draft for preview.
+
+        Args:
+            draft_id: Gmail draft ID
+
+        Returns:
+            DraftResult with draft details
+        """
+        if not self.is_authenticated():
+            return DraftResult(
+                success=False,
+                error="Gmail not authenticated.",
+            )
+
+        try:
+            import asyncio
+            loop = asyncio.get_event_loop()
+
+            def do_get():
+                return (
+                    self.service.users()
+                    .drafts()
+                    .get(userId="me", id=draft_id, format="full")
+                    .execute()
+                )
+
+            result = await loop.run_in_executor(None, do_get)
+
+            msg = result.get("message", {})
+            message_id = msg.get("id", "")
+            thread_id = msg.get("threadId", "")
+
+            # Parse headers
+            headers = {
+                h["name"].lower(): h["value"]
+                for h in msg.get("payload", {}).get("headers", [])
+            }
+
+            subject = headers.get("subject", "(no subject)")
+            to_raw = headers.get("to", "")
+            cc_raw = headers.get("cc", "")
+            bcc_raw = headers.get("bcc", "")
+
+            # Parse recipients
+            to = [addr.strip() for addr in to_raw.split(",") if addr.strip()]
+            cc = [addr.strip() for addr in cc_raw.split(",") if addr.strip()]
+            bcc = [addr.strip() for addr in bcc_raw.split(",") if addr.strip()]
+
+            # Extract body
+            body = self._extract_body(msg.get("payload", {}))
+
+            html_link = f"https://mail.google.com/mail/u/0/#drafts?compose={draft_id}"
+
+            return DraftResult(
+                success=True,
+                draft_id=draft_id,
+                message_id=message_id,
+                thread_id=thread_id,
+                subject=subject,
+                to=to,
+                cc=cc,
+                bcc=bcc,
+                body=body,
+                html_link=html_link,
+            )
+
+        except HttpError as e:
+            logger.exception(f"Gmail API error getting draft: {e}")
+            return DraftResult(
+                success=False,
+                error=f"Gmail API error: {e.reason if hasattr(e, 'reason') else str(e)}",
+            )
+        except Exception as e:
+            logger.exception(f"Failed to get draft: {e}")
+            return DraftResult(
+                success=False,
+                error=f"Failed to get draft: {str(e)}",
+            )
+
+    async def send_draft(self, draft_id: str) -> SendResult:
+        """Send an existing draft.
+
+        Per PRD Section 6.3: User must confirm before sending.
+        Per PRD Section 6.2: "Email sent - Cannot undo - Log only"
+
+        Args:
+            draft_id: Gmail draft ID to send
+
+        Returns:
+            SendResult with sent message details
+        """
+        if not self.is_authenticated():
+            return SendResult(
+                success=False,
+                error="Gmail not authenticated.",
+            )
+
+        try:
+            import asyncio
+            loop = asyncio.get_event_loop()
+
+            def do_send():
+                return (
+                    self.service.users()
+                    .drafts()
+                    .send(userId="me", body={"id": draft_id})
+                    .execute()
+                )
+
+            result = await loop.run_in_executor(None, do_send)
+
+            message_id = result.get("id", "")
+            thread_id = result.get("threadId", "")
+
+            logger.info(f"Sent draft {draft_id} as message {message_id}")
+
+            return SendResult(
+                success=True,
+                message_id=message_id,
+                thread_id=thread_id,
+            )
+
+        except HttpError as e:
+            logger.exception(f"Gmail API error sending draft: {e}")
+            return SendResult(
+                success=False,
+                error=f"Gmail API error: {e.reason if hasattr(e, 'reason') else str(e)}",
+            )
+        except Exception as e:
+            logger.exception(f"Failed to send draft: {e}")
+            return SendResult(
+                success=False,
+                error=f"Failed to send draft: {str(e)}",
+            )
+
+    async def delete_draft(self, draft_id: str) -> bool:
+        """Delete a draft.
+
+        Used when user cancels sending after reviewing.
+
+        Args:
+            draft_id: Gmail draft ID to delete
+
+        Returns:
+            True if deleted successfully, False otherwise
+        """
+        if not self.is_authenticated():
+            return False
+
+        try:
+            import asyncio
+            loop = asyncio.get_event_loop()
+
+            def do_delete():
+                self.service.users().drafts().delete(userId="me", id=draft_id).execute()
+
+            await loop.run_in_executor(None, do_delete)
+
+            logger.info(f"Deleted draft {draft_id}")
+            return True
+
+        except Exception as e:
+            logger.warning(f"Failed to delete draft {draft_id}: {e}")
+            return False
+
+    async def send_email(
+        self,
+        to: list[str],
+        subject: str,
+        body: str,
+        cc: list[str] | None = None,
+        bcc: list[str] | None = None,
+        thread_id: str | None = None,
+        in_reply_to: str | None = None,
+    ) -> SendResult:
+        """Send an email directly (without creating a visible draft).
+
+        This is a convenience method that creates and immediately sends.
+        Per PRD Section 6.3, this should only be used after user confirmation.
+
+        Args:
+            to: List of recipient email addresses
+            subject: Email subject line
+            body: Plain text email body
+            cc: Optional list of CC recipients
+            bcc: Optional list of BCC recipients
+            thread_id: Optional thread ID for replies
+            in_reply_to: Optional message ID being replied to
+
+        Returns:
+            SendResult with sent message details
+        """
+        if not self.is_authenticated():
+            return SendResult(
+                success=False,
+                error="Gmail not authenticated.",
+            )
+
+        if not to:
+            return SendResult(
+                success=False,
+                error="At least one recipient is required.",
+            )
+
+        try:
+            import asyncio
+            from email.mime.text import MIMEText
+
+            loop = asyncio.get_event_loop()
+
+            # Build the MIME message
+            message = MIMEText(body)
+            message["to"] = ", ".join(to)
+            message["subject"] = subject
+            if cc:
+                message["cc"] = ", ".join(cc)
+            if bcc:
+                message["bcc"] = ", ".join(bcc)
+            if in_reply_to:
+                message["In-Reply-To"] = in_reply_to
+                message["References"] = in_reply_to
+
+            # Encode the message
+            raw = base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
+
+            # Create the send body
+            send_body: dict[str, Any] = {"raw": raw}
+            if thread_id:
+                send_body["threadId"] = thread_id
+
+            def do_send():
+                return (
+                    self.service.users()
+                    .messages()
+                    .send(userId="me", body=send_body)
+                    .execute()
+                )
+
+            result = await loop.run_in_executor(None, do_send)
+
+            message_id = result.get("id", "")
+            result_thread_id = result.get("threadId", "")
+
+            logger.info(f"Sent email {message_id} to {to}")
+
+            return SendResult(
+                success=True,
+                message_id=message_id,
+                thread_id=result_thread_id,
+            )
+
+        except HttpError as e:
+            logger.exception(f"Gmail API error sending email: {e}")
+            return SendResult(
+                success=False,
+                error=f"Gmail API error: {e.reason if hasattr(e, 'reason') else str(e)}",
+            )
+        except Exception as e:
+            logger.exception(f"Failed to send email: {e}")
+            return SendResult(
+                success=False,
+                error=f"Failed to send email: {str(e)}",
+            )
+
+    def _extract_body(self, payload: dict[str, Any]) -> str:
+        """Extract plain text body from message payload.
+
+        Args:
+            payload: Message payload from Gmail API
+
+        Returns:
+            Plain text body content
+        """
+        # Check for simple body
+        body_data = payload.get("body", {}).get("data")
+        if body_data:
+            return base64.urlsafe_b64decode(body_data).decode("utf-8", errors="replace")
+
+        # Check multipart
+        parts = payload.get("parts", [])
+        for part in parts:
+            mime_type = part.get("mimeType", "")
+            if mime_type == "text/plain":
+                data = part.get("body", {}).get("data")
+                if data:
+                    return base64.urlsafe_b64decode(data).decode("utf-8", errors="replace")
+            # Recurse into nested parts
+            if part.get("parts"):
+                nested = self._extract_body(part)
+                if nested:
+                    return nested
+
+        return ""
+
 
 # Module-level singleton instance
 _gmail_client: GmailClient | None = None
@@ -492,3 +977,83 @@ async def get_email_by_id(message_id: str) -> EmailMessage | None:
     Convenience function using the global client.
     """
     return await get_gmail_client().get_email(message_id)
+
+
+# =============================================================================
+# Draft and Send Convenience Functions (PRD Section 4.5)
+# =============================================================================
+
+
+async def create_draft(
+    to: list[str],
+    subject: str,
+    body: str,
+    cc: list[str] | None = None,
+    bcc: list[str] | None = None,
+    thread_id: str | None = None,
+    in_reply_to: str | None = None,
+) -> DraftResult:
+    """Create an email draft for review.
+
+    Per PRD Section 4.5: Default action is draft-only.
+    Convenience function using the global client.
+    """
+    return await get_gmail_client().create_draft(
+        to=to,
+        subject=subject,
+        body=body,
+        cc=cc,
+        bcc=bcc,
+        thread_id=thread_id,
+        in_reply_to=in_reply_to,
+    )
+
+
+async def get_draft(draft_id: str) -> DraftResult:
+    """Get a draft by ID for preview.
+
+    Convenience function using the global client.
+    """
+    return await get_gmail_client().get_draft(draft_id)
+
+
+async def send_draft(draft_id: str) -> SendResult:
+    """Send an existing draft.
+
+    Per PRD Section 6.3: User must confirm before calling this.
+    Convenience function using the global client.
+    """
+    return await get_gmail_client().send_draft(draft_id)
+
+
+async def delete_draft(draft_id: str) -> bool:
+    """Delete a draft.
+
+    Convenience function using the global client.
+    """
+    return await get_gmail_client().delete_draft(draft_id)
+
+
+async def send_email(
+    to: list[str],
+    subject: str,
+    body: str,
+    cc: list[str] | None = None,
+    bcc: list[str] | None = None,
+    thread_id: str | None = None,
+    in_reply_to: str | None = None,
+) -> SendResult:
+    """Send an email directly.
+
+    Per PRD Section 6.3: This should only be called after user confirmation.
+    Convenience function using the global client.
+    """
+    return await get_gmail_client().send_email(
+        to=to,
+        subject=subject,
+        body=body,
+        cc=cc,
+        bcc=bcc,
+        thread_id=thread_id,
+        in_reply_to=in_reply_to,
+    )

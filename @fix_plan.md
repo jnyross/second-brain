@@ -52,7 +52,7 @@ This file tracks the prioritized work items for Ralph autonomous loops. Update a
 ## Lower Priority (P2 - Nice to Have)
 
 - [x] T-120: Gmail read integration
-- [ ] T-121: Gmail draft creation
+- [x] T-121: Gmail draft creation
 - [ ] T-130: Proactive nudges
 
 ---
