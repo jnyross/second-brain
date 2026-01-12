@@ -284,9 +284,7 @@ class TestWebResearcherCinemaResearch:
         mock_page.set_default_navigation_timeout = MagicMock()
 
         # Patch the internal methods
-        with patch.object(
-            researcher, "_ensure_initialized", new_callable=AsyncMock
-        ):
+        with patch.object(researcher, "_ensure_initialized", new_callable=AsyncMock):
             with patch.object(
                 researcher, "_new_page", new_callable=AsyncMock, return_value=mock_page
             ):
@@ -464,9 +462,7 @@ class TestWebResearcherURLResearch:
                 ),
             ),
         ):
-            result = await researcher.research_url(
-                "https://example.com", "Research example"
-            )
+            result = await researcher.research_url("https://example.com", "Research example")
 
             assert result.success is True
             assert len(result.findings) == 3
@@ -483,9 +479,7 @@ class TestWebResearcherURLResearch:
             new_callable=AsyncMock,
             side_effect=Exception("Connection refused"),
         ):
-            result = await researcher.research_url(
-                "https://example.com", "Research example"
-            )
+            result = await researcher.research_url("https://example.com", "Research example")
 
             assert result.success is False
             assert "Connection refused" in str(result.error)
@@ -624,9 +618,7 @@ class TestAT112WebResearch:
         mock_page.title = AsyncMock(return_value="Everyman Cinema - What's On")
         mock_page.url = "https://www.everymancinema.com/whats-on"
         mock_page.screenshot = AsyncMock()
-        mock_page.query_selector_all = AsyncMock(
-            return_value=[mock_film1, mock_film2, mock_film3]
-        )
+        mock_page.query_selector_all = AsyncMock(return_value=[mock_film1, mock_film2, mock_film3])
         mock_page.close = AsyncMock()
         mock_page.set_default_timeout = MagicMock()
         mock_page.set_default_navigation_timeout = MagicMock()

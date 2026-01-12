@@ -56,13 +56,13 @@ class TestHealthCheckConfiguration:
         """Script has default MAX_RETRIES of 10."""
         assert "MAX_RETRIES" in script_content
         # Check for default value pattern
-        assert ':-10' in script_content or "MAX_RETRIES=10" in script_content
+        assert ":-10" in script_content or "MAX_RETRIES=10" in script_content
 
     def test_has_retry_interval_default(self, script_content: str):
         """Script has default RETRY_INTERVAL of 3."""
         assert "RETRY_INTERVAL" in script_content
         # Check for default value pattern
-        assert ':-3' in script_content or "RETRY_INTERVAL=3" in script_content
+        assert ":-3" in script_content or "RETRY_INTERVAL=3" in script_content
 
     def test_has_container_name_default(self, script_content: str):
         """Script defaults to 'second-brain' container."""

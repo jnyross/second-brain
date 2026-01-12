@@ -799,10 +799,7 @@ class TestBriefingGeneratorFormatTIL:
 
     def test_format_til_limits_to_five(self):
         """_format_til_section limits to 5 patterns and shows more indicator."""
-        patterns = [
-            make_notion_pattern(f"trigger{i}", f"meaning{i}")
-            for i in range(7)
-        ]
+        patterns = [make_notion_pattern(f"trigger{i}", f"meaning{i}") for i in range(7)]
         result = self.generator._format_til_section(patterns)
 
         # Should show "...and X more"

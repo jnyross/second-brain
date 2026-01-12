@@ -11,7 +11,7 @@ from assistant.google.auth import google_auth
 
 logger = logging.getLogger(__name__)
 
-FOLDER_STRUCTURE = {
+FOLDER_STRUCTURE: dict[str, dict[str, dict[str, dict]]] = {
     "Second Brain": {
         "Research": {"General": {}},
         "Meeting Notes": {},

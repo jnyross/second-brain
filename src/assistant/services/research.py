@@ -536,6 +536,7 @@ def is_research_available() -> bool:
     """Check if Playwright is installed and available."""
     try:
         import playwright  # noqa: F401
+
         return True
     except ImportError:
         return False

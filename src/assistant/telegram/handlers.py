@@ -8,7 +8,7 @@ import logging
 from datetime import UTC, datetime
 from io import BytesIO
 
-from aiogram import Bot, F, Router
+from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message, Voice
 
@@ -45,7 +45,7 @@ def get_transcriber() -> WhisperTranscriber:
     return _transcriber
 
 
-def setup_handlers(dp) -> None:
+def setup_handlers(dp: Dispatcher) -> None:
     """Set up message handlers on the dispatcher."""
     # Import debrief router for FSM-based /debrief command
     from assistant.telegram.debrief import router as debrief_router
@@ -98,9 +98,7 @@ async def cmd_today(message: Message) -> None:
         await message.answer(today_message, parse_mode="Markdown")
     except Exception as e:
         logger.exception(f"Today command failed: {e}")
-        await message.answer(
-            "Sorry, couldn't fetch today's schedule. Please try again later."
-        )
+        await message.answer("Sorry, couldn't fetch today's schedule. Please try again later.")
 
 
 async def _generate_today_message() -> str:
@@ -140,12 +138,8 @@ async def _generate_today_message() -> str:
     client = NotionClient()
     try:
         today = datetime.now(UTC).date()
-        today_start = datetime.combine(today, datetime.min.time()).replace(
-            tzinfo=UTC
-        )
-        today_end = datetime.combine(today, datetime.max.time()).replace(
-            tzinfo=UTC
-        )
+        today_start = datetime.combine(today, datetime.min.time()).replace(tzinfo=UTC)
+        today_end = datetime.combine(today, datetime.max.time()).replace(tzinfo=UTC)
 
         due_tasks = await client.query_tasks(
             due_before=today_end + timedelta(days=1),
@@ -215,9 +209,7 @@ async def cmd_status(message: Message) -> None:
         await message.answer(status_message, parse_mode="Markdown")
     except Exception as e:
         logger.exception(f"Status command failed: {e}")
-        await message.answer(
-            "Sorry, couldn't fetch your status. Please try again later."
-        )
+        await message.answer("Sorry, couldn't fetch your status. Please try again later.")
 
 
 async def _generate_status_message() -> str:
