@@ -705,9 +705,9 @@
         "T-060"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Implemented /status command in handlers.py. Features: query Notion for pending tasks (todo/doing status), flagged inbox items (needs_clarification=true), format with sections (IN PROGRESS, PENDING TASKS, NEEDS CLARIFICATION), show priority indicators (🔴 for high/urgent), due date formatting (today/tomorrow/overdue/day name/Mon DD). Tests in test_handlers.py (38 tests pass): TestCommandHandlers (cmd_status_with_tasks_and_flagged, cmd_status_handles_error), TestStatusHelpers (12 tests for _extract_task_prop, _extract_inbox_prop, _format_due_brief), TestGenerateStatusMessage (6 tests for all_clear, doing_tasks, todo_tasks, high_priority, flagged_items, summary).",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-113",

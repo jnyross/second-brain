@@ -1,5 +1,6 @@
 """Tests for Telegram message handlers."""
 
+from datetime import UTC
 from io import BytesIO
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -8,6 +9,10 @@ import pytest
 # Note: cmd_debrief moved to assistant.telegram.debrief module
 from assistant.services.whisper import TranscriptionError, TranscriptionResult
 from assistant.telegram.handlers import (
+    _extract_inbox_prop,
+    _extract_task_prop,
+    _format_due_brief,
+    _generate_status_message,
     _process_voice_transcription,
     cmd_help,
     cmd_start,
@@ -100,17 +105,282 @@ class TestCommandHandlers:
         assert "schedule" in call_args.lower() or "today" in call_args.lower()
 
     @pytest.mark.asyncio
-    async def test_cmd_status(self):
-        """Status command should respond."""
+    async def test_cmd_status_with_tasks_and_flagged(self):
+        """Status command should show tasks and flagged items."""
         message = AsyncMock()
-        await cmd_status(message)
+
+        with patch(
+            "assistant.telegram.handlers._generate_status_message"
+        ) as mock_gen:
+            mock_gen.return_value = (
+                "🔄 **IN PROGRESS**\n• Test task\n\n"
+                "📊 _Total: 1 tasks, 0 flagged_"
+            )
+            await cmd_status(message)
+
+        message.answer.assert_called_once()
+        call_kwargs = message.answer.call_args[1]
+        assert call_kwargs.get("parse_mode") == "Markdown"
+
+    @pytest.mark.asyncio
+    async def test_cmd_status_handles_error(self):
+        """Status command should handle errors gracefully."""
+        message = AsyncMock()
+
+        with patch(
+            "assistant.telegram.handlers._generate_status_message"
+        ) as mock_gen:
+            mock_gen.side_effect = Exception("API error")
+            await cmd_status(message)
 
         message.answer.assert_called_once()
         call_args = message.answer.call_args[0][0]
-        assert "status" in call_args.lower() or "task" in call_args.lower()
+        assert "couldn't fetch" in call_args.lower()
 
     # Note: test_cmd_debrief moved to tests/test_debrief.py
     # The /debrief command now uses FSM for interactive flow
+
+
+class TestStatusHelpers:
+    """Tests for /status command helper functions."""
+
+    def test_extract_task_prop_title(self):
+        """Should extract title from task properties."""
+        task = {
+            "properties": {
+                "title": {
+                    "title": [{"text": {"content": "Buy groceries"}}]
+                }
+            }
+        }
+        assert _extract_task_prop(task, "title") == "Buy groceries"
+
+    def test_extract_task_prop_due_date(self):
+        """Should extract due date from task properties."""
+        task = {
+            "properties": {
+                "due_date": {
+                    "date": {"start": "2026-01-15"}
+                }
+            }
+        }
+        assert _extract_task_prop(task, "due_date") == "2026-01-15"
+
+    def test_extract_task_prop_priority(self):
+        """Should extract priority from task properties."""
+        task = {
+            "properties": {
+                "priority": {
+                    "select": {"name": "high"}
+                }
+            }
+        }
+        assert _extract_task_prop(task, "priority") == "high"
+
+    def test_extract_task_prop_status(self):
+        """Should extract status from task properties."""
+        task = {
+            "properties": {
+                "status": {
+                    "select": {"name": "doing"}
+                }
+            }
+        }
+        assert _extract_task_prop(task, "status") == "doing"
+
+    def test_extract_task_prop_missing(self):
+        """Should return None for missing properties."""
+        task = {"properties": {}}
+        assert _extract_task_prop(task, "title") is None
+        assert _extract_task_prop(task, "due_date") is None
+
+    def test_extract_inbox_prop_raw_input(self):
+        """Should extract raw_input from inbox properties."""
+        item = {
+            "properties": {
+                "raw_input": {
+                    "rich_text": [{"text": {"content": "Something unclear"}}]
+                }
+            }
+        }
+        assert _extract_inbox_prop(item, "raw_input") == "Something unclear"
+
+    def test_extract_inbox_prop_missing(self):
+        """Should return None for missing properties."""
+        item = {"properties": {}}
+        assert _extract_inbox_prop(item, "raw_input") is None
+
+    def test_format_due_brief_today(self):
+        """Should format today's date as 'today'."""
+        from datetime import datetime
+
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
+        assert _format_due_brief(today) == "today"
+
+    def test_format_due_brief_tomorrow(self):
+        """Should format tomorrow's date."""
+        from datetime import datetime, timedelta
+
+        tomorrow = (datetime.now(UTC) + timedelta(days=1)).strftime(
+            "%Y-%m-%d"
+        )
+        assert _format_due_brief(tomorrow) == "tomorrow"
+
+    def test_format_due_brief_overdue(self):
+        """Should format overdue dates."""
+        from datetime import datetime, timedelta
+
+        yesterday = (datetime.now(UTC) - timedelta(days=2)).strftime(
+            "%Y-%m-%d"
+        )
+        assert "overdue" in _format_due_brief(yesterday)
+
+    def test_format_due_brief_week(self):
+        """Should format dates within a week as day name."""
+        from datetime import datetime, timedelta
+
+        in_3_days = datetime.now(UTC) + timedelta(days=3)
+        due_str = in_3_days.strftime("%Y-%m-%d")
+        result = _format_due_brief(due_str)
+        # Should be a day name like "Monday", "Tuesday", etc.
+        assert result in [
+            "Monday", "Tuesday", "Wednesday", "Thursday",
+            "Friday", "Saturday", "Sunday"
+        ]
+
+    def test_format_due_brief_future(self):
+        """Should format far future dates as 'Mon DD'."""
+        from datetime import datetime, timedelta
+
+        in_2_weeks = datetime.now(UTC) + timedelta(days=14)
+        due_str = in_2_weeks.strftime("%Y-%m-%d")
+        result = _format_due_brief(due_str)
+        # Should be like "Jan 26"
+        assert len(result) <= 7
+
+    def test_format_due_brief_invalid(self):
+        """Should handle invalid date strings."""
+        assert _format_due_brief("not-a-date") == "not-a-date"
+
+
+class TestGenerateStatusMessage:
+    """Tests for _generate_status_message function."""
+
+    @pytest.mark.asyncio
+    async def test_generate_status_all_clear(self):
+        """Should show 'All clear' when no items."""
+        with patch("assistant.notion.client.NotionClient") as mock_cls:
+            mock_client = AsyncMock()
+            mock_cls.return_value = mock_client
+            mock_client.query_tasks.return_value = []
+            mock_client.query_inbox.return_value = []
+
+            result = await _generate_status_message()
+
+            assert "All clear" in result
+            mock_client.close.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_generate_status_with_doing_tasks(self):
+        """Should show in-progress tasks."""
+        with patch("assistant.notion.client.NotionClient") as mock_cls:
+            mock_client = AsyncMock()
+            mock_cls.return_value = mock_client
+            mock_client.query_tasks.side_effect = [
+                [],  # todo tasks
+                [{"properties": {"title": {"title": [
+                    {"text": {"content": "Working on it"}}
+                ]}}}],  # doing tasks
+            ]
+            mock_client.query_inbox.return_value = []
+
+            result = await _generate_status_message()
+
+            assert "IN PROGRESS" in result
+            assert "Working on it" in result
+
+    @pytest.mark.asyncio
+    async def test_generate_status_with_todo_tasks(self):
+        """Should show pending tasks."""
+        with patch("assistant.notion.client.NotionClient") as mock_cls:
+            mock_client = AsyncMock()
+            mock_cls.return_value = mock_client
+            mock_client.query_tasks.side_effect = [
+                [{"properties": {"title": {"title": [
+                    {"text": {"content": "Buy milk"}}
+                ]}}}],  # todo tasks
+                [],  # doing tasks
+            ]
+            mock_client.query_inbox.return_value = []
+
+            result = await _generate_status_message()
+
+            assert "PENDING TASKS" in result
+            assert "Buy milk" in result
+
+    @pytest.mark.asyncio
+    async def test_generate_status_with_high_priority(self):
+        """Should highlight high priority tasks."""
+        with patch("assistant.notion.client.NotionClient") as mock_cls:
+            mock_client = AsyncMock()
+            mock_cls.return_value = mock_client
+            mock_client.query_tasks.side_effect = [
+                [{
+                    "properties": {
+                        "title": {"title": [
+                            {"text": {"content": "Urgent task"}}
+                        ]},
+                        "priority": {"select": {"name": "high"}}
+                    }
+                }],  # todo tasks
+                [],  # doing tasks
+            ]
+            mock_client.query_inbox.return_value = []
+
+            result = await _generate_status_message()
+
+            assert "🔴" in result
+            assert "Urgent task" in result
+
+    @pytest.mark.asyncio
+    async def test_generate_status_with_flagged_items(self):
+        """Should show flagged inbox items."""
+        with patch("assistant.notion.client.NotionClient") as mock_cls:
+            mock_client = AsyncMock()
+            mock_cls.return_value = mock_client
+            mock_client.query_tasks.return_value = []
+            mock_client.query_inbox.return_value = [
+                {"properties": {"raw_input": {"rich_text": [
+                    {"text": {"content": "Something unclear"}}
+                ]}}}
+            ]
+
+            result = await _generate_status_message()
+
+            assert "NEEDS CLARIFICATION" in result
+            assert "Something unclear" in result
+            assert "/debrief" in result
+
+    @pytest.mark.asyncio
+    async def test_generate_status_shows_summary(self):
+        """Should show summary with totals."""
+        with patch("assistant.notion.client.NotionClient") as mock_cls:
+            mock_client = AsyncMock()
+            mock_cls.return_value = mock_client
+            mock_client.query_tasks.side_effect = [
+                [{"properties": {"title": {"title": [
+                    {"text": {"content": "Task 1"}}
+                ]}}}],  # todo
+                [{"properties": {"title": {"title": [
+                    {"text": {"content": "Task 2"}}
+                ]}}}],  # doing
+            ]
+            mock_client.query_inbox.return_value = []
+
+            result = await _generate_status_message()
+
+            assert "Total:" in result
+            assert "2 tasks" in result
 
 
 class TestTextHandler:

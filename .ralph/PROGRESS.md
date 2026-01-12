@@ -1220,3 +1220,25 @@
   - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_briefing.py -v (76 passed)
   - Full test suite: 1428 tests (all pass)
   - Commit: pending
+- Iteration 49 (T-112) - Create /status command
+  - Task: Show pending tasks and flagged items
+  - Fixed hygiene gate: resolved 32 ruff lint errors (E501, F841, N806) before starting feature work
+  - Updated src/assistant/telegram/handlers.py:
+    - Implemented cmd_status() with _generate_status_message() async helper
+    - Added _extract_task_prop(): extracts title/due_date/priority/status from Notion task
+    - Added _extract_inbox_prop(): extracts raw_input from Notion inbox item
+    - Added _format_due_brief(): formats due dates as today/tomorrow/Nd overdue/day name/Mon DD
+  - Features:
+    - Queries Notion for pending tasks (status=todo/doing) and flagged items (needs_clarification=true)
+    - Formats sections: 🔄 IN PROGRESS, 📋 PENDING TASKS, ⚠️ NEEDS CLARIFICATION
+    - Priority indicators: 🔴 for high/urgent priority tasks
+    - Due date formatting: today, tomorrow, Nd overdue, day name (within week), Mon DD
+    - Summary footer: 📊 Total: N tasks, N flagged with /debrief hint
+    - Empty state: ✨ All clear! message when no items
+  - Added tests in tests/test_handlers.py (20 new tests):
+    - TestCommandHandlers: cmd_status_with_tasks_and_flagged, cmd_status_handles_error
+    - TestStatusHelpers (12 tests): extract_task_prop_*, extract_inbox_prop_*, format_due_brief_*
+    - TestGenerateStatusMessage (6 tests): all_clear, doing_tasks, todo_tasks, high_priority, flagged_items, summary
+  - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_handlers.py -v (38 passed)
+  - Full test suite: 1448 tests (all pass)
+  - Commit: pending

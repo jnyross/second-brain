@@ -5,6 +5,7 @@ All messages are processed through the MessageProcessor pipeline.
 """
 
 import logging
+from datetime import UTC
 from io import BytesIO
 
 from aiogram import Bot, F, Router
@@ -100,9 +101,176 @@ async def cmd_today(message: Message) -> None:
 
 @router.message(Command("status"))
 async def cmd_status(message: Message) -> None:
-    """Handle /status command - show pending tasks."""
-    # TODO: Implement with NotionClient task query
-    await message.answer("Status feature coming soon.\nFor now, check your Notion Tasks database.")
+    """Handle /status command - show pending tasks and flagged items."""
+    try:
+        status_message = await _generate_status_message()
+        await message.answer(status_message, parse_mode="Markdown")
+    except Exception as e:
+        logger.exception(f"Status command failed: {e}")
+        await message.answer(
+            "Sorry, couldn't fetch your status. Please try again later."
+        )
+
+
+async def _generate_status_message() -> str:
+    """Generate status message with pending tasks and flagged items.
+
+    Returns formatted message showing:
+    - Pending tasks (todo/doing status)
+    - Flagged inbox items (needs_clarification=true)
+    """
+    from assistant.notion.client import NotionClient
+
+    client = NotionClient()
+    sections = []
+
+    try:
+        # Query pending tasks (todo and doing)
+        todo_tasks = await client.query_tasks(status="todo", limit=10)
+        doing_tasks = await client.query_tasks(status="doing", limit=5)
+
+        # Query flagged inbox items
+        flagged_items = await client.query_inbox(
+            needs_clarification=True,
+            processed=False,
+            limit=5,
+        )
+
+        # Format DOING section (tasks in progress)
+        if doing_tasks:
+            lines = ["🔄 **IN PROGRESS**"]
+            for task in doing_tasks[:5]:
+                title = _extract_task_prop(task, "title")
+                if title:
+                    lines.append(f"• {title}")
+            sections.append("\n".join(lines))
+
+        # Format TODO section (pending tasks)
+        if todo_tasks:
+            lines = ["📋 **PENDING TASKS**"]
+            for task in todo_tasks[:10]:
+                title = _extract_task_prop(task, "title")
+                due_str = _extract_task_prop(task, "due_date")
+                priority = _extract_task_prop(task, "priority")
+
+                if title:
+                    line = f"• {title}"
+                    if due_str:
+                        # Format due date briefly
+                        line += f" (due: {_format_due_brief(due_str)})"
+                    if priority in ("urgent", "high"):
+                        line = f"🔴 {line[2:]}"  # Replace bullet with priority
+                    lines.append(line)
+            sections.append("\n".join(lines))
+
+        # Format FLAGGED section (needs clarification)
+        if flagged_items:
+            lines = ["⚠️ **NEEDS CLARIFICATION**"]
+            for item in flagged_items[:5]:
+                raw = _extract_inbox_prop(item, "raw_input")
+                if raw:
+                    # Truncate long items
+                    display = raw[:40] + "..." if len(raw) > 40 else raw
+                    lines.append(f'• "{display}"')
+            sections.append("\n".join(lines))
+
+        # Build final message
+        if sections:
+            message = "\n\n".join(sections)
+
+            # Add summary
+            total_tasks = len(todo_tasks) + len(doing_tasks)
+            total_flagged = len(flagged_items)
+
+            message += f"\n\n📊 _Total: {total_tasks} tasks, {total_flagged} flagged_"
+
+            if total_flagged > 0:
+                message += "\n_Use /debrief to review flagged items._"
+
+            return message
+        else:
+            return (
+                "✨ **All clear!**\n\n"
+                "No pending tasks or flagged items.\n"
+                "Send me a message to capture something new."
+            )
+
+    finally:
+        await client.close()
+
+
+def _extract_task_prop(task: dict, prop: str) -> str | None:
+    """Extract a property value from a Notion task result."""
+    props = task.get("properties", {})
+
+    if prop == "title":
+        title_data = props.get("title", {})
+        title_list = title_data.get("title", [])
+        if title_list:
+            return title_list[0].get("text", {}).get("content", "")
+    elif prop == "due_date":
+        due_data = props.get("due_date", {})
+        date_obj = due_data.get("date", {})
+        if date_obj:
+            return date_obj.get("start", "")
+    elif prop == "priority":
+        priority_data = props.get("priority", {})
+        select_obj = priority_data.get("select", {})
+        if select_obj:
+            return select_obj.get("name", "")
+    elif prop == "status":
+        status_data = props.get("status", {})
+        select_obj = status_data.get("select", {})
+        if select_obj:
+            return select_obj.get("name", "")
+
+    return None
+
+
+def _extract_inbox_prop(item: dict, prop: str) -> str | None:
+    """Extract a property value from a Notion inbox result."""
+    props = item.get("properties", {})
+
+    if prop == "raw_input":
+        data = props.get("raw_input", {})
+        text_list = data.get("rich_text", [])
+        if text_list:
+            return text_list[0].get("text", {}).get("content", "")
+
+    return None
+
+
+def _format_due_brief(due_str: str) -> str:
+    """Format a due date string briefly for status display."""
+    from datetime import datetime
+
+    try:
+        # Parse ISO format date
+        if "T" in due_str:
+            due_dt = datetime.fromisoformat(due_str.replace("Z", "+00:00"))
+        else:
+            due_dt = datetime.fromisoformat(due_str)
+
+        # Make timezone-aware if not already
+        if due_dt.tzinfo is None:
+            due_dt = due_dt.replace(tzinfo=UTC)
+
+        now = datetime.now(UTC)
+        diff = due_dt.date() - now.date()
+
+        if diff.days == 0:
+            return "today"
+        elif diff.days == 1:
+            return "tomorrow"
+        elif diff.days < 0:
+            return f"{abs(diff.days)}d overdue"
+        elif diff.days < 7:
+            return due_dt.strftime("%A")  # Day name
+        else:
+            return due_dt.strftime("%b %d")  # "Jan 15"
+
+    except (ValueError, AttributeError):
+        return due_str[:10] if len(due_str) > 10 else due_str
 
 
 # Note: /debrief command is handled by debrief.py module with FSM support
