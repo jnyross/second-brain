@@ -646,3 +646,39 @@
   - Commands: python3 -m pytest tests/test_offline_queue.py -v (26 passed)
   - Full test suite: 753 tests (748 pass, 5 pre-existing timezone failures in test_entities.py)
   - Commit: 9d1adbf
+- Iteration 40 (T-115) - Soft Delete and Undo
+  - Task: Implement soft delete and undo per PRD Section 5.6 and 6.2 (AT-118)
+  - Created src/assistant/services/soft_delete.py with SoftDeleteService class:
+    - DeletedAction dataclass: entity_type, entity_id, title, deleted_at, chat_id, message_id
+    - is_within_undo_window(): checks if deletion is within 30-day window
+    - DeleteResult dataclass: success, entity_id, entity_type, title, message, can_undo
+    - UndoResult dataclass: success, entity_id, entity_type, title, message
+    - SoftDeleteService class with per-chat deletion tracking:
+      - soft_delete(): calls NotionClient.soft_delete(), tracks for undo, logs action
+      - undo_last_delete(): restores last deleted item within 30-day window
+      - restore_by_id(): restores specific entity by ID
+      - _track_deletion(): maintains per-chat deletion history (max 50 items)
+      - _get_last_deleted(): returns most recent restorable item
+      - get_pending_deletes_count(): counts items that can still be undone
+    - Pattern matching functions:
+      - is_undo_command(): matches "undo", "restore", "bring back", "undelete", "recover"
+      - is_delete_command(): matches "delete that", "remove this", "forget it"
+    - Module-level singleton and convenience functions
+  - Updated src/assistant/services/__init__.py:
+    - Added all soft_delete exports (DeletedAction, DeleteResult, SoftDeleteService, etc.)
+  - Created tests/test_soft_delete.py (54 tests):
+    - TestDeletedAction (4): fresh within window, old outside window, at boundary, custom days
+    - TestSoftDeleteService (11): soft_delete success/failure, undo success/no_deletes/outside_window, multiple deletes LIFO order, per-chat isolation, restore_by_id, pending count, max limit
+    - TestPatternMatching (28): is_undo_command (14 cases), is_delete_command (14 cases)
+    - TestConvenienceFunctions (2): soft_delete function, undo function
+    - TestAT118Integration (2): full delete→undo flow, undo after 30 days fails
+  - AT-118 Verification:
+    - Given: Task "Buy groceries" exists
+    - When: User says "delete that"
+    - Then: Task.deleted_at set to current timestamp (soft_delete called)
+    - When: User says "undo" within 30 days
+    - Then: Task.deleted_at cleared, task visible again (undo_delete called)
+    - Undo after 30 days returns "Can't undo" message
+  - Commands: python3 -m pytest tests/test_soft_delete.py -v (54 passed)
+  - Full test suite: 807 tests (802 pass, 5 pre-existing timezone failures in test_entities.py)
+  - Commit: 9344e29

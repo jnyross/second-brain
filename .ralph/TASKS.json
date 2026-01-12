@@ -753,9 +753,9 @@
       "acceptance_tests": [
         "AT-118"
       ],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Created src/assistant/services/soft_delete.py with SoftDeleteService class. Features: 1) DeletedAction dataclass tracks deleted items per-chat with 30-day undo window, 2) soft_delete() sets deleted_at in Notion and tracks for undo, 3) undo_last_delete() restores last deleted item within window, 4) restore_by_id() restores specific entity, 5) is_delete_command() and is_undo_command() pattern matchers for 'delete that', 'remove this', 'undo', 'restore', etc. 6) Per-chat isolation with MAX_DELETED_ITEMS limit. Module-level singleton and convenience functions. Tests in tests/test_soft_delete.py (54 tests pass): TestDeletedAction (4), TestSoftDeleteService (11), TestPatternMatching (28), TestConvenienceFunctions (2), TestAT118Integration (2 - full delete/undo flow, 30-day window enforcement). Full suite: 807 tests (5 pre-existing timezone flakes).",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-116",

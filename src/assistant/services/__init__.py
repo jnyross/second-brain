@@ -51,6 +51,18 @@ from assistant.services.processor import MessageProcessor
 from assistant.services.projects import ProjectsService
 from assistant.services.relations import LinkedRelations, RelationLinker
 from assistant.services.router import ClassificationRouter, RoutingDecision
+from assistant.services.soft_delete import (
+    DeletedAction,
+    DeleteResult,
+    SoftDeleteService,
+    UndoResult,
+    get_soft_delete_service,
+    is_delete_command,
+    is_undo_command,
+    restore_by_id,
+    soft_delete,
+    undo_last_delete,
+)
 from assistant.services.whisper import WhisperTranscriber
 
 __all__ = [
@@ -115,4 +127,15 @@ __all__ = [
     "RoutingDecision",
     # Whisper
     "WhisperTranscriber",
+    # Soft Delete (T-115)
+    "DeletedAction",
+    "DeleteResult",
+    "SoftDeleteService",
+    "UndoResult",
+    "get_soft_delete_service",
+    "is_delete_command",
+    "is_undo_command",
+    "restore_by_id",
+    "soft_delete",
+    "undo_last_delete",
 ]
