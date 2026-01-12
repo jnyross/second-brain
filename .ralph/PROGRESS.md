@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phases 1-5 complete. T-200 (Dockerfile), T-201 (docker-compose.yml), T-202 (GitHub Actions CI) complete. Next: T-203 (GitHub Actions CD), T-204 (server setup script), or T-205 (health check script).
+- Status: Phase 0 complete. Phases 1-5 complete. T-200 (Dockerfile), T-201 (docker-compose.yml), T-202 (GitHub Actions CI), T-203 (GitHub Actions CD) complete. Next: T-204 (server setup script) or T-205 (health check script).
 
 ## Iteration Log
 
@@ -935,3 +935,52 @@
   - Commands: python3 -m pytest tests/test_ci_workflow.py -v (38 passed)
   - Full test suite: 1094 tests (all pass)
   - Commit: f8e0d29
+
+- Iteration 33 (T-203): GitHub Actions CD Pipeline
+  - Task: Set up CD pipeline for building Docker image, pushing to GHCR, and deploying to DigitalOcean per PRD 12.5
+  - PRD Compliance:
+    - PRD 12.5: "GitHub Actions - CD (cd.yml)" with build, push, deploy steps
+    - AT-204: "Given: Merge to main branch, When: CD runs, Then: Image pushed to GHCR, Container restarted"
+  - Created .github/workflows/cd.yml:
+    - Triggers: push to main, workflow_dispatch for manual deploys
+    - Concurrency: cancel-in-progress for same branch
+    - Jobs: ci-check, build, deploy, notify
+  - ci-check job:
+    - Uses lewagon/wait-on-check-action@v1.3.4 to wait for CI Success
+    - Ensures only tested code gets deployed
+  - build job:
+    - docker/setup-buildx-action@v3 for advanced build features
+    - docker/login-action@v3 to GHCR (ghcr.io)
+    - docker/metadata-action@v5 for image tags (latest + sha:short)
+    - docker/build-push-action@v5 with push:true, GHA cache, linux/amd64 platform
+    - Outputs image_digest for tracking
+    - permissions: packages:write for GHCR
+  - deploy job:
+    - appleboy/ssh-action@v1.0.3 for DigitalOcean deployment
+    - Uses secrets: DO_HOST, DO_USER, DO_SSH_KEY
+    - Script: docker compose pull → up -d → health check → image prune
+    - environment: production (enables GitHub deployment protection)
+  - notify job:
+    - runs always() regardless of previous job results
+    - Reports success or failure
+  - Created tests/test_cd_workflow.py (45 tests):
+    - TestCDWorkflowExists (3): file exists, valid YAML, has name
+    - TestCDWorkflowTriggers (3): main push, workflow_dispatch, no PR trigger
+    - TestCDWorkflowJobs (4): ci-check, build, deploy jobs, ubuntu-latest
+    - TestCICheckJob (2): waits for CI, checks CI Success
+    - TestBuildJob (8): depends on ci-check, checkout, login, build-push, push:true, dockerfile, packages permission, image digest output
+    - TestDeployJob (7): depends on build, ssh-action, secrets, pull, up, health check, environment
+    - TestConcurrencyConfig (2): config, cancel-in-progress
+    - TestAT204CDPipelineDeploys (3): triggers on main, pushes to GHCR, restarts container
+    - TestPRD125CDCompliance (4): checkout v4, login v3, build-push v5, ssh-action
+    - TestGitHubActionsSecurityBestPractices (3): no injection, pinned versions, no secret logging
+    - TestDockerBuildOptimizations (3): buildx, GHA cache, platform
+    - TestNotifyJob (3): exists, runs always, depends on build+deploy
+  - AT-204 Verification:
+    - Given: Merge to main branch (push trigger)
+    - When: CD runs (workflow executes)
+    - Then: Image pushed to GHCR (docker/build-push-action with push:true)
+    - And: Container restarted (docker compose pull && up -d)
+  - Commands: python3 -m pytest tests/test_cd_workflow.py -v (45 passed)
+  - Full test suite: 1139 tests (all pass)
+  - Commit: 8b6222a

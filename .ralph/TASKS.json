@@ -919,8 +919,8 @@
       "description": "CD pipeline for building Docker image, pushing to GHCR, and deploying to DigitalOcean.",
       "depends_on": ["T-200", "T-202"],
       "acceptance_tests": ["AT-204"],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created .github/workflows/cd.yml with ci-check, build, deploy, notify jobs per PRD 12.5. Features: CI gate (wait-on-check-action), Docker Buildx with GHA cache, GHCR push with SHA tagging, SSH deploy to DigitalOcean, health check, environment protection. Tests in tests/test_cd_workflow.py (45 tests pass). Full suite: 1139 tests pass.",
       "updated_at": "2026-01-12"
     },
     {
