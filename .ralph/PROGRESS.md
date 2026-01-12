@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phases 1-5 complete. Deployment tasks T-200 through T-206 complete. Next: T-103 (Playwright integration) or T-207 (systemd timers).
+- Status: Phase 0 complete. Phases 1-5 complete. Deployment tasks T-200 through T-206 complete. T-103 (Playwright research) complete. Next: T-104 (research formatter), T-111 (TIL summary), or T-207 (systemd timers).
 
 ## Iteration Log
 
@@ -1104,3 +1104,64 @@
   - Commands: python3 -m pytest tests/test_rollback.py -v (69 passed)
   - Full test suite: 1313 tests (all pass)
   - Commit: 11c5aa0
+
+- Iteration 37 (T-103): Playwright Research Integration
+  - Task: Integrate Playwright for research with screenshot evidence per PRD 4.10 and AT-112
+  - Created src/assistant/services/research.py with:
+    - ResearchSource dataclass: url, title, visited_at, screenshot_path, screenshot_base64, content_snippet
+    - ResearchResult dataclass: query, answer, sources, success, error_message, timing
+      - urls_visited property for audit logging
+      - has_screenshots property for evidence tracking
+      - to_log_dict() for structured logging
+    - PlaywrightResearcher class:
+      - Async browser automation via playwright.async_api
+      - _ensure_browser(): lazy browser initialization with error handling
+      - close(): proper cleanup of browser and playwright instances
+      - research(): general web research with URL search/visit
+      - research_cinema(): specialized for AT-112 cinema showtimes
+      - research_restaurant(): restaurant info lookup
+      - research_product(): product research
+      - _search_for_urls(): DuckDuckGo HTML search for URLs
+      - _visit_and_extract(): page visit with screenshot and content extraction
+      - _extract_relevant_content(): clean content from page
+      - _compile_answer(): combine content into answer
+      - _get_cinema_urls(): known cinema chain URLs (Everyman, Odeon, Vue, etc.)
+    - Module-level singleton pattern with get_researcher(), close_researcher()
+    - Convenience functions: research(), research_cinema()
+  - Updated src/assistant/services/audit.py:
+    - Added log_research() method for AT-112 URL logging
+    - ActionType.RESEARCH used for research actions
+    - Logs query, URLs visited, answer, success status
+  - Updated pyproject.toml:
+    - Added playwright>=1.40.0 to dependencies
+  - Updated src/assistant/services/__init__.py:
+    - Exported PlaywrightResearcher, ResearchResult, ResearchSource, ResearchError
+    - Exported get_researcher, close_researcher, research, research_cinema
+  - PRD 4.10 compliance:
+    - Navigate to websites: Playwright browser automation
+    - Extract information: content extraction with cleanup
+    - Take screenshots for evidence: screenshot_path + screenshot_base64
+    - All research logged with sources: to_log_dict() + log_research()
+    - Results summarized: _compile_answer() combines content
+  - Created tests/test_research.py (42 tests):
+    - TestResearchSource (2): minimal/full creation
+    - TestResearchResult (9): creation, urls_visited, has_screenshots, to_log_dict
+    - TestPlaywrightResearcherInit (3): default, custom options, screenshot dir
+    - TestCinemaUrls (5): known cinemas, case insensitive, unknown
+    - TestAnswerCompilation (4): with content, empty, whitespace, truncation
+    - TestResearcherWithMockBrowser (6): browser init, close, visit/extract, search, research
+    - TestAT112WebResearch (4): returns movies, logs URLs, captures screenshots, log dict format
+    - TestModuleFunctions (3): singleton, options, close
+    - TestErrorHandling (3): missing playwright, page errors, no URLs
+    - TestAuditLogging (2): log research action, log failure
+    - TestContextManager (1): async with support
+  - AT-112 Verification:
+    - Given: User asks "What's showing at Everyman this Friday?"
+    - When: Playwright browser automation available
+    - Then: Research performed (research_cinema → _visit_and_extract)
+    - And: Sources logged (urls_visited, to_log_dict, log_research)
+    - Pass condition: Response includes movie titles (content_snippet) AND Log entry includes URL visited (urls_visited)
+  - Commands: python3.12 -m pytest tests/test_research.py -v (42 passed)
+  - Linter: ruff check passed
+  - Type check: mypy --strict passed
+  - Commit: pending

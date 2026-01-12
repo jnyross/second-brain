@@ -86,6 +86,16 @@ from assistant.services.timezone import (
     reset_timezone_service,
     today,
 )
+from assistant.services.research import (
+    PlaywrightResearcher,
+    ResearchError,
+    ResearchResult,
+    ResearchSource,
+    close_researcher,
+    get_researcher,
+    research,
+    research_cinema,
+)
 from assistant.services.whisper import WhisperTranscriber
 
 __all__ = [
@@ -162,6 +172,15 @@ __all__ = [
     "RoutingDecision",
     # Whisper
     "WhisperTranscriber",
+    # Research (T-103)
+    "PlaywrightResearcher",
+    "ResearchError",
+    "ResearchResult",
+    "ResearchSource",
+    "close_researcher",
+    "get_researcher",
+    "research",
+    "research_cinema",
     # Soft Delete (T-115)
     "DeletedAction",
     "DeleteResult",

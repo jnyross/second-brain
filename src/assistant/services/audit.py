@@ -508,6 +508,43 @@ class AuditLogger:
             external_api="telegram",
         )
 
+    async def log_research(
+        self,
+        query: str,
+        urls_visited: list[str],
+        answer: str | None = None,
+        success: bool = True,
+        duration_seconds: float = 0.0,
+    ) -> AuditEntry:
+        """Log a research action.
+
+        AT-112: Sources logged with URL visited.
+
+        Args:
+            query: Research query
+            urls_visited: List of URLs visited during research
+            answer: Research answer/summary
+            success: Whether research was successful
+            duration_seconds: How long research took
+
+        Returns:
+            AuditEntry for the research
+        """
+        action_taken = f"Researched: {query}"
+        if urls_visited:
+            action_taken += f" (visited {len(urls_visited)} sources)"
+
+        return await self.log_action(
+            action_type=ActionType.RESEARCH,
+            input_text=query,
+            interpretation=answer[:500] if answer else None,
+            action_taken=action_taken,
+            external_api="playwright",
+            external_resource_id=urls_visited[0] if urls_visited else None,
+            error_code="research_failed" if not success else None,
+            error_message=None if success else "Research failed",
+        )
+
     async def log_error(
         self,
         error_code: str,

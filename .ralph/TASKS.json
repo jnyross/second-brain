@@ -646,9 +646,9 @@
       "acceptance_tests": [
         "AT-112"
       ],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Created src/assistant/services/research.py with PlaywrightResearcher class. Features: 1) async browser automation via Playwright, 2) research() method for general queries with URL search/visit, 3) research_cinema() for AT-112 cinema showtimes, 4) screenshot evidence (base64 + disk storage), 5) content extraction with source tracking, 6) ResearchResult/ResearchSource dataclasses with to_log_dict(), 7) log_research() method in audit.py for AT-112 URL logging. Added playwright>=1.40.0 to pyproject.toml. Updated services/__init__.py exports. Tests in tests/test_research.py (42 tests pass): TestResearchSource, TestResearchResult, TestPlaywrightResearcherInit, TestCinemaUrls, TestAnswerCompilation, TestResearcherWithMockBrowser, TestAT112WebResearch (4 tests verifying AT-112 pass condition), TestModuleFunctions, TestErrorHandling, TestAuditLogging, TestContextManager.",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-104",
