@@ -843,9 +843,9 @@
         "T-060"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Created src/assistant/services/nudges.py with NudgeService class. Features: 1) NudgeType enum (DUE_TODAY, DUE_TOMORROW, OVERDUE, HIGH_PRIORITY), 2) NudgeCandidate and NudgeReport dataclasses, 3) Time-windowed nudging (2pm for due today, 6pm for due tomorrow, 9am for overdue), 4) Deduplication via ~/.second-brain/nudges/sent.json (7-day cleanup), 5) format_nudge_message() creates 'Don't forget X' messages per PRD, 6) CLI command 'python -m assistant nudge'. Created deploy/systemd/second-brain-nudge.service and second-brain-nudge.timer (runs 9am, 2pm, 6pm with Persistent=true). Updated services/__init__.py exports. Tests in tests/test_nudges.py (49 tests pass). Full suite: 979 tests pass.",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-131",

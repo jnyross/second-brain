@@ -1,0 +1,47 @@
+# Systemd service unit for Second Brain proactive nudges
+# Sends "Don't forget X" reminders for upcoming tasks
+#
+# This is a oneshot service triggered by second-brain-nudge.timer
+# Checks for tasks due today/tomorrow and sends appropriate reminders
+
+[Unit]
+Description=Second Brain Proactive Nudges
+Documentation=https://github.com/your-org/second-brain
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=second-brain
+Group=second-brain
+
+# Working directory
+WorkingDirectory=/opt/second-brain
+
+# Run the nudge command
+ExecStart=/opt/second-brain/venv/bin/python -m assistant nudge
+
+# Environment file with API keys
+EnvironmentFile=/etc/second-brain.env
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=second-brain-nudge
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+ReadWritePaths=/var/lib/second-brain
+
+# Resource limits
+MemoryMax=256M
+CPUQuota=50%
+
+# Timeout (nudges should complete quickly)
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

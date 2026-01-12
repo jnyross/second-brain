@@ -76,6 +76,17 @@ from assistant.services.soft_delete import (
     undo_last_delete,
 )
 from assistant.services.whisper import WhisperTranscriber
+from assistant.services.nudges import (
+    NudgeCandidate,
+    NudgeReport,
+    NudgeResult,
+    NudgeService,
+    NudgeType,
+    format_nudge_message,
+    get_nudge_service,
+    get_pending_nudges,
+    run_nudges,
+)
 
 __all__ = [
     # Briefing
@@ -162,4 +173,14 @@ __all__ = [
     "restore_by_id",
     "soft_delete",
     "undo_last_delete",
+    # Nudges (T-130)
+    "NudgeCandidate",
+    "NudgeReport",
+    "NudgeResult",
+    "NudgeService",
+    "NudgeType",
+    "format_nudge_message",
+    "get_nudge_service",
+    "get_pending_nudges",
+    "run_nudges",
 ]

@@ -115,6 +115,46 @@ async def process_queue() -> None:
         print(f"\n{result.failed} items remain in queue for retry")
 
 
+async def send_nudges() -> None:
+    """Send proactive nudges for upcoming tasks (T-130)."""
+    from assistant.services.nudges import run_nudges
+
+    if not settings.has_telegram:
+        print("Error: TELEGRAM_BOT_TOKEN not configured")
+        sys.exit(1)
+
+    if not settings.user_telegram_chat_id:
+        print("Error: USER_TELEGRAM_CHAT_ID not configured")
+        sys.exit(1)
+
+    if not settings.has_notion:
+        print("Error: NOTION_API_KEY not configured")
+        sys.exit(1)
+
+    print("Checking for tasks to nudge...")
+
+    report = await run_nudges()
+
+    print("\nNudge results:")
+    print(f"  Candidates found: {report.candidates_found}")
+    print(f"  Nudges sent: {report.nudges_sent}")
+    print(f"  Skipped (already nudged): {report.nudges_skipped}")
+    print(f"  Failed: {report.nudges_failed}")
+
+    if report.results:
+        print("\nDetails:")
+        for result in report.results:
+            status = "Sent" if result.success else f"Failed: {result.error}"
+            print(f"  - [{result.nudge_type.value}] {status}")
+
+    if report.nudges_sent > 0:
+        print("\nNudges sent successfully!")
+    elif report.candidates_found == 0:
+        print("\nNo tasks need nudging right now.")
+    elif report.nudges_skipped == report.candidates_found:
+        print("\nAll candidates already nudged today.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Second Brain Personal Assistant")
     subparsers = parser.add_subparsers(dest="command", help="Commands")
@@ -123,6 +163,7 @@ def main() -> None:
     subparsers.add_parser("briefing", help="Send morning briefing")
     subparsers.add_parser("check", help="Check configuration")
     subparsers.add_parser("sync", help="Process offline queue")
+    subparsers.add_parser("nudge", help="Send proactive task reminders")
 
     args = parser.parse_args()
 
@@ -136,6 +177,8 @@ def main() -> None:
         asyncio.run(check_config())
     elif args.command == "sync":
         asyncio.run(process_queue())
+    elif args.command == "nudge":
+        asyncio.run(send_nudges())
     else:
         parser.print_help()
 

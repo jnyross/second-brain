@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-093 complete (Phase 4 Briefings + Phase 5 corrections/patterns fully complete). T-100 through T-102 complete (Google Calendar). T-110 complete (Audit logging). T-114 complete (Offline queue). T-115 complete (Soft delete). T-116 complete (Timezone handling). All P1 tasks done. T-120 complete (Gmail read integration). T-121 complete (Gmail draft creation). Next: T-130 (Proactive nudges) or other P2 tasks.
+- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-093 complete (Phase 4 Briefings + Phase 5 corrections/patterns fully complete). T-100 through T-102 complete (Google Calendar). T-110 complete (Audit logging). T-114 complete (Offline queue). T-115 complete (Soft delete). T-116 complete (Timezone handling). All P1 tasks done. T-120 complete (Gmail read integration). T-121 complete (Gmail draft creation). T-130 complete (Proactive nudges). Next: P2 tasks (T-131 always-on listening, T-140 WhatsApp) or review remaining P1 incomplete tasks.
 
 ## Iteration Log
 
@@ -794,3 +794,45 @@
   - Commands: python3 -m pytest tests/test_gmail.py -v (57 passed)
   - Full test suite: 930 tests (all pass)
   - Commit: 55a83c5
+
+- Iteration 29 (T-130): Proactive nudges
+  - Task: Implement "Don't forget X" proactive reminders per PRD 2.2 ("Tap on Shoulder")
+  - PRD Context: "Push relevant info at right time" - Morning briefing handles daily overview, nudges handle timely reminders throughout the day
+  - Created src/assistant/services/nudges.py with NudgeService class:
+    - NudgeType enum: DUE_TODAY (2pm-8pm), DUE_TOMORROW (6pm-9pm), OVERDUE (9am-8pm), HIGH_PRIORITY (broad window)
+    - NudgeCandidate dataclass: task_id, title, due_date, priority, nudge_type, days_overdue
+    - NudgeReport/NudgeResult: tracking for send success/failure/skipped
+    - Time-windowed nudging: 2pm for due today, 6pm for due tomorrow, 9am for overdue
+    - Deduplication via ~/.second-brain/nudges/sent.json (7-day automatic cleanup)
+    - format_nudge_message(): creates "Don't forget X is due today", "Heads up: X is due tomorrow", "Overdue: X was due yesterday"
+    - High priority tasks get upgraded to HIGH_PRIORITY type with broader windows
+    - get_nudge_candidates(): queries Notion for tasks due today/tomorrow/overdue
+    - filter_candidates(): applies time windows and deduplication
+    - send_nudges(): sends via Telegram, marks as sent
+    - run(): complete cycle with Notion client cleanup
+  - Updated src/assistant/cli.py:
+    - Added send_nudges() async function
+    - Added "nudge" subcommand: "Send proactive task reminders"
+  - Updated src/assistant/services/__init__.py:
+    - Exported: NudgeCandidate, NudgeReport, NudgeResult, NudgeService, NudgeType, format_nudge_message, get_nudge_service, get_pending_nudges, run_nudges
+  - Created deploy/systemd/second-brain-nudge.service:
+    - Oneshot service running "python -m assistant nudge"
+    - Security hardening: NoNewPrivileges, ProtectSystem, PrivateTmp
+  - Created deploy/systemd/second-brain-nudge.timer:
+    - OnCalendar=*-*-* 09:00:00 (overdue check)
+    - OnCalendar=*-*-* 14:00:00 (due today reminders)
+    - OnCalendar=*-*-* 18:00:00 (due tomorrow heads-up)
+    - Persistent=true for missed runs
+  - Created tests/test_nudges.py (49 tests):
+    - TestNudgeCandidate, TestNudgeReport, TestNudgeResult: dataclass tests
+    - TestNudgeWindows: time window validation (10 tests)
+    - TestNudgeTracking: deduplication save/load/has_been_nudged (6 tests)
+    - TestFormatNudgeMessage: message formatting (6 tests)
+    - TestNudgeService: candidates, filtering, sending, run cycle (8 tests)
+    - TestModuleLevelFunctions: convenience functions (2 tests)
+    - TestSystemdFiles: service/timer validation (6 tests)
+    - TestCLIIntegration: CLI command test (1 test)
+    - TestT130PRDRequirements: PRD compliance (4 tests)
+  - Commands: python3 -m pytest tests/test_nudges.py -v (49 passed)
+  - Full test suite: 979 tests (all pass)
+  - Commit: 701d87a

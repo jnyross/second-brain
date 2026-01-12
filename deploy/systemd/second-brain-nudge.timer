@@ -1,0 +1,41 @@
+# Systemd timer unit for Second Brain proactive nudges
+# Runs multiple times per day to catch different nudge windows:
+# - 9:00 AM: Check for overdue tasks
+# - 2:00 PM: "Don't forget" for tasks due today
+# - 6:00 PM: Heads up for tasks due tomorrow
+#
+# Installation:
+#   1. Copy to /etc/systemd/system/
+#   2. sudo systemctl daemon-reload
+#   3. sudo systemctl enable --now second-brain-nudge.timer
+#
+# Check timer status:
+#   systemctl list-timers second-brain-nudge.timer
+#
+# Force immediate run:
+#   sudo systemctl start second-brain-nudge.service
+
+[Unit]
+Description=Second Brain Proactive Nudge Timer
+Documentation=https://github.com/your-org/second-brain
+
+[Timer]
+# Run at 9am (overdue check), 2pm (due today), 6pm (due tomorrow)
+OnCalendar=*-*-* 09:00:00
+OnCalendar=*-*-* 14:00:00
+OnCalendar=*-*-* 18:00:00
+
+# Add randomized delay up to 5 minutes to avoid exact timing
+RandomizedDelaySec=300
+
+# If the timer was missed (system was off), run when it comes back online
+Persistent=true
+
+# Accuracy - wake up within 1 minute of scheduled time
+AccuracySec=1min
+
+# The service to trigger
+Unit=second-brain-nudge.service
+
+[Install]
+WantedBy=timers.target
