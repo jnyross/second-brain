@@ -799,9 +799,9 @@
         "T-100"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Created src/assistant/google/gmail.py with GmailClient class. Features: 1) list_emails() queries Gmail API with label filtering, 2) list_unread() filters by is:unread and since_hours, 3) list_needing_response() uses regex patterns (questions, 'please send', 'action required', etc.) to detect emails requiring response, 4) EmailMessage dataclass with message_id, thread_id, subject, sender_name/email, snippet, received_at, is_read, needs_response, priority (high/normal/low), has_attachments, 5) Priority detection via IMPORTANT label and urgent keywords, 6) Promotional/social email filtering via SKIP_LABELS (CATEGORY_PROMOTIONS, etc.). Updated BriefingGenerator: gmail_client parameter, _generate_email_section() queries list_needing_response(), _format_email_section() formats per PRD 5.2 (\u201c\ud83d\udce7 EMAIL (N need attention)\u201d), _format_time_ago() for relative timestamps. Updated google/__init__.py with Gmail exports. Tests in tests/test_gmail.py (33 tests pass): TestEmailMessage, TestEmailListResult, TestGmailClient (auth, patterns, priority, parsing), TestGmailClientAsync (list, filter, unread, needing_response, get), TestGmailModuleFunctions, TestBriefingEmailIntegration (4 tests verifying PRD 5.2 format). Full suite: 906 tests pass.",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-121",

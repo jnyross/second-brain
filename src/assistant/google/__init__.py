@@ -15,6 +15,17 @@ from assistant.google.calendar import (
     DEFAULT_EVENT_DURATION_MINUTES,
     UNDO_WINDOW_MINUTES,
 )
+from assistant.google.gmail import (
+    GmailClient,
+    EmailMessage,
+    EmailListResult,
+    get_gmail_client,
+    list_emails,
+    list_unread_emails,
+    list_emails_needing_response,
+    get_email_by_id,
+    DEFAULT_EMAIL_LIMIT,
+)
 
 __all__ = [
     "MapsClient",
@@ -36,4 +47,13 @@ __all__ = [
     "list_todays_events",
     "DEFAULT_EVENT_DURATION_MINUTES",
     "UNDO_WINDOW_MINUTES",
+    "GmailClient",
+    "EmailMessage",
+    "EmailListResult",
+    "get_gmail_client",
+    "list_emails",
+    "list_unread_emails",
+    "list_emails_needing_response",
+    "get_email_by_id",
+    "DEFAULT_EMAIL_LIMIT",
 ]

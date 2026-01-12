@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-093 complete (Phase 4 Briefings + Phase 5 corrections/patterns fully complete). T-100 through T-102 complete (Google Calendar). T-110 complete (Audit logging). T-114 complete (Offline queue). T-115 complete (Soft delete). T-116 complete (Timezone handling). All P1 tasks done. Next: T-120 (Gmail read integration).
+- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-093 complete (Phase 4 Briefings + Phase 5 corrections/patterns fully complete). T-100 through T-102 complete (Google Calendar). T-110 complete (Audit logging). T-114 complete (Offline queue). T-115 complete (Soft delete). T-116 complete (Timezone handling). All P1 tasks done. T-120 complete (Gmail read integration). Next: T-121 (Gmail draft creation) or other P2 tasks.
 
 ## Iteration Log
 
@@ -730,3 +730,41 @@
   - Commands: python3 -m pytest tests/test_timezone.py tests/test_entities.py -v (all passed)
   - Full test suite: 873 tests (all pass, fixed 5 pre-existing timezone failures)
   - Commit: 5dba2b0
+- Iteration 42 (T-120) - Gmail Read Integration
+  - Task: Implement Gmail read integration per PRD Section 4.5 for morning briefings
+  - Created src/assistant/google/gmail.py with GmailClient class:
+    - EmailMessage dataclass: message_id, thread_id, subject, sender_name/email, snippet, 
+      received_at, is_read, labels, needs_response, priority (high/normal/low), has_attachments
+    - EmailListResult dataclass: success, emails list, error, total_count
+    - GmailClient class:
+      - service property: lazy Gmail API client initialization with OAuth
+      - is_authenticated(): checks for valid credentials
+      - list_emails(): query Gmail with label/query filters, promotional filtering via SKIP_LABELS
+      - list_unread(): filter by is:unread and since_hours
+      - list_needing_response(): uses ACTION_PATTERNS regex to detect emails requiring response
+        (questions, "please send", "waiting for your response", "action required", etc.)
+      - get_email(): single email by ID
+      - _parse_message(): converts Gmail API response to EmailMessage
+      - _parse_date(): email date header parsing with fallback
+      - _has_attachments(): recursive payload inspection
+      - _needs_response(): regex pattern matching
+      - _determine_priority(): IMPORTANT label, urgent keywords detection
+    - Module-level singleton and convenience functions
+  - Updated src/assistant/google/__init__.py:
+    - Added Gmail exports: GmailClient, EmailMessage, EmailListResult, get_gmail_client,
+      list_emails, list_unread_emails, list_emails_needing_response, get_email_by_id
+  - Updated src/assistant/services/briefing.py:
+    - Added gmail_client parameter to BriefingGenerator.__init__()
+    - Implemented _generate_email_section(): queries list_needing_response(max_results=5, since_hours=48)
+    - Added _format_email_section(): formats per PRD 5.2 ("📧 EMAIL (N need attention)")
+    - Added _format_time_ago(): relative timestamp formatting ("2 hours ago", "1 day ago")
+  - Created tests/test_gmail.py (33 tests):
+    - TestEmailMessage: creation, defaults
+    - TestEmailListResult: success/error results
+    - TestGmailClient: auth, needs_response patterns, priority, date parsing, attachments, message parsing
+    - TestGmailClientAsync: list_emails, filters, unread, needing_response, get_email
+    - TestGmailModuleFunctions: singleton, convenience functions
+    - TestBriefingEmailIntegration: email section no gmail, no emails, with emails, time formatting
+  - Commands: python3 -m pytest tests/test_gmail.py -v (33 passed)
+  - Full test suite: 906 tests (all pass)
+  - Commit: pending

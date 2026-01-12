@@ -16,6 +16,7 @@ import pytz
 from assistant.config import settings
 from assistant.notion import NotionClient
 from assistant.google.calendar import CalendarClient, CalendarEvent, get_calendar_client
+from assistant.google.gmail import GmailClient, EmailMessage, get_gmail_client
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class BriefingGenerator:
         self,
         notion_client: NotionClient | None = None,
         calendar_client: CalendarClient | None = None,
+        gmail_client: GmailClient | None = None,
     ):
         """Initialize briefing generator.
 
@@ -43,11 +45,14 @@ class BriefingGenerator:
                            creates one if Notion is configured.
             calendar_client: Optional CalendarClient instance. If not provided,
                              uses the global singleton if Google OAuth is configured.
+            gmail_client: Optional GmailClient instance. If not provided,
+                          uses the global singleton if Google OAuth is configured.
         """
         self.notion = notion_client if notion_client is not None else (
             NotionClient() if settings.has_notion else None
         )
         self.calendar = calendar_client if calendar_client is not None else get_calendar_client()
+        self.gmail = gmail_client if gmail_client is not None else get_gmail_client()
         self.timezone = pytz.timezone(settings.user_timezone)
 
     async def generate_morning_briefing(self) -> str:
@@ -192,15 +197,109 @@ class BriefingGenerator:
         return "\n".join(lines)
 
     async def _generate_email_section(self) -> str | None:
-        """Generate email section.
+        """Generate email section with emails needing attention.
+
+        Per PRD Section 4.5 and 5.2:
+        - Shows emails needing attention (unread, action-needed)
+        - Format: sender, subject, time ago, action indicator
 
         Returns:
-            Formatted email section or None if not available.
-            Currently returns None as Gmail integration (T-120) is pending.
+            Formatted email section or None if not available or no emails.
         """
-        # TODO: Implement when Gmail integration is complete (T-120)
-        # This will query Gmail for emails needing attention
-        return None
+        if not self.gmail or not self.gmail.is_authenticated():
+            logger.debug("Gmail not authenticated - skipping email section")
+            return None
+
+        try:
+            # Get emails needing response from last 48 hours
+            result = await self.gmail.list_needing_response(max_results=5, since_hours=48)
+
+            if not result.success:
+                logger.warning(f"Failed to fetch emails: {result.error}")
+                return None
+
+            if not result.emails:
+                return None
+
+            return self._format_email_section(result.emails)
+
+        except Exception as e:
+            logger.exception(f"Failed to fetch emails for briefing: {e}")
+            return None
+
+    def _format_email_section(self, emails: list[EmailMessage]) -> str | None:
+        """Format emails for the briefing.
+
+        Args:
+            emails: List of EmailMessage objects needing attention
+
+        Returns:
+            Formatted email section string or None if no emails
+        """
+        if not emails:
+            return None
+
+        lines = [f"📧 **EMAIL** ({len(emails)} need attention)"]
+
+        now = datetime.now(self.timezone)
+
+        for email in emails[:5]:  # Limit to 5 emails
+            # Format time ago
+            time_ago = self._format_time_ago(email.received_at, now)
+
+            # Build email line
+            # Format: sender (context) - "subject snippet" - time ago
+            subject_preview = email.subject[:40] + "..." if len(email.subject) > 40 else email.subject
+
+            # Priority indicator
+            priority_marker = ""
+            if email.priority == "high":
+                priority_marker = " (urgent)"
+            elif email.needs_response:
+                priority_marker = " - needs response"
+
+            line = f"• {email.sender_name}{priority_marker} - \"{subject_preview}\" - {time_ago}"
+            lines.append(line)
+
+        lines.append("")
+        return "\n".join(lines)
+
+    def _format_time_ago(self, timestamp: datetime, now: datetime) -> str:
+        """Format a timestamp as relative time (e.g., '2 hours ago').
+
+        Args:
+            timestamp: The past timestamp
+            now: Current time
+
+        Returns:
+            Human-readable relative time string
+        """
+        # Ensure both are timezone-aware for comparison
+        if timestamp.tzinfo is None:
+            timestamp = self.timezone.localize(timestamp)
+        if now.tzinfo is None:
+            now = self.timezone.localize(now)
+
+        delta = now - timestamp
+
+        if delta.days > 0:
+            if delta.days == 1:
+                return "1 day ago"
+            return f"{delta.days} days ago"
+
+        hours = delta.seconds // 3600
+        if hours > 0:
+            if hours == 1:
+                return "1 hour ago"
+            return f"{hours} hours ago"
+
+        minutes = delta.seconds // 60
+        if minutes > 0:
+            if minutes == 1:
+                return "1 minute ago"
+            return f"{minutes} minutes ago"
+
+        return "just now"
 
     async def _get_tasks_due_today(
         self,
