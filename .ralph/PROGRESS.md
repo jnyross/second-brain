@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 (Morning briefing generator) and T-081 (Scheduled briefing sender) complete. Next: T-082 (/debrief command).
+- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080, T-081, T-082 complete. Next: T-083 (Interactive clarification flow).
 
 ## Iteration Log
 
@@ -274,4 +274,28 @@
     - TestAT106: Acceptance test for morning briefing delivery
   - Commands: PYTHONPATH=src python -m pytest tests/test_scheduled_briefing.py -v (27 passed)
   - Full test suite: 387 tests pass (5 pre-existing flaky timezone tests)
+  - Commit: pending
+- Iteration 29 (T-082) - /debrief Command with FSM
+  - Created src/assistant/telegram/debrief.py with FSM-based interactive /debrief command
+  - DebriefStates FSM: reviewing (showing item), awaiting_clarification (waiting for user input)
+  - cmd_debrief: Queries unclear items via ClarificationService, stores in FSM state, shows first item
+  - handle_debrief_response: Processes user input (clarification text, 'skip', 'done')
+    - Clarification text → creates task via ClarificationService.create_task_from_item()
+    - 'skip' → dismisses item via ClarificationService.dismiss_item()
+    - 'done' → ends session early with summary
+  - Helper functions: _advance_to_next_item, _end_debrief_session, _format_item_for_review
+  - Item serialization: _item_to_dict, _dict_to_item for FSM storage
+  - Updated handlers.py: setup_handlers includes debrief router first (FSM needs priority)
+  - Removed cmd_debrief stub from handlers.py (now in debrief.py)
+  - Updated tests/test_handlers.py: Fixed imports, updated setup_handlers test for 2 routers
+  - Added tests/test_debrief.py (21 tests):
+    - TestDebriefCommand: no items, starts session, multiple items
+    - TestDebriefResponse: done, skip, clarification, last item, empty response, error handling
+    - TestFormatItemForReview: basic formatting, voice indicator, interpretation, instructions
+    - TestItemSerialization: to_dict, from_dict, roundtrip
+    - TestEndDebriefSession: summary, remaining count, celebration
+    - TestSetupHandlers: router inclusion
+    - TestAT107: Full acceptance test for interactive debrief flow
+  - Commands: PYTHONPATH=src python -m pytest tests/test_debrief.py tests/test_handlers.py -v (39 passed)
+  - Full test suite: 407 tests pass (5 pre-existing flaky timezone tests)
   - Commit: pending

@@ -12,22 +12,23 @@ from assistant.telegram.handlers import (
     cmd_help,
     cmd_today,
     cmd_status,
-    cmd_debrief,
     handle_voice,
     handle_text,
     _process_voice_transcription,
 )
+# Note: cmd_debrief moved to assistant.telegram.debrief module
 from assistant.services.whisper import TranscriptionResult, TranscriptionError
 
 
 class TestSetupHandlers:
     """Tests for handler setup."""
 
-    def test_setup_handlers_includes_router(self):
-        """setup_handlers should include router in dispatcher."""
+    def test_setup_handlers_includes_routers(self):
+        """setup_handlers should include both main and debrief routers."""
         mock_dp = MagicMock()
         setup_handlers(mock_dp)
-        mock_dp.include_router.assert_called_once_with(router)
+        # Should include both debrief router and main router
+        assert mock_dp.include_router.call_count == 2
 
 
 class TestGetTranscriber:
@@ -107,15 +108,8 @@ class TestCommandHandlers:
         call_args = message.answer.call_args[0][0]
         assert "status" in call_args.lower() or "task" in call_args.lower()
 
-    @pytest.mark.asyncio
-    async def test_cmd_debrief(self):
-        """Debrief command should respond."""
-        message = AsyncMock()
-        await cmd_debrief(message)
-
-        message.answer.assert_called_once()
-        call_args = message.answer.call_args[0][0]
-        assert "debrief" in call_args.lower() or "inbox" in call_args.lower()
+    # Note: test_cmd_debrief moved to tests/test_debrief.py
+    # The /debrief command now uses FSM for interactive flow
 
 
 class TestTextHandler:

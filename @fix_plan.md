@@ -1,6 +1,6 @@
 # @fix_plan.md — Priority Task List
 
-**Last updated:** 2026-01-11
+**Last updated:** 2026-01-12
 **Source:** .ralph/TASKS.json
 
 This file tracks the prioritized work items for Ralph autonomous loops. Update as tasks complete.
@@ -33,7 +33,7 @@ This file tracks the prioritized work items for Ralph autonomous loops. Update a
 
 - [x] T-080: Implement morning briefing generator
 - [x] T-081: Create scheduled briefing sender
-- [ ] T-082: Implement /debrief command
+- [x] T-082: Implement /debrief command
 - [ ] T-083: Build interactive clarification flow
 - [ ] T-090: Implement correction handler
 - [ ] T-091: Build pattern detection

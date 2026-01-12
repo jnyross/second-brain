@@ -42,6 +42,12 @@ def get_transcriber() -> WhisperTranscriber:
 
 def setup_handlers(dp) -> None:
     """Set up message handlers on the dispatcher."""
+    # Import debrief router for FSM-based /debrief command
+    from assistant.telegram.debrief import router as debrief_router
+
+    # Include debrief router first (needs to handle /debrief before other text handlers)
+    dp.include_router(debrief_router)
+    # Include main router
     dp.include_router(router)
 
 
@@ -99,14 +105,7 @@ async def cmd_status(message: Message) -> None:
     )
 
 
-@router.message(Command("debrief"))
-async def cmd_debrief(message: Message) -> None:
-    """Handle /debrief command - review unclear items."""
-    # TODO: Implement interactive clarification flow
-    await message.answer(
-        "Debrief feature coming soon.\n"
-        "For now, check your Notion Inbox database for items needing clarification."
-    )
+# Note: /debrief command is handled by debrief.py module with FSM support
 
 
 # === Message Handlers ===

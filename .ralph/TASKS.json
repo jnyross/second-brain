@@ -514,9 +514,9 @@
       "acceptance_tests": [
         "AT-107"
       ],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Created src/assistant/telegram/debrief.py with FSM-based interactive /debrief command. Features: DebriefStates (reviewing, awaiting_clarification), cmd_debrief starts session listing items, handle_debrief_response processes clarifications/skips/done. Uses ClarificationService to create tasks from clarified items and dismiss skipped items. Updated handlers.py to include debrief router. Tests in tests/test_debrief.py (21 tests pass) including TestAT107 acceptance test verifying full debrief flow.",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-083",
