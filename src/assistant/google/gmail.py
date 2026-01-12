@@ -229,7 +229,8 @@ class GmailClient:
                 else:
                     kwargs["labelIds"] = ["INBOX"]
 
-                return cast(dict[str, Any], self.service.users().messages().list(**kwargs).execute())
+                response = self.service.users().messages().list(**kwargs).execute()
+                return cast(dict[str, Any], response)
 
             result = await loop.run_in_executor(None, do_list)
 
@@ -285,12 +286,15 @@ class GmailClient:
             loop = asyncio.get_event_loop()
 
             def do_get() -> dict[str, Any]:
-                return cast(dict[str, Any], (
-                    self.service.users()
-                    .messages()
-                    .get(userId="me", id=message_id, format="metadata")
-                    .execute()
-                ))
+                return cast(
+                    dict[str, Any],
+                    (
+                        self.service.users()
+                        .messages()
+                        .get(userId="me", id=message_id, format="metadata")
+                        .execute()
+                    ),
+                )
 
             msg = await loop.run_in_executor(None, do_get)
             return self._parse_message(msg)
@@ -592,7 +596,10 @@ class GmailClient:
                 draft_body["message"]["threadId"] = thread_id
 
             def do_create() -> dict[str, Any]:
-                return cast(dict[str, Any], self.service.users().drafts().create(userId="me", body=draft_body).execute())
+                response = (
+                    self.service.users().drafts().create(userId="me", body=draft_body).execute()
+                )
+                return cast(dict[str, Any], response)
 
             result = await loop.run_in_executor(None, do_create)
 
@@ -653,12 +660,15 @@ class GmailClient:
             loop = asyncio.get_event_loop()
 
             def do_get() -> dict[str, Any]:
-                return cast(dict[str, Any], (
-                    self.service.users()
-                    .drafts()
-                    .get(userId="me", id=draft_id, format="full")
-                    .execute()
-                ))
+                return cast(
+                    dict[str, Any],
+                    (
+                        self.service.users()
+                        .drafts()
+                        .get(userId="me", id=draft_id, format="full")
+                        .execute()
+                    ),
+                )
 
             result = await loop.run_in_executor(None, do_get)
 
@@ -736,9 +746,15 @@ class GmailClient:
             loop = asyncio.get_event_loop()
 
             def do_send() -> dict[str, Any]:
-                return cast(dict[str, Any], (
-                    self.service.users().drafts().send(userId="me", body={"id": draft_id}).execute()
-                ))
+                return cast(
+                    dict[str, Any],
+                    (
+                        self.service.users()
+                        .drafts()
+                        .send(userId="me", body={"id": draft_id})
+                        .execute()
+                    ),
+                )
 
             result = await loop.run_in_executor(None, do_send)
 
@@ -863,7 +879,10 @@ class GmailClient:
                 send_body["threadId"] = thread_id
 
             def do_send() -> dict[str, Any]:
-                return cast(dict[str, Any], self.service.users().messages().send(userId="me", body=send_body).execute())
+                response = (
+                    self.service.users().messages().send(userId="me", body=send_body).execute()
+                )
+                return cast(dict[str, Any], response)
 
             result = await loop.run_in_executor(None, do_send)
 

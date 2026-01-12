@@ -414,18 +414,21 @@ class CalendarClient:
 
             # Build the request
             def do_list() -> dict[str, Any]:
-                return cast(dict[str, Any], (
-                    self.service.events()
-                    .list(
-                        calendarId=calendar_id,
-                        timeMin=start_time.isoformat(),
-                        timeMax=end_time.isoformat(),
-                        maxResults=max_results,
-                        singleEvents=True,  # Expand recurring events
-                        orderBy="startTime",
-                    )
-                    .execute()
-                ))
+                return cast(
+                    dict[str, Any],
+                    (
+                        self.service.events()
+                        .list(
+                            calendarId=calendar_id,
+                            timeMin=start_time.isoformat(),
+                            timeMax=end_time.isoformat(),
+                            maxResults=max_results,
+                            singleEvents=True,  # Expand recurring events
+                            orderBy="startTime",
+                        )
+                        .execute()
+                    ),
+                )
 
             result = await loop.run_in_executor(None, do_list)
 

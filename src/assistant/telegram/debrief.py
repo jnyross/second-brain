@@ -18,7 +18,6 @@ Uses aiogram FSM (Finite State Machine) for multi-turn conversation flow.
 import logging
 import re
 from datetime import datetime
-from typing import Any
 
 from aiogram import Dispatcher, F, Router
 from aiogram.filters import Command
