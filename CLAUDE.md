@@ -146,3 +146,18 @@ This project uses the Ralph Loop contract (`Prompt.md`) for autonomous developme
 - Test file pattern: `test_*.py`
 - Parser tests freeze timezone to `America/Los_Angeles` for determinism
 - Notion client tests should mock httpx responses
+
+## Workflow Requirements
+
+**Push after each iteration**: After completing any significant work (feature, bug fix, refactor), always commit and push changes to GitHub. This ensures:
+- Work is backed up continuously
+- Progress is visible in the commit history
+- Deployments can be triggered from the latest code
+- Collaboration is enabled if needed
+
+```bash
+# Typical workflow after completing a task
+git add .
+git commit -m "feat/fix/refactor: Description of changes"
+git push origin main
+```
