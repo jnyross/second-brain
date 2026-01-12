@@ -1220,3 +1220,73 @@
   - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_briefing.py -v (76 passed)
   - Full test suite: 1428 tests (all pass)
   - Commit: pending
+- Iteration 49 (T-112) - Create /status command
+  - Task: Show pending tasks and flagged items
+  - Fixed hygiene gate: resolved 32 ruff lint errors (E501, F841, N806) before starting feature work
+  - Updated src/assistant/telegram/handlers.py:
+    - Implemented cmd_status() with _generate_status_message() async helper
+    - Added _extract_task_prop(): extracts title/due_date/priority/status from Notion task
+    - Added _extract_inbox_prop(): extracts raw_input from Notion inbox item
+    - Added _format_due_brief(): formats due dates as today/tomorrow/Nd overdue/day name/Mon DD
+  - Features:
+    - Queries Notion for pending tasks (status=todo/doing) and flagged items (needs_clarification=true)
+    - Formats sections: 🔄 IN PROGRESS, 📋 PENDING TASKS, ⚠️ NEEDS CLARIFICATION
+    - Priority indicators: 🔴 for high/urgent priority tasks
+    - Due date formatting: today, tomorrow, Nd overdue, day name (within week), Mon DD
+    - Summary footer: 📊 Total: N tasks, N flagged with /debrief hint
+    - Empty state: ✨ All clear! message when no items
+  - Added tests in tests/test_handlers.py (20 new tests):
+    - TestCommandHandlers: cmd_status_with_tasks_and_flagged, cmd_status_handles_error
+    - TestStatusHelpers (12 tests): extract_task_prop_*, extract_inbox_prop_*, format_due_brief_*
+    - TestGenerateStatusMessage (6 tests): all_clear, doing_tasks, todo_tasks, high_priority, flagged_items, summary
+  - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_handlers.py -v (38 passed)
+  - Full test suite: 1448 tests (all pass)
+  - Commit: pending
+- Iteration 50 (T-113) - Create /today command
+  - Task: Show today's schedule and due tasks
+  - Updated src/assistant/telegram/handlers.py:
+    - Implemented cmd_today() with _generate_today_message() async helper
+    - Added _format_event_time(): formats event times (All day, HH:MM-HH:MM, HH:MM)
+    - Updated imports: datetime, UTC at module level
+  - Features:
+    - Queries Google Calendar via list_todays_events() from T-102
+    - Queries Notion for today's due tasks (due_before/due_after with exclude_statuses)
+    - Date header: 📆 **Monday, January 12**
+    - Sections: 📅 TODAY'S SCHEDULE, ✅ DUE TODAY
+    - Event time formatting: All day (midnight-midnight), HH:MM-HH:MM (range), HH:MM (no duration)
+    - Location display: @ Location after event title
+    - Priority indicators: 🔴 for high/urgent tasks
+    - Empty state: ✨ Nothing scheduled! with friendly message
+    - Calendar errors handled gracefully (continues with tasks)
+  - Added tests in tests/test_handlers.py (11 new tests):
+    - TestCommandHandlers: cmd_today_with_events_and_tasks, cmd_today_handles_error
+    - TestTodayHelpers (4 tests): format_event_time_normal, _all_day, _same_time, _midnight_start_not_all_day
+    - TestGenerateTodayMessage (5 tests): nothing_scheduled, with_calendar_events, with_due_tasks, with_high_priority_task, shows_date_header
+  - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_handlers.py -v (48 passed)
+  - Full test suite: 1458 tests (all pass)
+  - Commit: pending
+- Iteration 51 (T-117) - Implement Whisper confidence handling (AT-120)
+  - Task: Flag low-confidence transcriptions for review with audio reference
+  - Updated src/assistant/services/processor.py:
+    - Extended process() to accept voice_file_id, transcript_confidence, language parameters
+    - Added force_low_confidence logic: if transcript_confidence < 80, always flag for review
+    - Updated _handle_low_confidence() to include voice metadata in InboxItem:
+      - source=TELEGRAM_VOICE (vs TELEGRAM_TEXT for text messages)
+      - transcript_confidence field populated
+      - voice_file_id field populated
+      - language field populated
+  - Updated src/assistant/telegram/handlers.py:
+    - _process_voice_transcription() now passes voice metadata to processor.process()
+    - voice_file_id, transcript_confidence, language passed for all voice messages
+  - AT-120 Verification:
+    - Given: Voice memo with low confidence (e.g., background noise)
+    - When: Whisper returns transcript with confidence < 80%
+    - Then: Inbox item created with needs_clarification=true
+    - And: transcript_confidence field populated with Whisper's confidence score
+    - And: Voice file reference stored in voice_file_id field
+  - Added tests in tests/test_handlers.py:
+    - TestT117WhisperConfidenceHandling (2 tests): voice_metadata_passed_to_processor, low_confidence_passes_metadata
+    - TestAT120WhisperLowConfidence (3 tests): low_confidence_creates_flagged_inbox_item, high_confidence_processes_normally, borderline_confidence_flags
+  - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_handlers.py -v (53 passed)
+  - Full test suite: 1463 tests (all pass)
+  - Commit: pending

@@ -162,7 +162,8 @@ class MapsClient:
                 f"{MAPS_BASE_URL}/place/details/json",
                 params={
                     "place_id": place_id,
-                    "fields": "name,formatted_address,geometry,formatted_phone_number,website,types",
+                    "fields": "name,formatted_address,geometry,"
+                    "formatted_phone_number,website,types",
                     "key": self.api_key,
                 },
             )

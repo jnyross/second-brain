@@ -705,9 +705,9 @@
         "T-060"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Implemented /status command in handlers.py. Features: query Notion for pending tasks (todo/doing status), flagged inbox items (needs_clarification=true), format with sections (IN PROGRESS, PENDING TASKS, NEEDS CLARIFICATION), show priority indicators (🔴 for high/urgent), due date formatting (today/tomorrow/overdue/day name/Mon DD). Tests in test_handlers.py (38 tests pass): TestCommandHandlers (cmd_status_with_tasks_and_flagged, cmd_status_handles_error), TestStatusHelpers (12 tests for _extract_task_prop, _extract_inbox_prop, _format_due_brief), TestGenerateStatusMessage (6 tests for all_clear, doing_tasks, todo_tasks, high_priority, flagged_items, summary).",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-113",
@@ -720,9 +720,9 @@
         "T-102"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Implemented /today command in handlers.py. Features: query Google Calendar via list_todays_events(), query Notion for today's due tasks (due_before/due_after with exclude_statuses), format with sections (TODAY'S SCHEDULE, DUE TODAY), date header (weekday, month day), priority indicators (🔴 for high/urgent), event time formatting (All day, HH:MM-HH:MM, HH:MM), location display. Tests in test_handlers.py: TestCommandHandlers (2 new), TestTodayHelpers (4 for _format_event_time), TestGenerateTodayMessage (5 for nothing_scheduled, calendar_events, due_tasks, high_priority, date_header). All 48 handler tests pass.",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-114",
@@ -785,9 +785,9 @@
       "acceptance_tests": [
         "AT-120"
       ],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Updated processor.py: process() accepts voice_file_id, transcript_confidence, language parameters; _handle_low_confidence() creates InboxItem with voice metadata (source=TELEGRAM_VOICE, transcript_confidence, voice_file_id, language); force_low_confidence when transcript_confidence < 80. Updated handlers.py: _process_voice_transcription() passes voice metadata to processor. Tests in test_handlers.py: TestT117WhisperConfidenceHandling (2 tests), TestAT120WhisperLowConfidence (3 tests). AT-120 verified: low confidence creates inbox with needs_clarification=true, transcript_confidence populated, voice_file_id stored. All 53 handler tests pass, 1463 total tests pass.",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-120",

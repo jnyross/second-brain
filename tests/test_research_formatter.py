@@ -167,7 +167,8 @@ class TestResearchFormatterFormatTelegram:
         formatted = formatter.format_for_telegram(successful_result, detailed=False)
         assert formatted.success is True
         # Brief mode should have fewer findings
-        assert formatted.telegram_message.count("•") <= MAX_FINDINGS_IN_BRIEF + MAX_SOURCES_DISPLAYED
+        max_items = MAX_FINDINGS_IN_BRIEF + MAX_SOURCES_DISPLAYED
+        assert formatted.telegram_message.count("•") <= max_items
 
     def test_truncate_long_findings(self, formatter):
         """Test that long findings are truncated."""
@@ -314,7 +315,7 @@ class TestResearchFormatterLogResearch:
     @pytest.mark.asyncio
     async def test_log_with_telegram_context(self, formatter, result):
         """Test logging with Telegram context."""
-        entry = await formatter.log_research(result, chat_id="123", message_id="456")
+        await formatter.log_research(result, chat_id="123", message_id="456")
         formatter._audit_logger.log_action.assert_called_once()
         call_kwargs = formatter._audit_logger.log_action.call_args[1]
         assert call_kwargs["action_type"] == ActionType.RESEARCH
@@ -473,7 +474,7 @@ class TestModuleLevelFunctions:
             mock_formatter.log_research = AsyncMock(return_value=AuditEntry())
             mock_get.return_value = mock_formatter
 
-            entry = await log_research_result(result, chat_id="123")
+            await log_research_result(result, chat_id="123")
             mock_formatter.log_research.assert_called_once_with(result, "123", None, None)
 
     def test_format_research_for_notion(self):
