@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phases 1-5 complete. T-200 (Dockerfile), T-201 (docker-compose.yml), T-202 (GitHub Actions CI), T-203 (GitHub Actions CD) complete. Next: T-204 (server setup script) or T-205 (health check script).
+- Status: Phase 0 complete. Phases 1-5 complete. Deployment tasks T-200 through T-204 complete. Next: T-205 (health check script) or T-206 (rollback script).
 
 ## Iteration Log
 
@@ -984,3 +984,47 @@
   - Commands: python3 -m pytest tests/test_cd_workflow.py -v (45 passed)
   - Full test suite: 1139 tests (all pass)
   - Commit: 8b6222a
+
+- Iteration 34 (T-204): Server Setup Script
+  - Task: Create one-time setup script for fresh Ubuntu droplet per PRD 12.7 and AT-208
+  - Created deploy/scripts/setup-server.sh with 9 steps:
+    1. System package update (apt update && upgrade)
+    2. Docker installation (official get.docker.com script)
+    3. fail2ban installation and configuration (jail.local for SSH)
+    4. UFW firewall configuration (default deny, allow SSH only)
+    5. Deploy user creation with Docker group access
+    6. Application directories (/opt/second-brain, /var/lib/second-brain)
+    7. SSH hardening (password auth disabled, root login restricted)
+    8. Environment file template (/etc/second-brain.env)
+    9. Systemd timer preparation (install-timers.sh helper script)
+  - Security features per AT-208:
+    - PasswordAuthentication no in sshd_config
+    - UFW default deny incoming, allow SSH only
+    - fail2ban enabled with SSH jail
+    - Deploy user uses SSH keys only (no password)
+  - Idempotency: safe to run multiple times (checks for existing Docker/user/fail2ban)
+  - Helper script: install-timers.sh for T-207 timer configuration
+  - Created tests/test_setup_server.py (53 tests):
+    - TestSetupScriptExists (4): file exists, executable, shebang, strict mode
+    - TestDockerInstallation (4): get.docker.com, enable, idempotency, compose
+    - TestFail2banInstallation (4): install, enable, jail.local, SSH protection
+    - TestUFWFirewall (5): install, default deny/allow, allow SSH, enable
+    - TestDeployUser (4): create, docker group, .ssh, permissions
+    - TestAppDirectories (4): /opt, /var/lib, subdirectories, ownership
+    - TestSSHHardening (4): disable password, restrict root, disable empty, restart
+    - TestEnvironmentFile (3): create template, permissions, required vars
+    - TestIdempotency (3): docker/user/fail2ban checks
+    - TestErrorHandling (3): root check, colored output, exit on failure
+    - TestAT208SecurityHardening (5): acceptance test verification
+    - TestPRDSection127Compliance (4): PRD requirements
+    - TestScriptDocumentation (3): header, next steps, prerequisites
+    - TestBashBestPractices (3): quotes, local vars, no injection
+  - AT-208 Verification:
+    - Given: Fresh droplet with setup script run
+    - Then: SSH password auth disabled (PasswordAuthentication no)
+    - And: UFW enabled (ufw --force enable, default deny)
+    - And: Only SSH open (ufw allow ssh, no 80/443)
+    - And: fail2ban running (systemctl enable/restart)
+  - Commands: python3 -m pytest tests/test_setup_server.py -v (53 passed)
+  - Full test suite: 1192 tests (all pass)
+  - Commit: pending

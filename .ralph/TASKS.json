@@ -931,8 +931,8 @@
       "description": "One-time setup script for fresh Ubuntu droplet with Docker, fail2ban, ufw, and deploy user.",
       "depends_on": [],
       "acceptance_tests": ["AT-208"],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created deploy/scripts/setup-server.sh with 9 steps: system update, Docker install, fail2ban, UFW firewall, deploy user, app directories, SSH hardening, env template, systemd timer prep. AT-208 verified: SSH password auth disabled, UFW enabled with only SSH open, fail2ban running, deploy user uses SSH keys. Tests in tests/test_setup_server.py (53 tests pass). Full suite: 1192 tests pass.",
       "updated_at": "2026-01-12"
     },
     {
