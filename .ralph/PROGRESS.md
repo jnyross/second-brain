@@ -580,4 +580,35 @@
     - TestT102PRDBriefingFormat: matches PRD 5.2 example (09:00 - Standup, 14:00 - Dentist, 20:00 - Cinema (Everyman))
   - Commands: PYTHONPATH=src python3 -m pytest tests/test_calendar.py -v (55 passed)
   - Full test suite: 702 tests (697 pass, 5 pre-existing timezone failures in test_entities.py)
-  - Commit: pending
+  - Commit: 51de73a
+- Iteration 38 (T-110) - Comprehensive Audit Logging
+  - Task: Implement comprehensive audit logging per PRD Section 4.9 (AT-111, AT-113)
+  - Created src/assistant/services/audit.py with AuditLogger class:
+    - generate_idempotency_key(): creates keys per PRD 4.9 patterns (telegram:{chat_id}:{message_id}, calendar:{task_id}:{date}, etc.)
+    - check_idempotency(): queries Notion Log DB for existing entries, with in-memory cache
+    - log_action(): core method creating LogEntry with timestamp, action_type, input, action_taken
+    - log_deduplicated(): logs "Deduplicated" entry for AT-113 compliance
+    - Convenience methods: log_capture, log_create, log_update, log_delete, log_calendar_create, log_briefing, log_error
+    - mark_undone(): marks log entry as undone for rollback tracking
+    - query_log(): filter entries by action_type, since, entity_id
+    - Undo window tracking (5 min per PRD 6.2)
+  - Module-level convenience functions:
+    - get_audit_logger(): singleton accessor
+    - log_action(): direct logging shortcut
+    - check_and_log_idempotency(): returns (should_proceed, dedupe_entry) tuple
+  - Created tests/test_audit.py with 30 tests:
+    - TestIdempotencyKeyGeneration (4): telegram, calendar, email, briefing patterns
+    - TestIdempotencyCheck (3): new key, existing key, cached key
+    - TestLogAction (5): creates entry, includes timestamp, with undo window, with correction, without Notion
+    - TestLogDeduplicated (1): creates dedupe entry with prefix
+    - TestConvenienceMethods (10): log_capture, log_create_task, log_create_calendar_event, log_update, log_delete_soft/hard, log_calendar_create, log_briefing, log_error
+    - TestModuleLevelFunctions (3): singleton, check new/duplicate
+    - TestQueryLog (3): by action_type, since, entity_id
+    - TestAT111EveryActionLogged (1): all ActionType values loggable
+    - TestAT113Idempotency (1): duplicate message logged as "deduplicated"
+  - AT-111 Verification: Every action type can be logged with timestamp, action_type, input, action_taken
+  - AT-113 Verification: Second attempt with same idempotency_key returns DUPLICATE and logs "Deduplicated" entry
+  - Type-checked with mypy (0 errors)
+  - Commands: python3 -m pytest tests/test_audit.py -v (30 passed)
+  - Full test suite: 727 tests (722 pass, 5 pre-existing timezone failures in test_entities.py)
+  - Commit: c4fe4a1
