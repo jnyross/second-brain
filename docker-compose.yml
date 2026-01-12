@@ -1,0 +1,91 @@
+# =============================================================================
+# Second Brain - Docker Compose Configuration
+# =============================================================================
+# Production deployment configuration for the personal AI assistant.
+#
+# Usage:
+#   docker compose up -d           # Start in detached mode
+#   docker compose logs -f         # Follow logs
+#   docker compose exec second-brain python -m assistant briefing  # Manual briefing
+#   docker compose down            # Stop all services
+#
+# Prerequisites:
+#   1. Create /etc/second-brain.env with required secrets
+#   2. Set proper permissions: chmod 600 /etc/second-brain.env
+#   3. Create directories: mkdir -p /var/lib/second-brain/{tokens,cache,logs,queue}
+# =============================================================================
+
+services:
+  second-brain:
+    # Container configuration
+    container_name: second-brain
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: second-brain:latest
+
+    # Restart policy - always restart unless explicitly stopped
+    # This ensures auto-recovery from crashes (PRD 1.2)
+    restart: unless-stopped
+
+    # Environment file for secrets (chmod 600 on host)
+    # Contains: TELEGRAM_BOT_TOKEN, NOTION_API_KEY, OPENAI_API_KEY, etc.
+    env_file:
+      - /etc/second-brain.env
+
+    # Environment variables (non-secrets)
+    environment:
+      # Timezone for date parsing and briefing schedule
+      - TZ=${TZ:-America/Los_Angeles}
+      # Application home directory inside container
+      - SECOND_BRAIN_HOME=/var/lib/second-brain
+      # Python optimization settings
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+
+    # Volume mounts for persistent data
+    volumes:
+      # OAuth tokens - encrypted at rest with machine key (PRD 1.3)
+      - /var/lib/second-brain/tokens:/var/lib/second-brain/tokens
+      # Local cache for offline operation
+      - /var/lib/second-brain/cache:/var/lib/second-brain/cache
+      # Application logs
+      - /var/lib/second-brain/logs:/var/lib/second-brain/logs
+      # Offline queue for Notion downtime (PRD 4.8)
+      - /var/lib/second-brain/queue:/var/lib/second-brain/queue
+      # Nudge tracking for deduplication
+      - /var/lib/second-brain/nudges:/var/lib/second-brain/nudges
+
+    # Health check - verifies CLI is working
+    healthcheck:
+      test: ["CMD", "python", "-m", "assistant", "check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Resource limits - prevent runaway resource usage
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+    # Logging configuration
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+
+    # Read-only root filesystem with tmpfs for runtime data
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M,mode=1777

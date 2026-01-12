@@ -895,8 +895,8 @@
       "description": "Docker Compose configuration for production deployment.",
       "depends_on": ["T-200"],
       "acceptance_tests": ["AT-202"],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created docker-compose.yml with: container_name second-brain, restart unless-stopped, env_file /etc/second-brain.env, volumes for tokens/cache/logs/queue/nudges, healthcheck with assistant check, resource limits (1 CPU, 512M memory), logging with rotation, security hardening (no-new-privileges, read_only, tmpfs). Added pyyaml to dev deps. Tests in tests/test_docker_compose.py (41 tests pass). Full suite: 1056 tests pass.",
       "updated_at": "2026-01-12"
     },
     {

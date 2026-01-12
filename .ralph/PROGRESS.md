@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phases 1-5 complete. T-200 complete (Dockerfile multi-stage). Next: T-201 (docker-compose.yml) or T-202 (GitHub Actions CI) - both are P0 with T-202 having no dependencies.
+- Status: Phase 0 complete. Phases 1-5 complete. T-200 complete (Dockerfile). T-201 complete (docker-compose.yml). Next: T-202 (GitHub Actions CI) or T-204 (server setup script) - both P0 with no dependencies.
 
 ## Iteration Log
 
@@ -864,3 +864,40 @@
   - Commands: python3 -m pytest tests/test_dockerfile.py -v (36 passed)
   - Full test suite: 1015 tests (all pass)
   - Commit: 40bc35f
+
+- Iteration 31 (T-201): Create docker-compose.yml
+  - Task: Create Docker Compose configuration for production deployment per AT-202
+  - PRD Compliance:
+    - PRD 1.2: container_name 'second-brain' for docker exec from systemd timer
+    - PRD 1.2: restart: unless-stopped for auto-recovery
+    - PRD 1.3: env_file /etc/second-brain.env for secrets
+    - PRD 4.8: Volume mount for offline queue
+  - Created docker-compose.yml with:
+    - Service: second-brain with local Dockerfile build
+    - container_name: second-brain (for docker exec second-brain python -m assistant briefing)
+    - restart: unless-stopped (survives reboots, respects manual stops)
+    - env_file: /etc/second-brain.env
+    - environment: TZ=${TZ:-America/Los_Angeles}, SECOND_BRAIN_HOME, PYTHON* settings
+    - Volumes: tokens, cache, logs, queue, nudges (all in /var/lib/second-brain/)
+    - healthcheck: python -m assistant check with 30s interval, 10s timeout, 3 retries
+    - deploy.resources.limits: cpus 1.0, memory 512M
+    - deploy.resources.reservations: cpus 0.25, memory 128M
+    - logging: json-file with max-size 10m, max-file 3
+    - security_opt: no-new-privileges:true
+    - read_only: true with tmpfs for /tmp
+  - Updated pyproject.toml:
+    - Added pyyaml>=6.0.0 to dev dependencies for YAML parsing in tests
+  - Created tests/test_docker_compose.py (41 tests):
+    - TestDockerComposeStructure (5): file exists, valid YAML, services section
+    - TestDockerComposeService (5): Dockerfile, image tag, restart, env_file, timezone
+    - TestDockerComposeVolumes (5): tokens, cache, logs, queue, absolute paths
+    - TestDockerComposeHealthCheck (5): configured, assistant check, interval, timeout, retries
+    - TestDockerComposeResourceLimits (3): limits configured, memory, CPU
+    - TestDockerComposeLogging (3): driver, max-size, max-file
+    - TestDockerComposeSecurity (3): security_opt, no-new-privileges, read-only
+    - TestAT202DockerCompose (7): AT-202 acceptance tests
+    - TestDockerComposeDocumentation (1): has comments
+    - TestDockerComposePRDCompliance (4): PRD 1.2/1.3/4.8 compliance
+  - Commands: python3 -m pytest tests/test_docker_compose.py -v (41 passed)
+  - Full test suite: 1056 tests (all pass)
+  - Commit: pending
