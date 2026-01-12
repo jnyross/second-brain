@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-092 complete (Phase 4 Briefings + Phase 5 corrections/patterns). Next: T-093 (Apply patterns to new inputs).
+- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-093 complete (Phase 4 Briefings + Phase 5 corrections/patterns fully complete). Next: T-100 (Google Calendar OAuth).
 
 ## Iteration Log
 
@@ -441,3 +441,43 @@
   - Commands: PYTHONPATH=src python3 -m pytest tests/test_patterns.py -v (45 passed)
   - Full test suite: 539 tests (534 pass, 5 pre-existing timezone failures)
   - Commit: 555b7b5
+- Iteration 34 (T-093) - Apply Patterns to New Inputs
+  - Implemented pattern application to correct learned errors before classification
+  - Created src/assistant/services/pattern_applicator.py:
+    - AppliedPattern dataclass: tracks applied corrections (pattern_id, trigger, meaning, original/corrected values)
+    - PatternApplicationResult dataclass: tracks original vs corrected people/places/title with has_corrections property
+    - PatternApplicator class with methods:
+      - load_patterns(): queries Notion for patterns with confidence >= 70% (PATTERN_CONFIDENCE_THRESHOLD)
+      - apply_patterns(): matches triggers against people names, place names, and title text
+      - _extract_pattern_data(): parses Notion query results into pattern dictionaries
+      - _matches_trigger(): fuzzy matching with normalization (exact, contains, short name in longer)
+      - update_pattern_usage(): updates last_used timestamp in Notion
+      - clear_cache(): forces pattern reload
+    - Module-level convenience functions: get_pattern_applicator(), apply_patterns(), load_patterns()
+  - Updated src/assistant/services/processor.py:
+    - Added PatternApplicator to MessageProcessor.__init__()
+    - Added _apply_patterns() method called before confidence routing
+    - Modified ParsedIntent in-place with corrected people/places/title
+    - Updated _handle_low_confidence() and _handle_high_confidence() to accept pattern_result
+    - Enhanced _generate_response() to show pattern corrections to user (e.g., "I corrected 'Jess' → 'Tess' based on learned patterns")
+    - Added patterns_applied to ProcessResult for tracking
+    - Log entries include pattern application summary
+    - update_pattern_usage() called after successful task creation
+  - Updated src/assistant/services/__init__.py:
+    - Exported AppliedPattern, PatternApplicator, PatternApplicationResult, apply_patterns, get_pattern_applicator, load_patterns
+  - Added tests/test_pattern_applicator.py (37 tests):
+    - TestAppliedPattern: basic creation
+    - TestPatternApplicationResult: creation, has_corrections, properties, summary
+    - TestPatternApplicatorNormalization: basic, preserves content
+    - TestPatternApplicatorMatching: exact, contains, short name, too short, no match
+    - TestPatternApplicatorLoadPatterns: success, empty, error handling, filters invalid
+    - TestPatternApplicatorApplyPatterns: no cache, corrects person, corrects place, no match, multiple people, title only
+    - TestPatternApplicatorClearCache: clears cache
+    - TestPatternApplicatorUpdateUsage: updates, error handling
+    - TestModuleLevelFunctions: singleton, convenience functions
+    - TestT093Integration: full correction flow, priority pattern, multiple patterns, respects threshold
+    - TestProcessorIntegration: processor has pattern_applicator
+    - TestAT109Integration: pattern applied to future task (completes AT-109 "future similar tasks use learned pattern")
+  - Commands: PYTHONPATH=src python3 -m pytest tests/test_pattern_applicator.py tests/test_patterns.py -v (82 passed)
+  - Full test suite: 581 tests (576 pass, 5 pre-existing timezone failures)
+  - Commit: 038dfe6

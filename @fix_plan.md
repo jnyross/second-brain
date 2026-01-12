@@ -37,8 +37,8 @@ This file tracks the prioritized work items for Ralph autonomous loops. Update a
 - [x] T-083: Build interactive clarification flow
 - [x] T-090: Implement correction handler
 - [x] T-091: Build pattern detection
-- [ ] T-092: Implement pattern storage
-- [ ] T-093: Apply patterns to new inputs
+- [x] T-092: Implement pattern storage
+- [x] T-093: Apply patterns to new inputs
 - [ ] T-100: Implement Google Calendar OAuth
 - [ ] T-101: Create calendar event creator
 - [ ] T-102: Implement calendar reading

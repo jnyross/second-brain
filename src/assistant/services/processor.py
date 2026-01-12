@@ -1,5 +1,14 @@
+"""Message processor for Second Brain.
+
+Handles the core message processing pipeline:
+1. Parse input text to extract intent and entities
+2. Apply stored patterns to correct likely errors (T-093)
+3. Route to appropriate handler based on confidence
+4. Create tasks/inbox items in Notion
+"""
+
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 from assistant.config import settings
@@ -14,6 +23,11 @@ from assistant.notion.schemas import (
     ActionType,
 )
 from assistant.services.parser import Parser, ParsedIntent
+from assistant.services.pattern_applicator import (
+    PatternApplicator,
+    PatternApplicationResult,
+    AppliedPattern,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +39,14 @@ class ProcessResult:
     inbox_id: str | None = None
     confidence: int = 0
     needs_clarification: bool = False
+    patterns_applied: list[AppliedPattern] = field(default_factory=list)
 
 
 class MessageProcessor:
     def __init__(self):
         self.parser = Parser()
         self.notion = NotionClient() if settings.has_notion else None
+        self.pattern_applicator = PatternApplicator(notion_client=self.notion)
 
     async def process(
         self,
@@ -41,10 +57,71 @@ class MessageProcessor:
         parsed = self.parser.parse(text)
         idempotency_key = f"telegram:{chat_id}:{message_id}"
 
-        if parsed.confidence < settings.confidence_threshold:
-            return await self._handle_low_confidence(parsed, chat_id, message_id, idempotency_key)
+        # T-093: Apply stored patterns before further processing
+        pattern_result = await self._apply_patterns(parsed)
 
-        return await self._handle_high_confidence(parsed, chat_id, message_id, idempotency_key)
+        if parsed.confidence < settings.confidence_threshold:
+            return await self._handle_low_confidence(
+                parsed, chat_id, message_id, idempotency_key, pattern_result
+            )
+
+        return await self._handle_high_confidence(
+            parsed, chat_id, message_id, idempotency_key, pattern_result
+        )
+
+    async def _apply_patterns(self, parsed: ParsedIntent) -> PatternApplicationResult:
+        """Apply stored patterns to parsed intent.
+
+        T-093: Check patterns before classification and apply learned behaviors.
+
+        Args:
+            parsed: Parsed intent with extracted entities
+
+        Returns:
+            Pattern application result with original and corrected values
+        """
+        try:
+            result = await self.pattern_applicator.apply_patterns(
+                text=parsed.raw_text,
+                people=parsed.people,
+                places=parsed.places,
+                title=parsed.title,
+            )
+
+            # Update parsed intent with corrected values
+            if result.has_corrections:
+                # Update people list with corrected names
+                if result.corrected_people != result.original_people:
+                    parsed.people = result.corrected_people
+                    logger.info(
+                        f"Pattern corrected people: {result.original_people} → {result.corrected_people}"
+                    )
+
+                # Update places list with corrected names
+                if result.corrected_places != result.original_places:
+                    parsed.places = result.corrected_places
+                    logger.info(
+                        f"Pattern corrected places: {result.original_places} → {result.corrected_places}"
+                    )
+
+                # Update title with corrected names
+                if result.corrected_title != result.original_title:
+                    parsed.title = result.corrected_title
+                    logger.info(
+                        f"Pattern corrected title: '{result.original_title}' → '{result.corrected_title}'"
+                    )
+
+            return result
+
+        except Exception as e:
+            logger.warning(f"Failed to apply patterns: {e}")
+            # Return empty result on error - don't block processing
+            return PatternApplicationResult(
+                original_text=parsed.raw_text,
+                original_people=parsed.people,
+                original_places=parsed.places,
+                original_title=parsed.title,
+            )
 
     async def _handle_low_confidence(
         self,
@@ -52,6 +129,7 @@ class MessageProcessor:
         chat_id: str,
         message_id: str,
         idempotency_key: str,
+        pattern_result: PatternApplicationResult,
     ) -> ProcessResult:
         inbox_id = None
 
@@ -68,11 +146,16 @@ class MessageProcessor:
                 )
                 inbox_id = await self.notion.create_inbox_item(item)
 
+                # Include pattern info in log if patterns were applied
+                action_taken = "Added to inbox (needs clarification)"
+                if pattern_result.has_corrections:
+                    action_taken += f" [Patterns applied: {pattern_result.summary()}]"
+
                 await self.notion.log_action(
                     action_type=ActionType.CAPTURE,
                     idempotency_key=idempotency_key,
                     input_text=parsed.raw_text,
-                    action_taken="Added to inbox (needs clarification)",
+                    action_taken=action_taken,
                     confidence=parsed.confidence,
                     entities_affected=[inbox_id] if inbox_id else [],
                 )
@@ -82,6 +165,7 @@ class MessageProcessor:
                     response=f"Got it. Saved locally - will sync when Notion is available.",
                     confidence=parsed.confidence,
                     needs_clarification=True,
+                    patterns_applied=pattern_result.patterns_applied,
                 )
             finally:
                 await self.notion.close()
@@ -94,6 +178,7 @@ class MessageProcessor:
             inbox_id=inbox_id,
             confidence=parsed.confidence,
             needs_clarification=True,
+            patterns_applied=pattern_result.patterns_applied,
         )
 
     async def _handle_high_confidence(
@@ -102,6 +187,7 @@ class MessageProcessor:
         chat_id: str,
         message_id: str,
         idempotency_key: str,
+        pattern_result: PatternApplicationResult,
     ) -> ProcessResult:
         task_id = None
         people_linked: list[str] = []
@@ -127,32 +213,64 @@ class MessageProcessor:
                 )
                 task_id = await self.notion.create_task(task)
 
+                # Include pattern info in log if patterns were applied
+                action_taken = f"Created task: {parsed.title}"
+                if pattern_result.has_corrections:
+                    action_taken += f" [Patterns applied: {pattern_result.summary()}]"
+
                 await self.notion.log_action(
                     action_type=ActionType.CREATE,
                     idempotency_key=idempotency_key,
                     input_text=parsed.raw_text,
-                    action_taken=f"Created task: {parsed.title}",
+                    action_taken=action_taken,
                     confidence=parsed.confidence,
                     entities_affected=[task_id] if task_id else [],
                 )
+
+                # Update pattern usage timestamps
+                for applied in pattern_result.patterns_applied:
+                    try:
+                        await self.pattern_applicator.update_pattern_usage(
+                            applied.pattern_id
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to update pattern usage: {e}")
+
             except Exception as e:
                 logger.exception("Failed to create task in Notion")
                 return ProcessResult(
                     response="Got it. Saved locally - will sync when Notion is available.",
                     confidence=parsed.confidence,
+                    patterns_applied=pattern_result.patterns_applied,
                 )
             finally:
                 await self.notion.close()
 
-        response = self._generate_response(parsed, people_linked)
+        response = self._generate_response(parsed, people_linked, pattern_result)
 
         return ProcessResult(
             response=response,
             task_id=task_id,
             confidence=parsed.confidence,
+            patterns_applied=pattern_result.patterns_applied,
         )
 
-    def _generate_response(self, parsed: ParsedIntent, people: list[str]) -> str:
+    def _generate_response(
+        self,
+        parsed: ParsedIntent,
+        people: list[str],
+        pattern_result: PatternApplicationResult,
+    ) -> str:
+        """Generate response message for high-confidence processing.
+
+        Args:
+            parsed: Parsed intent (may have been modified by patterns)
+            people: List of people linked
+            pattern_result: Result of pattern application
+
+        Returns:
+            Response message string
+        """
         parts = [f"Got it. {parsed.title}"]
 
         if parsed.due_date:
@@ -169,5 +287,19 @@ class MessageProcessor:
             parts.append(f" at {parsed.places[0]}")
 
         parts.append(".")
+
+        # T-093: Add note about pattern corrections if any were applied
+        if pattern_result.has_corrections:
+            # Only mention corrections for name changes (not internal pattern types)
+            name_corrections = [
+                p for p in pattern_result.patterns_applied
+                if p.original_value.lower() != p.corrected_value.lower()
+            ]
+            if name_corrections:
+                corrections_text = ", ".join(
+                    f"'{p.original_value}' → '{p.corrected_value}'"
+                    for p in name_corrections[:2]  # Limit to 2 for readability
+                )
+                parts.append(f"\n(I corrected {corrections_text} based on learned patterns)")
 
         return "".join(parts)

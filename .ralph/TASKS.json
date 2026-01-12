@@ -589,9 +589,9 @@
         "T-092"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Created src/assistant/services/pattern_applicator.py with PatternApplicator class. Features: 1) load_patterns() queries Notion for patterns with confidence >= 70%, 2) apply_patterns() matches triggers against extracted people/places/title, 3) PatternApplicationResult tracks original and corrected values, 4) AppliedPattern records each applied correction, 5) Cache management with clear_cache(), 6) update_pattern_usage() updates last_used timestamp. Integrated into MessageProcessor._apply_patterns() which modifies ParsedIntent before routing. Response generator shows pattern corrections to user. Tests in tests/test_pattern_applicator.py (37 tests pass) including TestT093Integration (4 tests) and TestAT109Integration (1 test). Full pattern tests: 82 pass. Full suite: 581 tests (576 pass, 5 pre-existing timezone flakes).",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-100",

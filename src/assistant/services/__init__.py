@@ -25,6 +25,14 @@ from assistant.services.patterns import (
     load_and_analyze_patterns,
     store_pending_patterns,
 )
+from assistant.services.pattern_applicator import (
+    AppliedPattern,
+    PatternApplicator,
+    PatternApplicationResult,
+    apply_patterns,
+    get_pattern_applicator,
+    load_patterns,
+)
 from assistant.services.entities import EntityExtractor, ExtractedEntities
 from assistant.services.parser import ParsedIntent, Parser
 from assistant.services.people import PeopleService
@@ -50,7 +58,7 @@ __all__ = [
     "is_correction_message",
     "process_correction",
     "track_created_task",
-    # Patterns
+    # Patterns (detection)
     "CorrectionRecord",
     "DetectedPattern",
     "PatternDetector",
@@ -59,6 +67,13 @@ __all__ = [
     "get_pattern_detector",
     "load_and_analyze_patterns",
     "store_pending_patterns",
+    # Patterns (application - T-093)
+    "AppliedPattern",
+    "PatternApplicator",
+    "PatternApplicationResult",
+    "apply_patterns",
+    "get_pattern_applicator",
+    "load_patterns",
     # Entities
     "EntityExtractor",
     "ExtractedEntities",
