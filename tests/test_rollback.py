@@ -8,8 +8,6 @@ import os
 import stat
 from pathlib import Path
 
-import pytest
-
 # Path to the rollback script
 SCRIPT_PATH = Path(__file__).parent.parent / "deploy" / "scripts" / "rollback.sh"
 

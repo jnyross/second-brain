@@ -214,7 +214,7 @@
       ],
       "acceptance_tests": [],
       "passes": true,
-      "evidence": "Ran scripts/bootstrap_test.sh (pass) and scripts/verify_test.sh (pass). scripts/verify.sh reports '✓ All checks passed (8/8)' against bootstrap fixture with stubbed claude/docker.",
+      "evidence": "Ran scripts/bootstrap_test.sh (pass) and scripts/verify_test.sh (pass). scripts/verify.sh reports '\u2713 All checks passed (8/8)' against bootstrap fixture with stubbed claude/docker.",
       "updated_at": "2026-01-11"
     },
     {
@@ -243,7 +243,7 @@
       ],
       "acceptance_tests": [],
       "passes": true,
-      "evidence": "Ran scripts/smoke_test_test.sh (pass). scripts/smoke_test.sh reports '✓ Smoke test passed (4/4)' against bootstrap fixture.",
+      "evidence": "Ran scripts/smoke_test_test.sh (pass). scripts/smoke_test.sh reports '\u2713 Smoke test passed (4/4)' against bootstrap fixture.",
       "updated_at": "2026-01-11"
     },
     {
@@ -481,7 +481,7 @@
       ],
       "acceptance_tests": [],
       "passes": true,
-      "evidence": "Enhanced src/assistant/services/briefing.py with complete morning briefing format per PRD 5.2. Added sections: ✅ DUE TODAY (tasks due today with priority icons), ⚠️ NEEDS CLARIFICATION (flagged inbox items with interpretations), 📊 THIS WEEK (upcoming tasks grouped by day). Enhanced NotionClient.query_tasks() with due_after, exclude_statuses parameters for date range queries. Added tests/test_briefing.py (54 tests pass). Calendar and email sections return None pending T-102 (Google Calendar) and T-120 (Gmail) implementations.",
+      "evidence": "Enhanced src/assistant/services/briefing.py with complete morning briefing format per PRD 5.2. Added sections: \u2705 DUE TODAY (tasks due today with priority icons), \u26a0\ufe0f NEEDS CLARIFICATION (flagged inbox items with interpretations), \ud83d\udcca THIS WEEK (upcoming tasks grouped by day). Enhanced NotionClient.query_tasks() with due_after, exclude_statuses parameters for date range queries. Added tests/test_briefing.py (54 tests pass). Calendar and email sections return None pending T-102 (Google Calendar) and T-120 (Gmail) implementations.",
       "updated_at": "2026-01-12"
     },
     {
@@ -633,7 +633,7 @@
       ],
       "acceptance_tests": [],
       "passes": true,
-      "evidence": "Added CalendarClient.list_events() and _parse_event_response() to calendar.py. Added list_calendar_events() and list_todays_events() convenience functions. Updated BriefingGenerator._generate_calendar_section() and added _format_calendar_events() to integrate calendar events in morning briefing. Format matches PRD 5.2: '📅 TODAY' header with '• HH:MM - Title (location)' format, 'All day' for all-day events. Tests in tests/test_calendar.py: TestCalendarClientListEvents (6 tests), TestListCalendarEventsConvenience (1 test), TestListTodaysEventsConvenience (1 test), TestParseEventResponse (4 tests), TestT102BriefingIntegration (4 tests), TestT102PRDBriefingFormat (1 test). All 55 calendar tests pass. Full suite: 697 tests (5 pre-existing timezone flakes in test_entities.py).",
+      "evidence": "Added CalendarClient.list_events() and _parse_event_response() to calendar.py. Added list_calendar_events() and list_todays_events() convenience functions. Updated BriefingGenerator._generate_calendar_section() and added _format_calendar_events() to integrate calendar events in morning briefing. Format matches PRD 5.2: '\ud83d\udcc5 TODAY' header with '\u2022 HH:MM - Title (location)' format, 'All day' for all-day events. Tests in tests/test_calendar.py: TestCalendarClientListEvents (6 tests), TestListCalendarEventsConvenience (1 test), TestListTodaysEventsConvenience (1 test), TestParseEventResponse (4 tests), TestT102BriefingIntegration (4 tests), TestT102PRDBriefingFormat (1 test). All 55 calendar tests pass. Full suite: 697 tests (5 pre-existing timezone flakes in test_entities.py).",
       "updated_at": "2026-01-12"
     },
     {
@@ -660,9 +660,9 @@
         "T-103"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Created src/assistant/services/research_formatter.py with FormattedResearch dataclass and ResearchFormatter class. Features: format_for_telegram() with findings/sources/screenshots, log_research() with ActionType.RESEARCH, format_for_notion_note() for task storage, store_in_task(). Module-level singleton and convenience functions. Tests in tests/test_research_formatter.py (45 tests pass). Full suite: 1406 tests pass.",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-110",
@@ -882,7 +882,9 @@
       "title": "Create Dockerfile (multi-stage)",
       "description": "Multi-stage Dockerfile for production deployment with minimal image size.",
       "depends_on": [],
-      "acceptance_tests": ["AT-201"],
+      "acceptance_tests": [
+        "AT-201"
+      ],
       "passes": true,
       "evidence": "Created Dockerfile (multi-stage: builder+runtime, python:3.12-slim, non-root user, healthcheck, OCI labels) and .dockerignore. Tests in tests/test_dockerfile.py (36 tests pass). Full suite: 1015 tests pass.",
       "updated_at": "2026-01-12"
@@ -893,8 +895,12 @@
       "risk": "R1",
       "title": "Create docker-compose.yml",
       "description": "Docker Compose configuration for production deployment.",
-      "depends_on": ["T-200"],
-      "acceptance_tests": ["AT-202"],
+      "depends_on": [
+        "T-200"
+      ],
+      "acceptance_tests": [
+        "AT-202"
+      ],
       "passes": true,
       "evidence": "Created docker-compose.yml with: container_name second-brain, restart unless-stopped, env_file /etc/second-brain.env, volumes for tokens/cache/logs/queue/nudges, healthcheck with assistant check, resource limits (1 CPU, 512M memory), logging with rotation, security hardening (no-new-privileges, read_only, tmpfs). Added pyyaml to dev deps. Tests in tests/test_docker_compose.py (41 tests pass). Full suite: 1056 tests pass.",
       "updated_at": "2026-01-12"
@@ -906,7 +912,9 @@
       "title": "Set up GitHub Actions CI",
       "description": "CI pipeline for linting, type-checking, and testing on every PR.",
       "depends_on": [],
-      "acceptance_tests": ["AT-203"],
+      "acceptance_tests": [
+        "AT-203"
+      ],
       "passes": true,
       "evidence": "Created .github/workflows/ci.yml with lint/type-check/test jobs per PRD 12.5. Python 3.12, ruff check/format, mypy src, pytest --cov. Tests in tests/test_ci_workflow.py (38 tests pass). Full suite: 1094 tests pass.",
       "updated_at": "2026-01-12"
@@ -917,8 +925,13 @@
       "risk": "R2",
       "title": "Set up GitHub Actions CD",
       "description": "CD pipeline for building Docker image, pushing to GHCR, and deploying to DigitalOcean.",
-      "depends_on": ["T-200", "T-202"],
-      "acceptance_tests": ["AT-204"],
+      "depends_on": [
+        "T-200",
+        "T-202"
+      ],
+      "acceptance_tests": [
+        "AT-204"
+      ],
       "passes": true,
       "evidence": "Created .github/workflows/cd.yml with ci-check, build, deploy, notify jobs per PRD 12.5. Features: CI gate (wait-on-check-action), Docker Buildx with GHA cache, GHCR push with SHA tagging, SSH deploy to DigitalOcean, health check, environment protection. Tests in tests/test_cd_workflow.py (45 tests pass). Full suite: 1139 tests pass.",
       "updated_at": "2026-01-12"
@@ -930,7 +943,9 @@
       "title": "Create server setup script",
       "description": "One-time setup script for fresh Ubuntu droplet with Docker, fail2ban, ufw, and deploy user.",
       "depends_on": [],
-      "acceptance_tests": ["AT-208"],
+      "acceptance_tests": [
+        "AT-208"
+      ],
       "passes": true,
       "evidence": "Created deploy/scripts/setup-server.sh with 9 steps: system update, Docker install, fail2ban, UFW firewall, deploy user, app directories, SSH hardening, env template, systemd timer prep. AT-208 verified: SSH password auth disabled, UFW enabled with only SSH open, fail2ban running, deploy user uses SSH keys. Tests in tests/test_setup_server.py (53 tests pass). Full suite: 1192 tests pass.",
       "updated_at": "2026-01-12"
@@ -941,8 +956,12 @@
       "risk": "R1",
       "title": "Create health check script",
       "description": "Script to verify container is healthy after deployment.",
-      "depends_on": ["T-201"],
-      "acceptance_tests": ["AT-202"],
+      "depends_on": [
+        "T-201"
+      ],
+      "acceptance_tests": [
+        "AT-202"
+      ],
       "passes": true,
       "evidence": "Created deploy/scripts/health-check.sh per PRD 12.8. Features: retry loop (10 retries, 3s interval), docker container checks, python import verification, CLI check, Docker health status, color output, --quick/--retries/--interval/--container/--help flags. AT-202 verified: max wait 30s < 60s threshold, verifies container health via python import. Tests in tests/test_health_check.py (52 tests pass). Full suite: 1244 tests pass.",
       "updated_at": "2026-01-12"
@@ -953,8 +972,12 @@
       "risk": "R1",
       "title": "Create rollback script",
       "description": "Script to rollback to previous Docker image on deployment failure.",
-      "depends_on": ["T-203"],
-      "acceptance_tests": ["AT-205"],
+      "depends_on": [
+        "T-203"
+      ],
+      "acceptance_tests": [
+        "AT-205"
+      ],
       "passes": true,
       "evidence": "Created deploy/scripts/rollback.sh per PRD 12.10. Features: get_available_tags() lists images by creation time, get_previous_tag() finds previous version excluding 'latest', --list/--to/--dry-run/--container/--compose-dir/--repo/--help flags, compose override via docker-compose.rollback.yml, fallback docker run, health-check.sh integration, exit codes 0/1/2/3 for success/fail/args/no-image. AT-205 verified: finds previous image, stops broken container, starts previous version, verifies health, reports success. Tests in tests/test_rollback.py (69 tests pass). Full suite: 1313 tests pass.",
       "updated_at": "2026-01-12"
@@ -965,8 +988,12 @@
       "risk": "R1",
       "title": "Configure systemd timers on server",
       "description": "Set up systemd timers for morning briefing and nudge schedules.",
-      "depends_on": ["T-204"],
-      "acceptance_tests": ["AT-206"],
+      "depends_on": [
+        "T-204"
+      ],
+      "acceptance_tests": [
+        "AT-206"
+      ],
       "passes": false,
       "evidence": null,
       "updated_at": "2026-01-12"
@@ -977,7 +1004,9 @@
       "risk": "R1",
       "title": "Add Telegram deployment notifications",
       "description": "Send Telegram message on successful/failed deployments.",
-      "depends_on": ["T-203"],
+      "depends_on": [
+        "T-203"
+      ],
       "acceptance_tests": [],
       "passes": false,
       "evidence": null,
@@ -989,7 +1018,9 @@
       "risk": "R1",
       "title": "Create backup script",
       "description": "Script to backup local state files with 7-day retention.",
-      "depends_on": ["T-204"],
+      "depends_on": [
+        "T-204"
+      ],
       "acceptance_tests": [],
       "passes": false,
       "evidence": null,
@@ -1001,7 +1032,9 @@
       "risk": "R1",
       "title": "Add Sentry error tracking",
       "description": "Integrate Sentry for production error tracking and alerting.",
-      "depends_on": ["T-201"],
+      "depends_on": [
+        "T-201"
+      ],
       "acceptance_tests": [],
       "passes": false,
       "evidence": null,
@@ -1013,7 +1046,9 @@
       "risk": "R1",
       "title": "Set up UptimeRobot monitoring",
       "description": "Configure external uptime monitoring with Telegram alerts.",
-      "depends_on": ["T-204"],
+      "depends_on": [
+        "T-204"
+      ],
       "acceptance_tests": [],
       "passes": false,
       "evidence": null,
@@ -1026,7 +1061,9 @@
       "title": "Add LLM-enhanced intent parsing",
       "description": "Replace regex-based parser with LLM-powered intent detection using Gemini 2.5 Flash-Lite or similar cheap/fast model. Enables semantic understanding of ambiguous input, better entity extraction, and contextual confidence scoring. Keep regex as fallback for offline/API-failure scenarios.",
       "depends_on": [],
-      "acceptance_tests": ["AT-107"],
+      "acceptance_tests": [
+        "AT-107"
+      ],
       "passes": false,
       "evidence": null,
       "updated_at": "2026-01-12"
@@ -1037,7 +1074,9 @@
       "risk": "R1",
       "title": "Add LLM provider abstraction layer",
       "description": "Create provider-agnostic LLM client supporting Gemini, OpenAI, and Anthropic APIs with automatic fallback, cost tracking, and rate limiting.",
-      "depends_on": ["T-212"],
+      "depends_on": [
+        "T-212"
+      ],
       "acceptance_tests": [],
       "passes": false,
       "evidence": null,

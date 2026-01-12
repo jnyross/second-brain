@@ -1160,3 +1160,42 @@
   - Verification: scripts/verify.sh (8/8 checks pass)
   - Full test suite: 1361 tests (all pass)
   - Commit: pending
+- Iteration 47 (T-104) - Research Result Formatter
+  - Task: Build research result formatter per PRD Section 4.10
+  - Created src/assistant/services/research_formatter.py:
+    - FormattedResearch dataclass: success, telegram_message, telegram_brief, log_summary, sources_text, findings_count, sources_count, screenshot_count, error, to_dict()
+    - ResearchFormatter class:
+      - format_for_telegram(): formats ResearchResult for Telegram display with findings, sources, screenshot count
+      - _format_source(): formats single source with title/domain and URL
+      - _format_brief(): one-line summary for inline display
+      - _format_sources_text(): plain text list for storage
+      - _format_log_summary(): compact summary for audit log
+      - log_research(): logs research action to audit system with ActionType.RESEARCH
+      - format_for_notion_note(): markdown-formatted note for Notion storage
+      - store_in_task(): stores research result in task's notes field
+    - Constants: MAX_TELEGRAM_MESSAGE_LENGTH=4096, MAX_FINDING_LENGTH=200, MAX_FINDINGS_IN_BRIEF=5, MAX_FINDINGS_IN_DETAILED=15, MAX_SOURCES_DISPLAYED=5
+    - Module-level singleton: get_research_formatter()
+    - Convenience functions: format_research_for_telegram(), log_research_result(), format_research_for_notion()
+  - Updated src/assistant/services/__init__.py:
+    - Exported: FormattedResearch, ResearchFormatter, format_research_for_notion, format_research_for_telegram, get_research_formatter, log_research_result
+  - Created tests/test_research_formatter.py (45 tests):
+    - TestFormattedResearch (3): default values, with error, to_dict
+    - TestResearchFormatterInit (4): default, with audit logger, with notion client, property creates instance
+    - TestResearchFormatterFormatTelegram (9): successful, failed, no findings, brief mode, truncate findings, truncate message, duration, screenshot count
+    - TestResearchFormatterFormatBrief (3): with findings, truncates, no findings
+    - TestResearchFormatterFormatSource (3): with title, without title, truncates long title
+    - TestResearchFormatterLogResearch (4): telegram context, task context, includes sources, failed research
+    - TestResearchFormatterNotionNote (2): successful, failed
+    - TestResearchFormatterStoreInTask (3): succeeds, no notion client, handles error
+    - TestModuleLevelFunctions (4): singleton, telegram format, log result, notion format
+    - TestConstants (5): telegram length, finding length, brief limit, detailed limit, sources limit
+    - TestAT112Integration (3): cinema telegram format, log includes source URL, notion format
+    - TestPRDSection410Compliance (3): results logged with sources, screenshots referenced, results summarized
+  - PRD 4.10 Compliance:
+    - Results logged with sources via ActionType.RESEARCH
+    - Screenshots tracked and displayed
+    - Results summarized for Telegram display
+    - Notion note format for task storage
+  - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_research_formatter.py -v (45 passed)
+  - Full test suite: 1406 tests (all pass)
+  - Commit: pending
