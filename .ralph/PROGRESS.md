@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-093 complete (Phase 4 Briefings + Phase 5 corrections/patterns fully complete). Next: T-100 (Google Calendar OAuth).
+- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-093 complete (Phase 4 Briefings + Phase 5 corrections/patterns fully complete). T-100 complete (Google Calendar OAuth). Next: T-101 (Create calendar event creator).
 
 ## Iteration Log
 
@@ -481,3 +481,32 @@
   - Commands: PYTHONPATH=src python3 -m pytest tests/test_pattern_applicator.py tests/test_patterns.py -v (82 passed)
   - Full test suite: 581 tests (576 pass, 5 pre-existing timezone failures)
   - Commit: 038dfe6
+- Iteration 35 (T-100) - Google Calendar OAuth
+  - Task: Implement Google Calendar OAuth per PRD Section 4.4
+  - Discovery: src/assistant/google/auth.py already implements complete OAuth flow:
+    - GoogleAuth class with singleton instance (google_auth)
+    - load_saved_credentials(): loads from ~/.second-brain/google_token.json
+    - authenticate_interactive(): browser-based OAuth flow
+    - get_auth_url() + complete_auth_with_code(): URL+code flow for headless/Telegram
+    - Token persistence with auto-refresh on expiry
+    - All 5 OAuth scopes: Calendar, Gmail (readonly/send/compose), Drive file
+  - Created tests/test_google_auth.py (66 tests):
+    - TestOAuthScopes: all 5 scopes present and correct
+    - TestTokenPaths: path configuration
+    - TestGoogleAuthInit: instance creation
+    - TestGoogleAuthCredentials: validation and auto-refresh
+    - TestGoogleAuthIsAuthenticated: auth state
+    - TestGoogleAuthLoadSavedCredentials: token loading
+    - TestGoogleAuthInteractiveAuth: browser flow
+    - TestGoogleAuthSaveToken: token persistence
+    - TestGoogleAuthGetAuthUrl: URL generation
+    - TestGoogleAuthCompleteAuthWithCode: code exchange
+    - TestGoogleAuthGetRedirectUri: redirect URI extraction
+    - TestExtractOAuthCode: code extraction from URLs
+    - TestGoogleAuthIntegration: full flow tests
+    - TestPRDSection44Requirements: PRD compliance
+    - TestOAuthFailureHandling: error handling
+    - TestAT100GoogleCalendarOAuth: acceptance test
+  - Commands: PYTHONPATH=src python3 -m pytest tests/test_google_auth.py -v (66 passed)
+  - Full test suite: 647 tests (642 pass, 5 pre-existing timezone failures)
+  - Commit: 4ebcf0c

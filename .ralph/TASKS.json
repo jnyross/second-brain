@@ -601,9 +601,9 @@
       "description": "OAuth flow for Google Calendar with token refresh.",
       "depends_on": [],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Existing src/assistant/google/auth.py implements complete OAuth: GoogleAuth class with load_saved_credentials(), authenticate_interactive(), get_auth_url(), complete_auth_with_code(). Token persistence at ~/.second-brain/google_token.json. Auto-refresh on expiry. All 5 OAuth scopes (Calendar, Gmail read/send/compose, Drive file). extract_oauth_code() helper for URL/code parsing. Tests in tests/test_google_auth.py (66 tests pass). Full suite: 647 tests (642 pass, 5 pre-existing timezone flakes).",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-101",
