@@ -1018,6 +1018,30 @@
       "passes": false,
       "evidence": null,
       "updated_at": "2026-01-12"
+    },
+    {
+      "id": "T-212",
+      "priority": "P1",
+      "risk": "R2",
+      "title": "Add LLM-enhanced intent parsing",
+      "description": "Replace regex-based parser with LLM-powered intent detection using Gemini 2.5 Flash-Lite or similar cheap/fast model. Enables semantic understanding of ambiguous input, better entity extraction, and contextual confidence scoring. Keep regex as fallback for offline/API-failure scenarios.",
+      "depends_on": [],
+      "acceptance_tests": ["AT-107"],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-12"
+    },
+    {
+      "id": "T-213",
+      "priority": "P2",
+      "risk": "R1",
+      "title": "Add LLM provider abstraction layer",
+      "description": "Create provider-agnostic LLM client supporting Gemini, OpenAI, and Anthropic APIs with automatic fallback, cost tracking, and rate limiting.",
+      "depends_on": ["T-212"],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": null,
+      "updated_at": "2026-01-12"
     }
   ]
 }
