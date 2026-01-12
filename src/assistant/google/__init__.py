@@ -1,13 +1,35 @@
 from assistant.google.maps import MapsClient, PlaceDetails, TravelTime
 from assistant.google.drive import DriveClient, DriveFile
 from assistant.google.auth import GoogleAuth, google_auth
+from assistant.google.calendar import (
+    CalendarClient,
+    CalendarEvent,
+    EventCreationResult,
+    EventDeletionResult,
+    get_calendar_client,
+    create_calendar_event,
+    delete_calendar_event,
+    calendar_event_exists,
+    DEFAULT_EVENT_DURATION_MINUTES,
+    UNDO_WINDOW_MINUTES,
+)
 
 __all__ = [
     "MapsClient",
-    "PlaceDetails", 
+    "PlaceDetails",
     "TravelTime",
     "DriveClient",
     "DriveFile",
     "GoogleAuth",
     "google_auth",
+    "CalendarClient",
+    "CalendarEvent",
+    "EventCreationResult",
+    "EventDeletionResult",
+    "get_calendar_client",
+    "create_calendar_event",
+    "delete_calendar_event",
+    "calendar_event_exists",
+    "DEFAULT_EVENT_DURATION_MINUTES",
+    "UNDO_WINDOW_MINUTES",
 ]

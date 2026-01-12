@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-093 complete (Phase 4 Briefings + Phase 5 corrections/patterns fully complete). T-100 complete (Google Calendar OAuth). Next: T-101 (Create calendar event creator).
+- Status: Phase 0 complete. Phase 1-3 (Entity Linking) complete. All P0 tasks done. T-080 through T-093 complete (Phase 4 Briefings + Phase 5 corrections/patterns fully complete). T-100 complete (Google Calendar OAuth). T-101 complete (Calendar event creator with undo support). Next: T-102 (Implement calendar reading).
 
 ## Iteration Log
 
@@ -510,3 +510,49 @@
   - Commands: PYTHONPATH=src python3 -m pytest tests/test_google_auth.py -v (66 passed)
   - Full test suite: 647 tests (642 pass, 5 pre-existing timezone failures)
   - Commit: 4ebcf0c
+- Iteration 36 (T-101) - Calendar Event Creator
+  - Task: Create Google Calendar events from tasks with undo support per AT-110/AT-116
+  - Created src/assistant/google/calendar.py with CalendarClient class:
+    - CalendarEvent dataclass: event_id, title, start/end_time, timezone, attendees, location, description, html_link
+    - EventCreationResult dataclass: success, event_id, html_link, undo_available_until (5 min window per PRD 6.2)
+    - EventDeletionResult dataclass: success, event_id, error
+    - CalendarClient methods:
+      - create_event(): title, start_time, duration_minutes, timezone, attendees, location, description
+      - delete_event(): for undo support within 5-minute window
+      - get_event(): retrieve event by ID
+      - event_exists(): check if event exists (used after delete to verify)
+    - Async wrapper around synchronous Google API using run_in_executor
+    - Error handling: returns error result instead of raising, 404 on delete treated as success (idempotent)
+  - Added NotionClient.update_task_calendar_event(page_id, calendar_event_id) for linking tasks
+  - Updated src/assistant/google/__init__.py with all calendar exports
+  - Module-level convenience functions: create_calendar_event, delete_calendar_event, calendar_event_exists, get_calendar_client
+  - Constants: DEFAULT_EVENT_DURATION_MINUTES=60, UNDO_WINDOW_MINUTES=5
+  - Created tests/test_calendar.py (38 tests):
+    - TestCalendarEvent: creation, minimal fields
+    - TestEventCreationResult: successful, failed
+    - TestEventDeletionResult: successful, failed
+    - TestCalendarClientInit: client creation, auth detection
+    - TestCalendarClientCreateEvent: not authenticated, success, attendees, location/description, custom duration
+    - TestCalendarClientDeleteEvent: not authenticated, success, already deleted (idempotent)
+    - TestCalendarClientGetEvent: not authenticated, success, not found
+    - TestCalendarClientEventExists: true, false
+    - TestModuleLevelFunctions: singleton, convenience functions
+    - TestConstants: default duration, undo window
+    - TestAT110GoogleCalendarCreation: event created at correct time, event_id returned for Notion link
+    - TestAT116CalendarUndoWindow: event deleted within window, event confirmed deleted
+    - TestNotionTaskCalendarLink: set calendar_event_id, clear calendar_event_id
+    - TestTimezoneHandling: uses user timezone, explicit override
+    - TestErrorHandling: API errors, unexpected exceptions
+  - AT-110 Verification:
+    - Given: User sends "Meeting with Mike tomorrow 2pm"
+    - When: Google Calendar integration enabled
+    - Then: Calendar event created via CalendarClient.create_event()
+    - And: event_id returned for storing in Task.calendar_event_id via NotionClient.update_task_calendar_event()
+  - AT-116 Verification:
+    - Given: AI created calendar event
+    - When: User says "wrong" within 5 minutes
+    - Then: Calendar event deleted via CalendarClient.delete_event()
+    - And: event_exists() returns False confirming deletion
+  - Commands: PYTHONPATH=src python3 -m pytest tests/test_calendar.py -v (38 passed)
+  - Full test suite: 680 tests (675 pass, 5 pre-existing timezone failures)
+  - Commit: 31eaad8

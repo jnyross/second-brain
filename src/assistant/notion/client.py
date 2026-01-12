@@ -779,6 +779,33 @@ class NotionClient:
 
         await self._request("PATCH", f"/pages/{page_id}", update)
 
+    async def update_task_calendar_event(
+        self,
+        page_id: str,
+        calendar_event_id: str | None,
+    ) -> None:
+        """Update a task's linked calendar event ID.
+
+        Args:
+            page_id: Notion page ID of the task
+            calendar_event_id: Google Calendar event ID (or None to clear)
+        """
+        update: dict[str, Any] = {
+            "properties": {
+                "last_modified_at": {"date": {"start": datetime.utcnow().isoformat()}},
+            }
+        }
+
+        if calendar_event_id:
+            update["properties"]["calendar_event_id"] = {
+                "rich_text": [{"text": {"content": calendar_event_id}}]
+            }
+        else:
+            # Clear the calendar_event_id
+            update["properties"]["calendar_event_id"] = {"rich_text": []}
+
+        await self._request("PATCH", f"/pages/{page_id}", update)
+
     async def process_offline_queue(self) -> int:
         if not OFFLINE_QUEUE_PATH.exists():
             return 0

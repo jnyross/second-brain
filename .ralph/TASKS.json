@@ -618,9 +618,9 @@
         "AT-110",
         "AT-116"
       ],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Created src/assistant/google/calendar.py with CalendarClient class. Features: create_event (title, start_time, duration, timezone, attendees, location, description), delete_event (for undo), get_event, event_exists. EventCreationResult includes undo_available_until (5 min window per PRD 6.2). Added NotionClient.update_task_calendar_event() for linking tasks. Updated google/__init__.py exports. Tests in tests/test_calendar.py (38 tests pass): TestCalendarEvent, TestEventCreationResult, TestCalendarClientInit/CreateEvent/DeleteEvent/GetEvent/EventExists, TestAT110GoogleCalendarCreation (event created at correct time, event_id returned for Notion), TestAT116CalendarUndoWindow (delete within window, event confirmed deleted), TestNotionTaskCalendarLink, TestTimezoneHandling, TestErrorHandling. Full suite: 680 tests pass (5 pre-existing timezone flakes).",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-102",
