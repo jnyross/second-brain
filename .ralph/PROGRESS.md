@@ -1061,4 +1061,4 @@
     - Then: Container reaches healthy state within 60s (script waits max 30s)
   - Commands: python3 -m pytest tests/test_health_check.py -v (52 passed)
   - Full test suite: 1244 tests (all pass)
-  - Commit: pending
+  - Commit: fd6c85a
