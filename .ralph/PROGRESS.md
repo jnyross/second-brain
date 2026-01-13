@@ -1404,3 +1404,42 @@
   - Commands: PYTHONPATH=src python3 -m pytest tests/test_backup.py -v (36 passed)
   - Verification: scripts/verify.sh (8/8 checks pass)
   - Commit: d670237
+- Iteration 61 (T-122) - Gmail Auto-Reply Service
+  - Task: Implement pattern-based auto-reply per PRD Section 4.5 and 6.4
+  - Created src/assistant/services/email_auto_reply.py:
+    - SenderPattern dataclass: learns greeting/signoff/tone from sent emails
+    - AutoReplyResult dataclass: tracks action taken (draft_created/auto_sent/skipped/error)
+    - EmailAutoReplyService class with methods:
+      - analyze_sender_pattern(): queries Gmail sent folder, builds patterns with 15% confidence per reply (capped at 100%)
+      - _analyze_style(): detects greeting/signoff/tone (formal/casual/neutral) from email snippets
+      - should_auto_reply(): enforces MIN_REPLIES_FOR_AUTO=3 and AUTO_SEND_CONFIDENCE_THRESHOLD=95%
+      - generate_reply_content(): creates personalized replies with learned greeting/signoff
+      - create_reply_draft(): creates drafts for review (default per PRD 4.5 "Draft only")
+      - process_auto_reply(): auto-sends when confidence >= 95% and 3+ replies exist, creates draft otherwise
+      - store_reply_pattern() / load_reply_patterns(): Notion Patterns database integration
+  - Constants per PRD compliance:
+    - MIN_REPLIES_FOR_AUTO = 3 (PRD 4.5: "Pattern established (3+ similar sent)")
+    - AUTO_SEND_CONFIDENCE_THRESHOLD = 95 (PRD 6.4: "confidence > 95% from pattern")
+    - PATTERN_CONFIDENCE_THRESHOLD = 70 (consistent with pattern system)
+  - Module-level singleton: get_auto_reply_service() and convenience functions
+  - Updated services/__init__.py with EmailAutoReplyService exports
+  - Created tests/test_email_auto_reply.py (42 tests):
+    - TestSenderPattern: basic creation, full pattern
+    - TestAutoReplyResult: draft, auto_sent, skipped results
+    - TestServiceInit: basic init, with clients
+    - TestAnalyzeSenderPattern: no history, with history, caches pattern
+    - TestAnalyzeStyle: greeting detection, formal/casual tone
+    - TestShouldAutoReply: insufficient history, low confidence, approval
+    - TestGenerateReplyContent: basic, user guidance, placeholder
+    - TestCreateReplyDraft: creates draft, Re: prefix, preserves thread
+    - TestProcessAutoReply: skips non-response, low confidence draft, force draft, high confidence auto-send
+    - TestPatternStorage: store, error handling, load
+    - TestCacheManagement: clear cache
+    - TestModuleLevelFunctions: singleton, convenience functions
+    - TestConstants: threshold values per PRD
+    - TestPRDCompliance: PRD 4.5 draft default, PRD 6.4 threshold, PRD 4.5 pattern minimum, auto-send flow
+    - TestIntegrationScenarios: new contact gets draft, frequent contact gets auto-reply
+  - Commands: PYTHONPATH=src python3 -m pytest tests/test_email_auto_reply.py -v (42 passed)
+  - Full suite: 1647 tests pass (1 pre-existing pytz comparison test)
+  - Verification: scripts/verify.sh (8/8 checks pass)
+  - Commit: efff480

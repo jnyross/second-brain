@@ -135,6 +135,15 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "get_nudge_service": ("assistant.services.nudges", "get_nudge_service"),
     "get_pending_nudges": ("assistant.services.nudges", "get_pending_nudges"),
     "run_nudges": ("assistant.services.nudges", "run_nudges"),
+    # Email Auto-Reply (T-122)
+    "AutoReplyResult": ("assistant.services.email_auto_reply", "AutoReplyResult"),
+    "EmailAutoReplyService": ("assistant.services.email_auto_reply", "EmailAutoReplyService"),
+    "SenderPattern": ("assistant.services.email_auto_reply", "SenderPattern"),
+    "analyze_sender_pattern": ("assistant.services.email_auto_reply", "analyze_sender_pattern"),
+    "create_reply_draft": ("assistant.services.email_auto_reply", "create_reply_draft"),
+    "get_auto_reply_service": ("assistant.services.email_auto_reply", "get_auto_reply_service"),
+    "process_auto_reply": ("assistant.services.email_auto_reply", "process_auto_reply"),
+    "should_auto_reply": ("assistant.services.email_auto_reply", "should_auto_reply"),
 }
 
 __all__ = list(_EXPORTS.keys())
