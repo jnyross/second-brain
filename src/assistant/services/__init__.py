@@ -204,6 +204,19 @@ _EXPORTS: dict[str, tuple[str, str]] = {
         "assistant.services.schedule_conflict",
         "is_schedule_conflict_impossible",
     ),
+    # Proximity Task Suggestions (T-157)
+    "NearbyTask": ("assistant.services.proximity", "NearbyTask"),
+    "ProximityResult": ("assistant.services.proximity", "ProximityResult"),
+    "ProximityTaskService": ("assistant.services.proximity", "ProximityTaskService"),
+    "extract_location_from_query": (
+        "assistant.services.proximity",
+        "extract_location_from_query",
+    ),
+    "find_tasks_near": ("assistant.services.proximity", "find_tasks_near"),
+    "get_proximity_service": ("assistant.services.proximity", "get_proximity_service"),
+    "handle_proximity_query": ("assistant.services.proximity", "handle_proximity_query"),
+    "haversine_distance": ("assistant.services.proximity", "haversine_distance"),
+    "is_proximity_query": ("assistant.services.proximity", "is_proximity_query"),
     # Always-On Listening (T-131 - Future Phase 3)
     "AlwaysOnListener": ("assistant.services.always_on", "AlwaysOnListener"),
     "AlwaysOnListenerNotAvailable": (

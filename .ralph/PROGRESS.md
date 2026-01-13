@@ -13,9 +13,9 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phases 0-7 complete. Deployment complete. Phase 8 (Google Maps) complete. Phase 9 (Google Drive) in progress. **Next: T-157 (proximity task suggestions)**.
-- Remaining Tasks: T-157 (Maps), T-165, T-166, T-167 (Drive)
-- Remaining ATs: AT-125, AT-126, AT-127
+- Status: Phases 0-8 complete (Maps). Phase 9 (Google Drive) in progress. **Next: T-165 (meeting notes creator)**.
+- Remaining Tasks: T-165, T-166, T-167 (Drive)
+- Remaining ATs: AT-125, AT-126
 
 ## Iteration Log
 
@@ -1819,4 +1819,41 @@
     - PYTHONPATH=src python3 -m pytest tests/test_schedule_conflict.py -v (33 passed)
     - scripts/verify.sh (8/8 pass)
   - Results: AT-123 verified - SF at 10am, LA at 11am creates conflict with "Travel time ~7 hours - schedule conflict detected" warning and needs_clarification=true
+  - Commit: (pending)
+
+- Iteration (T-157)
+  - Task: Implement proximity task suggestions - Answer "What can I do near X?" with distance-sorted task list (AT-127)
+  - Changes:
+    1. Created src/assistant/services/proximity.py with ProximityTaskService class:
+       - PROXIMITY_PATTERNS: "what can i do near", "tasks near", "errands near", "what's nearby", etc.
+       - is_proximity_query(): Pattern matcher for proximity queries
+       - extract_location_from_query(): Extracts location string from query
+       - haversine_distance(): O(1) great-circle distance calculation (no API call)
+       - NearbyTask dataclass: task_id, title, status, priority, due_date, place_id/name/address, distance_meters, duration_seconds
+         - distance_km, distance_display ("500m" or "2.5km"), duration_display properties
+       - ProximityResult dataclass: success, query_location, query_lat/lng, tasks list, error
+         - format_response(): Telegram-friendly output with priority icons and place names
+       - ProximityTaskService.find_tasks_near():
+         1. Geocodes query location via MapsClient
+         2. Queries Notion for active tasks with place_ids
+         3. Fetches place coordinates from Notion
+         4. Calculates Haversine distances
+         5. Filters to 5km radius
+         6. Optionally gets travel times via Maps API
+         7. Returns sorted NearbyTask list
+       - handle_proximity_query(): Entry point for message handlers
+    2. Updated services/__init__.py: Added 10 new exports (ProximityTaskService, ProximityResult, NearbyTask, etc.)
+  - Tests added (45 tests):
+    - TestNearbyTask (7): distance_km, distance_display (m/km), duration_display (min/hr/hr+min/None)
+    - TestProximityResult (6): task_count, has_tasks, format_response (error/no tasks/with tasks)
+    - TestIsProximityQuery (9): pattern matching for all patterns, case insensitivity, negative cases
+    - TestExtractLocationFromQuery (6): location extraction, punctuation stripping, case preservation
+    - TestHaversineDistance (4): same point, known distance (SF-LA ~560km), short distance, symmetry
+    - TestProximityTaskService (8): error handling (no maps/notion client, geocode failure), distance filtering, sorting
+    - TestAT127ProximityTaskSuggestions (3): 3 tasks near Union Square with distances, response format, query pattern
+    - TestConstants (2): patterns exist, max distance = 5km
+  - Commands:
+    - /opt/homebrew/bin/python3 -m pytest tests/test_proximity.py -v (45 passed)
+    - /opt/homebrew/bin/python3 -m pytest tests/ -q (1995 passed, 5 skipped)
+  - Results: AT-127 verified - "What can I do near Union Square?" returns 3 downtown SF tasks with distance estimates, sorted by distance
   - Commit: (pending)

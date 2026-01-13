@@ -1174,8 +1174,8 @@
       "description": "Answer 'What tasks can I do near here?' with distance-sorted task list.",
       "depends_on": ["T-151", "T-153"],
       "acceptance_tests": ["AT-127"],
-      "passes": false,
-      "evidence": "",
+      "passes": true,
+      "evidence": "Created src/assistant/services/proximity.py with ProximityTaskService class. Features: 1) is_proximity_query() and extract_location_from_query() pattern matchers for 'what can I do near', 'tasks near', 'errands near', etc. 2) haversine_distance() for O(1) distance calculations, 3) find_tasks_near() queries Notion tasks with places, geocodes query location via MapsClient, calculates distances, returns sorted NearbyTask list within 5km radius, 4) ProximityResult.format_response() for Telegram-friendly output. Tests in tests/test_proximity.py (45 tests pass) including TestAT127ProximityTaskSuggestions (3 tests verifying: all 3 downtown SF tasks returned with distances, sorted by distance, proper response format with priority icons). Full suite: 1995 tests pass.",
       "updated_at": "2026-01-13"
     },
     {
