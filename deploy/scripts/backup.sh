@@ -264,7 +264,7 @@ cleanup_old_backups() {
         if [[ -n "$old_backup" ]]; then
             log_debug "Deleting old backup: $(basename "$old_backup")"
             rm -f "$old_backup"
-            ((deleted_count++))
+            deleted_count=$((deleted_count + 1))
         fi
     done < <(find "$BACKUP_DIR" -name "state-*.tar.gz" -type f -mmin "+$retention_minutes" 2>/dev/null)
 
