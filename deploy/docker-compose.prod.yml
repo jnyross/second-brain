@@ -1,0 +1,26 @@
+# Production Docker Compose for DigitalOcean deployment
+# Uses .env file in the same directory for secrets
+
+services:
+  second-brain:
+    image: ghcr.io/jnyross/second-brain:latest
+    container_name: second-brain
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./data:/var/lib/second-brain
+    healthcheck:
+      test: ["CMD", "python", "-m", "assistant", "check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
