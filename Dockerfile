@@ -28,7 +28,7 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Install dependencies first (for better layer caching)
-COPY pyproject.toml ./
+COPY pyproject.toml README.md ./
 # Create minimal package for dependency resolution
 RUN mkdir -p src/assistant && \
     echo "\"\"\"Second Brain package.\"\"\"" > src/assistant/__init__.py && \
