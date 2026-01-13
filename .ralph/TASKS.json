@@ -1078,8 +1078,8 @@
         "T-212"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created src/assistant/services/llm_client.py with provider-agnostic LLM client. Features: 1) LLMProvider enum (GEMINI/OPENAI/ANTHROPIC), 2) BaseLLMProvider ABC with GeminiProvider, OpenAIProvider, AnthropicProvider implementations, 3) LLMResponse dataclass with standardized fields (text, tokens, cost, latency), 4) RateLimiter with token bucket algorithm (requests/tokens per minute), 5) LLMClient with automatic fallback chain, daily budget tracking, per-provider stats, 6) Cost estimation via PROVIDER_COSTS dict with current model prices. Added anthropic_api_key and has_anthropic to config.py. Updated services/__init__.py with 14 new exports. Tests in tests/test_llm_client.py (50 tests pass). scripts/verify.sh passes (8/8).",
       "updated_at": "2026-01-12"
     }
   ]

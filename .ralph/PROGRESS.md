@@ -1627,3 +1627,60 @@
   - Commands: PYTHONPATH=src python3 -m pytest tests/test_heartbeat.py -v (31 passed)
   - Verification: scripts/verify.sh (8/8 checks pass)
   - Commit: pending
+
+- Iteration 66 (T-213) - LLM Provider Abstraction Layer
+  - Task: Create provider-agnostic LLM client supporting Gemini, OpenAI, and Anthropic APIs with automatic fallback, cost tracking, and rate limiting
+  - Created src/assistant/services/llm_client.py with comprehensive LLM abstraction:
+    - LLMProvider enum: GEMINI, OPENAI, ANTHROPIC
+    - LLMResponse dataclass: text, provider, model, tokens_input/output, latency_ms, cost_usd, raw_response
+    - LLMUsageStats dataclass: total_requests, tokens, cost, latency, errors
+    - BaseLLMProvider ABC with abstract complete() method
+    - GeminiProvider: Google Generative AI API integration
+      - System prompt via user/model message pair
+      - JSON mode via response_mime_type
+      - Token usage from usageMetadata
+    - OpenAIProvider: OpenAI Chat Completions API
+      - Bearer token authentication
+      - JSON mode via response_format
+      - Token usage from usage field
+    - AnthropicProvider: Anthropic Messages API
+      - x-api-key header authentication
+      - System prompt as top-level field
+      - Token usage from usage field
+    - RateLimiter: Token bucket algorithm
+      - requests_per_minute and tokens_per_minute limits
+      - Automatic cleanup of old entries (1 min window)
+      - can_request() and wait_time_seconds() methods
+    - LLMClient: Main client class
+      - Multi-provider support with automatic fallback
+      - Primary provider selection (cheapest by default: Gemini)
+      - Daily budget tracking with automatic reset
+      - Per-provider statistics
+      - Rate limiting integration
+    - estimate_cost(): Cost calculation from PROVIDER_COSTS dict
+      - Jan 2026 pricing for all models
+      - Conservative defaults for unknown models
+  - Updated src/assistant/config.py:
+    - Added anthropic_api_key setting
+    - Added has_anthropic property
+  - Updated src/assistant/services/__init__.py:
+    - Added 14 new exports: LLMClient, LLMProvider, LLMResponse, etc.
+  - Created tests/test_llm_client.py (50 tests):
+    - TestLLMResponse: total_tokens, default values
+    - TestLLMUsageStats: avg_latency calculation
+    - TestEstimateCost: known models, unknown models, zero tokens
+    - TestRateLimiter: limits, wait time, cleanup
+    - TestGeminiProvider: basic, system prompt, JSON mode, usage, endpoint
+    - TestOpenAIProvider: basic, system prompt, JSON mode, auth
+    - TestAnthropicProvider: basic, system prompt, JSON mode, headers
+    - TestLLMClient: availability, providers, complete
+    - TestLLMClientComplete: primary, fallback, force provider, errors
+    - TestLLMClientBudget: daily cost, budget limit, reset
+    - TestLLMClientStats: empty, after requests, all
+    - TestLLMClientRateLimiting: skips rate limited
+    - TestModuleFunctions: singleton, is_llm_available
+    - TestLLMProviderEnum: values, string comparison
+    - TestT213Integration: abstraction, fallback chain, cost tracking, rate limiting
+  - Commands: PYTHONPATH=src python3 -m pytest tests/test_llm_client.py -v (50 passed)
+  - Verification: scripts/verify.sh (8/8 checks pass)
+  - Commit: pending

@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.5-flash-lite"
+    anthropic_api_key: str = ""
 
     notion_inbox_db_id: str = ""
     notion_tasks_db_id: str = ""
@@ -62,6 +63,10 @@ class Settings(BaseSettings):
     @property
     def has_gemini(self) -> bool:
         return bool(self.gemini_api_key)
+
+    @property
+    def has_anthropic(self) -> bool:
+        return bool(self.anthropic_api_key)
 
     @property
     def has_google(self) -> bool:

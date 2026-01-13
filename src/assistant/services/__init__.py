@@ -152,6 +152,20 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "send_heartbeat": ("assistant.services.heartbeat", "send_heartbeat"),
     "start_heartbeat": ("assistant.services.heartbeat", "start_heartbeat"),
     "stop_heartbeat": ("assistant.services.heartbeat", "stop_heartbeat"),
+    # LLM Provider Abstraction Layer (T-213)
+    "AnthropicProvider": ("assistant.services.llm_client", "AnthropicProvider"),
+    "BaseLLMProvider": ("assistant.services.llm_client", "BaseLLMProvider"),
+    "GeminiProvider": ("assistant.services.llm_client", "GeminiProvider"),
+    "LLMClient": ("assistant.services.llm_client", "LLMClient"),
+    "LLMProvider": ("assistant.services.llm_client", "LLMProvider"),
+    "LLMResponse": ("assistant.services.llm_client", "LLMResponse"),
+    "LLMUsageStats": ("assistant.services.llm_client", "LLMUsageStats"),
+    "OpenAIProvider": ("assistant.services.llm_client", "OpenAIProvider"),
+    "RateLimiter": ("assistant.services.llm_client", "RateLimiter"),
+    "estimate_cost": ("assistant.services.llm_client", "estimate_cost"),
+    "get_llm_client": ("assistant.services.llm_client", "get_llm_client"),
+    "is_llm_available": ("assistant.services.llm_client", "is_llm_available"),
+    "llm_complete": ("assistant.services.llm_client", "llm_complete"),
     # Always-On Listening (T-131 - Future Phase 3)
     "AlwaysOnListener": ("assistant.services.always_on", "AlwaysOnListener"),
     "AlwaysOnListenerNotAvailable": (
