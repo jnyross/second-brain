@@ -1626,7 +1626,7 @@
     - TestDocumentation: exists, contains key sections
   - Commands: PYTHONPATH=src python3 -m pytest tests/test_heartbeat.py -v (31 passed)
   - Verification: scripts/verify.sh (8/8 checks pass)
-  - Commit: pending
+  - Commit: 4970e2d
 
 - Iteration 66 (T-213) - LLM Provider Abstraction Layer
   - Task: Create provider-agnostic LLM client supporting Gemini, OpenAI, and Anthropic APIs with automatic fallback, cost tracking, and rate limiting
@@ -1683,7 +1683,7 @@
     - TestT213Integration: abstraction, fallback chain, cost tracking, rate limiting
   - Commands: PYTHONPATH=src python3 -m pytest tests/test_llm_client.py -v (50 passed)
   - Verification: scripts/verify.sh (8/8 checks pass)
-  - Commit: pending
+  - Commit: 4970e2d
   - Commit: 7d94747
 
 - Iteration 78 (hygiene): Fix pytz timezone comparison test
@@ -1696,4 +1696,4 @@
   - Commands: PYTHONPATH=src python3 -m pytest tests/test_briefing.py::TestBriefingGeneratorInit::test_init_with_timezone -v (pass)
   - Full suite: 1845 passed, 5 skipped
   - Verification: scripts/verify.sh (8/8 pass)
-  - Commit: pending
+  - Commit: 4970e2d
