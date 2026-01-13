@@ -13,7 +13,9 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phases 1-5 complete. Deployment tasks T-200 through T-210 complete. Next: P2 tasks (T-211, T-213).
+- Status: Phases 0-7 complete. Deployment complete. **Next: Phase 8 (Google Maps Integration) and Phase 9 (Google Drive Integration)**.
+- Remaining Tasks: T-153, T-155, T-156, T-157 (Maps), T-164, T-165, T-166, T-167 (Drive)
+- Remaining ATs: AT-121, AT-122, AT-123, AT-124, AT-125, AT-126, AT-127
 
 ## Iteration Log
 
@@ -1697,3 +1699,27 @@
   - Full suite: 1845 passed, 5 skipped
   - Verification: scripts/verify.sh (8/8 pass)
   - Commit: 4970e2d
+
+- Iteration 79 (gap analysis): Add missing Phase 8 & 9 tasks to backlog
+  - Task: Review PRD against TASKS.json, identify incomplete work
+  - Findings:
+    - Phase 8 (Google Maps): T-150 to T-157 were missing from TASKS.json
+    - Phase 9 (Google Drive): T-160 to T-167 were missing from TASKS.json
+    - Code exists for MapsClient (maps.py) and DriveClient (drive.py) but not integrated
+    - 7 acceptance tests remain: AT-121 through AT-127
+  - Actions:
+    - Added 16 tasks to .ralph/TASKS.json (T-150-157, T-160-167)
+    - Marked T-150-152, T-154 (Maps foundation) as passes:true (code exists)
+    - Marked T-160-163 (Drive foundation) as passes:true (code exists)
+    - Marked T-153, T-155-157, T-164-167 as passes:false (need integration work)
+    - Updated Current State with remaining tasks and ATs
+  - Next actions for loop:
+    1. T-153: Integrate MapsClient with PlacesService → AT-121
+    2. T-155: Add travel times to BriefingGenerator → AT-122
+    3. T-156: Schedule conflict detection service → AT-123
+    4. T-164: Research-to-doc pipeline → AT-124
+    5. T-165: Meeting notes with PeopleService → AT-125
+    6. T-166: Comparison sheet tests → AT-126
+    7. T-157: Proximity task suggestions → AT-127
+    8. T-167: Notion ↔ Drive file linking
+  - Commit: pending
