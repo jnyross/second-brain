@@ -17,7 +17,7 @@ Deduplication process:
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any
 
@@ -47,7 +47,7 @@ class AuditEntry:
     action_type: ActionType = ActionType.CAPTURE
     idempotency_key: str | None = None
     request_id: str | None = None
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     input_text: str | None = None
     interpretation: str | None = None
     action_taken: str | None = None
@@ -198,7 +198,7 @@ class AuditLogger:
         entry = AuditEntry(
             action_type=action_type,
             idempotency_key=idempotency_key,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             input_text=input_text,
             interpretation=interpretation,
             action_taken=action_taken,
@@ -210,12 +210,12 @@ class AuditLogger:
             error_message=error_message,
             retry_count=retry_count,
             correction=correction,
-            corrected_at=datetime.utcnow() if correction else None,
+            corrected_at=datetime.now(UTC) if correction else None,
         )
 
         # Set undo window for reversible actions
         if include_undo_window:
-            entry.undo_available_until = datetime.utcnow() + timedelta(minutes=UNDO_WINDOW_MINUTES)
+            entry.undo_available_until = datetime.now(UTC) + timedelta(minutes=UNDO_WINDOW_MINUTES)
 
         if not self.notion:
             logger.debug(f"No Notion client, logging locally: {action_type.value}")

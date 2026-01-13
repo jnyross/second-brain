@@ -4,7 +4,7 @@ Tests for T-091: Build pattern detection - detects repeated corrections
 and builds patterns that can be applied to future inputs.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -40,7 +40,7 @@ class TestCorrectionRecord:
 
     def test_creation_with_optional_fields(self):
         """Test creation with all fields."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         record = CorrectionRecord(
             original_value="Jess",
             corrected_value="Tess",
@@ -401,13 +401,13 @@ class TestPatternDetectorLoadCorrections:
                 id="log-1",
                 action_type=ActionType.UPDATE,
                 correction="Jess -> Tess",
-                corrected_at=datetime.utcnow(),
+                corrected_at=datetime.now(UTC),
             ),
             LogEntry(
                 id="log-2",
                 action_type=ActionType.UPDATE,
                 correction="Bob -> Rob",
-                corrected_at=datetime.utcnow(),
+                corrected_at=datetime.now(UTC),
             ),
         ]
         mock_notion.query_log_corrections = AsyncMock(return_value=mock_entries)
@@ -422,13 +422,13 @@ class TestPatternDetectorLoadCorrections:
                 id="log-1",
                 action_type=ActionType.UPDATE,
                 correction="Jess \u2192 Tess",
-                corrected_at=datetime.utcnow(),
+                corrected_at=datetime.now(UTC),
             ),
             LogEntry(
                 id="log-2",
                 action_type=ActionType.UPDATE,
                 correction="Bob \u2192 Rob",
-                corrected_at=datetime.utcnow(),
+                corrected_at=datetime.now(UTC),
             ),
         ]
         mock_notion.query_log_corrections = AsyncMock(return_value=mock_entries)

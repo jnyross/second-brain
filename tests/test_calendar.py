@@ -8,7 +8,7 @@ Tests cover:
 - Error handling
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo
 
@@ -75,7 +75,7 @@ class TestEventCreationResult:
             success=True,
             event_id="abc123",
             html_link="https://calendar.google.com/event?eid=abc123",
-            undo_available_until=datetime.utcnow() + timedelta(minutes=5),
+            undo_available_until=datetime.now(UTC) + timedelta(minutes=5),
         )
 
         assert result.success is True
@@ -641,7 +641,7 @@ class TestAT116CalendarUndoWindow:
         assert create_result.undo_available_until is not None
 
         # Verify undo window is 5 minutes in the future
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         assert create_result.undo_available_until > now
         assert create_result.undo_available_until < now + timedelta(minutes=6)
 

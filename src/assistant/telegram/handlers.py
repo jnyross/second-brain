@@ -409,10 +409,13 @@ async def handle_voice(message: Message, bot: Bot) -> None:
             return
         file_data = await bot.download_file(file.file_path)
 
-        # Read bytes from BytesIO
+        # Read bytes from BytesIO or BinaryIO
         audio_bytes: bytes
         if isinstance(file_data, BytesIO):
             audio_bytes = file_data.read()
+        elif hasattr(file_data, "read"):
+            # Handle other BinaryIO types
+            audio_bytes = file_data.read()  # type: ignore[union-attr]
         elif file_data is not None:
             audio_bytes = file_data
         else:

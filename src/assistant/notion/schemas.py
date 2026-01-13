@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -68,7 +68,7 @@ class InboxItem(BaseModel):
     id: str = Field(default_factory=generate_id)
     raw_input: str
     source: InboxSource
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     processed: bool = False
     confidence: int = 0
     needs_clarification: bool = False
@@ -97,8 +97,8 @@ class Task(BaseModel):
     source_inbox_item_id: str | None = None
     confidence: int = 100
     created_by: str = "user"
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    last_modified_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    last_modified_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     completed_at: datetime | None = None
     deleted_at: datetime | None = None
     calendar_event_id: str | None = None
@@ -177,7 +177,7 @@ class Preference(BaseModel):
     preference: str
     details: str | None = None
     learned_from: str | None = None
-    learned_at: datetime = Field(default_factory=datetime.utcnow)
+    learned_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     confidence: int = 50
     times_applied: int = 0
 
@@ -190,7 +190,7 @@ class Pattern(BaseModel):
     times_confirmed: int = 0
     times_wrong: int = 0
     last_used: datetime | None = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class Email(BaseModel):
@@ -214,7 +214,7 @@ class LogEntry(BaseModel):
     id: str = Field(default_factory=generate_id)
     request_id: str = Field(default_factory=generate_id)
     idempotency_key: str | None = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     action_type: ActionType
     input_text: str | None = None
     interpretation: str | None = None

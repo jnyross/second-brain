@@ -512,7 +512,7 @@ class TestBackupTimestampFormat:
             filename = backups[0].name
             # Match state-YYYYMMDD-HHMMSS.tar.gz
             pattern = r"^state-\d{8}-\d{6}\.tar\.gz$"
-            assert re.match(pattern, filename), f"Filename {filename} doesn't match expected pattern"
+            assert re.match(pattern, filename), f"Filename {filename} doesn't match pattern"
 
 
 class TestBackupPRD129Compliance:

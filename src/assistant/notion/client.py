@@ -1,6 +1,6 @@
 import hashlib
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, TypeVar, cast
 
@@ -108,7 +108,7 @@ class NotionClient:
     ) -> None:
         OFFLINE_QUEUE_PATH.parent.mkdir(parents=True, exist_ok=True)
         entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "method": method,
             "path": path,
             "data": json_data,
@@ -702,7 +702,7 @@ class NotionClient:
             f"/pages/{page_id}",
             {
                 "properties": {
-                    "deleted_at": {"date": {"start": datetime.utcnow().isoformat()}},
+                    "deleted_at": {"date": {"start": datetime.now(UTC).isoformat()}},
                 }
             },
         )
@@ -722,13 +722,13 @@ class NotionClient:
         update: dict[str, Any] = {
             "properties": {
                 "status": {"select": {"name": status}},
-                "last_modified_at": {"date": {"start": datetime.utcnow().isoformat()}},
+                "last_modified_at": {"date": {"start": datetime.now(UTC).isoformat()}},
             }
         }
 
         if status == "done":
             update["properties"]["completed_at"] = {
-                "date": {"start": datetime.utcnow().isoformat()}
+                "date": {"start": datetime.now(UTC).isoformat()}
             }
 
         await self._request("PATCH", f"/pages/{page_id}", update)
@@ -809,7 +809,7 @@ class NotionClient:
             timestamp_prop = props.get("timestamp", {}).get("date", {})
             timestamp_str = timestamp_prop.get("start") if timestamp_prop else None
             timestamp = (
-                datetime.fromisoformat(timestamp_str) if timestamp_str else datetime.utcnow()
+                datetime.fromisoformat(timestamp_str) if timestamp_str else datetime.now(UTC)
             )
 
             # Extract correction
@@ -948,7 +948,7 @@ class NotionClient:
         if confidence is not None:
             update["properties"]["confidence"] = {"number": confidence}
 
-        update["properties"]["last_used"] = {"date": {"start": datetime.utcnow().isoformat()}}
+        update["properties"]["last_used"] = {"date": {"start": datetime.now(UTC).isoformat()}}
 
         await self._request("PATCH", f"/pages/{page_id}", update)
 
@@ -965,7 +965,7 @@ class NotionClient:
         """
         update: dict[str, Any] = {
             "properties": {
-                "last_modified_at": {"date": {"start": datetime.utcnow().isoformat()}},
+                "last_modified_at": {"date": {"start": datetime.now(UTC).isoformat()}},
             }
         }
 
@@ -994,7 +994,7 @@ class NotionClient:
         """
         update: dict[str, Any] = {
             "properties": {
-                "last_modified_at": {"date": {"start": datetime.utcnow().isoformat()}},
+                "last_modified_at": {"date": {"start": datetime.now(UTC).isoformat()}},
             }
         }
 

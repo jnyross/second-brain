@@ -610,8 +610,9 @@ class TestAT126ComparisonSheetCreation:
         # Verify options are passed (these become column headers)
         options = call_kwargs["options"]
         assert len(options) >= 2
-        # Options should include extracted items
-        assert any("phone" in opt.lower() or "iphone" in opt.lower() for opt in options) or len(options) == 2
+        # Options should include extracted items (phone/iphone or default 2)
+        has_phone = any("phone" in opt.lower() or "iphone" in opt.lower() for opt in options)
+        assert has_phone or len(options) == 2
 
         # Verify criteria are passed (these become row headers)
         criteria = call_kwargs["criteria"]

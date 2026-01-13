@@ -10,7 +10,7 @@ Per PRD Section 4.4 and AT-110/AT-116:
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 from zoneinfo import ZoneInfo
 
@@ -198,7 +198,7 @@ class CalendarClient:
                 html_link=html_link,
             )
 
-            undo_until = datetime.utcnow() + timedelta(minutes=UNDO_WINDOW_MINUTES)
+            undo_until = datetime.now(UTC) + timedelta(minutes=UNDO_WINDOW_MINUTES)
 
             logger.info(f"Created calendar event: {event_id} - {title}")
 

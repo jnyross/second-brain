@@ -12,7 +12,7 @@ AT-115: Queued items sync to Notion in order on recovery
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -145,7 +145,7 @@ class OfflineQueue:
 
         action = QueuedAction(
             action_type=QueuedActionType.CREATE_INBOX,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             idempotency_key=idempotency_key,
             chat_id=chat_id,
             message_id=message_id,
@@ -204,7 +204,7 @@ class OfflineQueue:
 
         action = QueuedAction(
             action_type=QueuedActionType.CREATE_TASK,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             idempotency_key=idempotency_key,
             chat_id=chat_id,
             message_id=message_id,
@@ -453,7 +453,7 @@ def queue_for_offline_sync(
     queue = get_offline_queue()
     action = QueuedAction(
         action_type=action_type,
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(UTC),
         idempotency_key=idempotency_key,
         data=data,
         chat_id=chat_id,

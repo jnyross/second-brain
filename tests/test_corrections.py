@@ -1,6 +1,6 @@
 """Tests for the correction handler service."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock
 
 import pytest
@@ -49,7 +49,7 @@ class TestRecentAction:
             action_type="task_created",
             entity_id="page-123",
             title="Call Jess",
-            timestamp=datetime.utcnow() - timedelta(minutes=35),
+            timestamp=datetime.now(UTC) - timedelta(minutes=35),
         )
         assert action.is_expired(max_age_minutes=30)
 

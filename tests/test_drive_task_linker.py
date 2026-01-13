@@ -10,7 +10,7 @@ Per T-167 requirements:
 - Enable bidirectional linking (Task -> Drive and Drive -> Task)
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -57,7 +57,7 @@ class TestLinkResult:
 
     def test_all_fields(self):
         """Test all fields set correctly."""
-        linked_at = datetime.utcnow()
+        linked_at = datetime.now(UTC)
         result = LinkResult(
             success=True,
             task_id="task-123",

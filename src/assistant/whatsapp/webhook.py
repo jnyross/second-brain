@@ -230,7 +230,8 @@ class WhatsAppWebhook:
             except json.JSONDecodeError as e:
                 raise WebhookParseError(f"Invalid JSON: {e}")
         elif isinstance(payload, str):
-            if signature_header and not self.verify_signature(payload.encode("utf-8"), signature_header):
+            payload_bytes = payload.encode("utf-8")
+            if signature_header and not self.verify_signature(payload_bytes, signature_header):
                 raise WebhookVerificationError("Invalid signature")
             try:
                 data = json.loads(payload)
@@ -310,8 +311,8 @@ class WhatsAppWebhook:
 
     def _parse_message(self, message_data: dict, value: dict) -> WebhookEvent:
         """Parse a message object into a WebhookEvent."""
-        # Get contact info (sender)
-        contacts = value.get("contacts", [])
+        # Get contact info (sender) - contacts not currently used but parsed for future use
+        _ = value.get("contacts", [])  # noqa: F841
         from_number = message_data.get("from", "")
 
         # Parse timestamp
@@ -435,6 +436,8 @@ def verify_webhook(mode: str | None, token: str | None, challenge: str | None) -
     return get_whatsapp_webhook().verify_webhook(mode, token, challenge)
 
 
-def parse_payload(payload: bytes | str | dict, signature_header: str | None = None) -> list[WebhookEvent]:
+def parse_payload(
+    payload: bytes | str | dict, signature_header: str | None = None
+) -> list[WebhookEvent]:
     """Parse webhook payload using the shared handler."""
     return get_whatsapp_webhook().parse_payload(payload, signature_header)

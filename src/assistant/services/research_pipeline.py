@@ -341,7 +341,7 @@ class ResearchPipeline:
             created_by="ai",
             drive_file_id=drive_file.id,
             drive_file_url=drive_file.web_view_link,
-            notes=f"Research completed with {findings_count} findings. Review document at: {drive_file.web_view_link}",
+            notes=f"Research: {findings_count} findings. See: {drive_file.web_view_link}",
         )
 
         task_id = await self.notion_client.create_task(task)

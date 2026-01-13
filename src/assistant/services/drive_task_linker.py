@@ -24,7 +24,7 @@ Example usage:
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from assistant.notion.client import NotionClient
@@ -112,7 +112,7 @@ class DriveTaskLinker:
                 task_id=task_id,
                 drive_file_id=drive_file_id,
                 drive_file_url=drive_file_url,
-                linked_at=datetime.utcnow(),
+                linked_at=datetime.now(UTC),
             )
         except Exception as e:
             logger.error(f"Failed to link Drive file to task: {e}")

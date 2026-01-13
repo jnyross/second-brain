@@ -307,7 +307,10 @@ class ComparisonSheetService:
                 source=TaskSource.AI_CREATED,
                 drive_file_id=drive_file.id,
                 drive_file_url=drive_file.web_view_link,
-                notes=f"Fill in comparison sheet with {len(result.criteria)} criteria across {len(result.options)} options.",
+                notes=(
+                    f"Fill in comparison sheet with {len(result.criteria)} criteria "
+                    f"across {len(result.options)} options."
+                ),
             )
 
             result.task_id = await notion_client.create_task(task)

@@ -185,7 +185,7 @@ def haversine_distance(
     Returns:
         Distance in meters
     """
-    R = 6371000  # Earth's radius in meters
+    earth_radius = 6371000  # Earth's radius in meters
 
     phi1 = math.radians(lat1)
     phi2 = math.radians(lat2)
@@ -198,7 +198,7 @@ def haversine_distance(
     )
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
-    return R * c
+    return earth_radius * c
 
 
 class ProximityTaskService:

@@ -6,7 +6,7 @@ Provides functionality for the /debrief command and morning briefing.
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 from assistant.config import settings
 from assistant.notion import NotionClient
@@ -95,7 +95,7 @@ class ClarificationService:
                 # Extract timestamp
                 timestamp_str = props.get("timestamp", {}).get("date", {}).get("start")
                 timestamp = (
-                    datetime.fromisoformat(timestamp_str) if timestamp_str else datetime.utcnow()
+                    datetime.fromisoformat(timestamp_str) if timestamp_str else datetime.now(UTC)
                 )
 
                 # Check if from voice

@@ -33,7 +33,7 @@ import logging
 import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from assistant.notion import NotionClient
 from assistant.notion.schemas import Pattern
@@ -64,7 +64,7 @@ class CorrectionRecord:
     original_value: str
     corrected_value: str
     context: str = ""  # Additional context (e.g., "task title", "person name")
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     entity_type: str = ""  # "task", "person", "place", "project"
 
 
@@ -507,7 +507,7 @@ class PatternDetector:
         """
         if since is None:
             # Default to last 7 days
-            since = datetime.utcnow() - timedelta(days=7)
+            since = datetime.now(UTC) - timedelta(days=7)
 
         entries = await self.notion.query_log_corrections(since=since, limit=limit)
 
@@ -650,6 +650,6 @@ async def load_and_analyze_patterns(since_days: int = 7) -> list[DetectedPattern
         List of detected patterns
     """
     detector = get_pattern_detector()
-    since = datetime.utcnow() - timedelta(days=since_days)
+    since = datetime.now(UTC) - timedelta(days=since_days)
     await detector.load_corrections_from_log(since=since)
     return await detector.analyze_correction_patterns()

@@ -6,7 +6,7 @@ Implements tests for PRD Section 4.8 (Failure Handling):
 """
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
@@ -39,7 +39,7 @@ class TestOfflineQueue:
         """Test that enqueue creates the queue directory if needed."""
         action = QueuedAction(
             action_type=QueuedActionType.CREATE_TASK,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             idempotency_key="test:123:456",
             data={"title": "Test task"},
         )
@@ -53,7 +53,7 @@ class TestOfflineQueue:
         """Test that enqueue writes action to file."""
         action = QueuedAction(
             action_type=QueuedActionType.CREATE_TASK,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             idempotency_key="test:123:456",
             data={"title": "Test task"},
             chat_id="123",
@@ -83,7 +83,7 @@ class TestOfflineQueue:
         for i in range(3):
             action = QueuedAction(
                 action_type=QueuedActionType.CREATE_TASK,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(UTC),
                 idempotency_key=f"test:123:{i}",
                 data={"title": f"Task {i}"},
             )
@@ -103,7 +103,7 @@ class TestOfflineQueue:
         for i in range(5):
             action = QueuedAction(
                 action_type=QueuedActionType.CREATE_TASK,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(UTC),
                 idempotency_key=f"test:{i}",
                 data={"title": f"Task {i}"},
             )
@@ -115,7 +115,7 @@ class TestOfflineQueue:
         """Test clearing the queue."""
         action = QueuedAction(
             action_type=QueuedActionType.CREATE_TASK,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             idempotency_key="test:123:456",
             data={"title": "Test"},
         )
@@ -555,7 +555,7 @@ class TestQueuedAction:
         """Test serialization round trip."""
         original = QueuedAction(
             action_type=QueuedActionType.CREATE_TASK,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             idempotency_key="test:123:456",
             data={"title": "Test", "priority": "high"},
             chat_id="123",

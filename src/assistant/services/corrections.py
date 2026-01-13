@@ -16,7 +16,7 @@ import logging
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from assistant.notion import NotionClient
 from assistant.notion.schemas import ActionType
@@ -31,13 +31,13 @@ class RecentAction:
     action_type: str  # "task_created", "person_created", etc.
     entity_id: str  # Notion page ID
     title: str  # The title/name that was created
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     chat_id: str = ""
     message_id: str = ""
 
     def is_expired(self, max_age_minutes: int = 30) -> bool:
         """Check if this action is too old to be corrected."""
-        return datetime.utcnow() - self.timestamp > timedelta(minutes=max_age_minutes)
+        return datetime.now(UTC) - self.timestamp > timedelta(minutes=max_age_minutes)
 
 
 @dataclass
@@ -503,7 +503,7 @@ class CorrectionHandler:
             {
                 "properties": {
                     "title": {"title": [{"text": {"content": new_title}}]},
-                    "last_modified_at": {"date": {"start": datetime.utcnow().isoformat()}},
+                    "last_modified_at": {"date": {"start": datetime.now(UTC).isoformat()}},
                 }
             },
         )
@@ -563,7 +563,7 @@ class CorrectionHandler:
             action_taken=f"Correction: {original_value} → {corrected_value}",
             entities_affected=[entity_id],
             correction=f"{original_value} → {corrected_value}",
-            corrected_at=datetime.utcnow(),
+            corrected_at=datetime.now(UTC),
         )
 
         await self.notion.create_log_entry(entry)

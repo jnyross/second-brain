@@ -16,6 +16,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
+from typing import Any
 
 import httpx
 
@@ -215,7 +216,7 @@ class WhatsAppClient:
         Returns:
             SendResult with success status
         """
-        payload = {
+        payload: dict[str, Any] = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
             "to": to,
@@ -469,12 +470,12 @@ def get_whatsapp_client() -> WhatsAppClient:
     return _client
 
 
-async def send_text(to: str, text: str, **kwargs) -> SendResult:
+async def send_text(to: str, text: str, **kwargs: Any) -> SendResult:
     """Send a text message using the shared client."""
     return await get_whatsapp_client().send_text(to, text, **kwargs)
 
 
-async def send_template(to: str, template_name: str, **kwargs) -> SendResult:
+async def send_template(to: str, template_name: str, **kwargs: Any) -> SendResult:
     """Send a template message using the shared client."""
     return await get_whatsapp_client().send_template(to, template_name, **kwargs)
 

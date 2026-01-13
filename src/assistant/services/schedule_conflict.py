@@ -94,7 +94,11 @@ class ConflictCheckResult:
         """Get the most severe conflict (largest travel time gap)."""
         impossible = [c for c in self.conflicts if c.is_impossible]
         if impossible:
-            return max(impossible, key=lambda c: c.travel_duration_minutes - c.available_time_minutes)
+
+            def travel_gap(c: ScheduleConflict) -> int:
+                return c.travel_duration_minutes - c.available_time_minutes
+
+            return max(impossible, key=travel_gap)
         return self.conflicts[0] if self.conflicts else None
 
     @property
@@ -277,10 +281,11 @@ class ScheduleConflictDetector:
         # Check if there's a conflict (travel time > available time)
         if total_travel_minutes > available_minutes:
             # Calculate required departure time
+            travel_delta = timedelta(minutes=total_travel_minutes)
             if new_is_before:
-                required_departure = existing_event.start_time - timedelta(minutes=total_travel_minutes)
+                required_departure = existing_event.start_time - travel_delta
             else:
-                required_departure = new_event_time - timedelta(minutes=total_travel_minutes)
+                required_departure = new_event_time - travel_delta
 
             return ScheduleConflict(
                 existing_event=existing_event,

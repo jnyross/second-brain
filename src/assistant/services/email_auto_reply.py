@@ -6,7 +6,7 @@ Auto-send levels (PRD Section 4.5):
 | Level | Trigger | Action |
 |-------|---------|--------|
 | Draft only | Default | Creates draft, notifies you |
-| Send with confirmation | You say "email Mike about X" | Drafts, shows preview, waits for "send it" |
+| Send with confirmation | You say "email Mike about X" | Drafts, shows preview |
 | Auto-send simple | Pattern established (3+ similar sent) | Sends, logs, shows in debrief |
 | Auto-send complex | Future (high confidence + pattern) | Full autonomy with audit |
 
@@ -334,7 +334,7 @@ class EmailAutoReplyService:
             return (
                 True,
                 pattern.confidence,
-                f"Pattern established: {pattern.reply_count} replies, {pattern.confidence}% confidence",
+                f"Pattern: {pattern.reply_count} replies, {pattern.confidence}% confidence",
             )
 
         return (

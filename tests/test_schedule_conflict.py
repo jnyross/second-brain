@@ -298,7 +298,8 @@ class TestConflictCheckResult:
         )
 
         assert result.warning_message is not None
-        assert "conflict" in result.warning_message.lower() or "schedule" in result.warning_message.lower()
+        warning_lower = result.warning_message.lower()
+        assert "conflict" in warning_lower or "schedule" in warning_lower
 
     def test_no_conflicts(self, sample_tz):
         """Result with no conflicts."""
@@ -393,7 +394,7 @@ class TestScheduleConflictDetector:
         assert len(result.conflicts) == 1
 
     @pytest.mark.asyncio
-    async def test_conflict_message_includes_travel_time(self, sf_event, sf_to_la_travel, sample_tz):
+    async def test_conflict_message_travel_time(self, sf_event, sf_to_la_travel, sample_tz):
         """Conflict warning message includes travel time estimate."""
         mock_maps = MagicMock()
         mock_maps.get_travel_time = AsyncMock(return_value=sf_to_la_travel)
@@ -582,13 +583,14 @@ class TestAT123UnrealisticScheduleDetection:
 
         # Then: Warning shown with travel time
         assert result.has_conflict is True
-        assert "travel" in result.warning_message.lower() or "conflict" in result.warning_message.lower()
+        warning_lower = result.warning_message.lower()
+        assert "travel" in warning_lower or "conflict" in warning_lower
 
         # And: Task flagged for review
         assert result.needs_clarification is True
 
     @pytest.mark.asyncio
-    async def test_at123_warning_includes_approximate_time(self, sf_event, sf_to_la_travel, sample_tz):
+    async def test_at123_warning_approx_time(self, sf_event, sf_to_la_travel, sample_tz):
         """AT-123: Warning includes approximate travel time."""
         mock_maps = MagicMock()
         mock_maps.get_travel_time = AsyncMock(return_value=sf_to_la_travel)

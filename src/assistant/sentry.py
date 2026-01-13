@@ -32,8 +32,8 @@ try:
     SENTRY_AVAILABLE = True
 except ImportError:
     SENTRY_AVAILABLE = False
-    sentry_sdk = None  # type: ignore[assignment]
-    LoggingIntegration = None  # type: ignore[assignment, misc]
+    sentry_sdk = None
+    LoggingIntegration = None
 
 logger = logging.getLogger(__name__)
 

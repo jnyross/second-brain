@@ -162,7 +162,7 @@ class GeminiProvider(BaseLLMProvider):
         if system_prompt:
             contents.append({"role": "user", "parts": [{"text": system_prompt}]})
             contents.append(
-                {"role": "model", "parts": [{"text": "Understood. I will follow these instructions."}]}
+                {"role": "model", "parts": [{"text": "Understood. Following instructions."}]}
             )
         contents.append({"role": "user", "parts": [{"text": prompt}]})
 
@@ -534,7 +534,7 @@ class LLMClient:
 
         if not self._check_daily_budget():
             raise RuntimeError(
-                f"Daily budget exhausted (${self._daily_cost_usd:.2f} of ${self.daily_budget_usd:.2f})"
+                f"Daily budget exhausted (${self._daily_cost_usd:.2f}/${self.daily_budget_usd:.2f})"
             )
 
         providers_to_try = (

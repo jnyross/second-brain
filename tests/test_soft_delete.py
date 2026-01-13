@@ -16,7 +16,7 @@ Tests cover:
 5. is_delete_command and is_undo_command pattern matching
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -42,7 +42,7 @@ class TestDeletedAction:
             entity_type="task",
             entity_id="test-id",
             title="Test Task",
-            deleted_at=datetime.utcnow(),
+            deleted_at=datetime.now(UTC),
         )
         assert action.is_within_undo_window() is True
 
@@ -52,7 +52,7 @@ class TestDeletedAction:
             entity_type="task",
             entity_id="test-id",
             title="Test Task",
-            deleted_at=datetime.utcnow() - timedelta(days=31),
+            deleted_at=datetime.now(UTC) - timedelta(days=31),
         )
         assert action.is_within_undo_window() is False
 
@@ -62,7 +62,7 @@ class TestDeletedAction:
             entity_type="task",
             entity_id="test-id",
             title="Test Task",
-            deleted_at=datetime.utcnow() - timedelta(days=30, seconds=1),
+            deleted_at=datetime.now(UTC) - timedelta(days=30, seconds=1),
         )
         assert action.is_within_undo_window() is False
 
@@ -72,7 +72,7 @@ class TestDeletedAction:
             entity_type="task",
             entity_id="test-id",
             title="Test Task",
-            deleted_at=datetime.utcnow() - timedelta(days=5),
+            deleted_at=datetime.now(UTC) - timedelta(days=5),
         )
         # 7 days window - action at 5 days should be within
         assert action.is_within_undo_window(days=7) is True
@@ -189,7 +189,7 @@ class TestSoftDeleteService:
             entity_type="task",
             entity_id="task-old",
             title="Old task",
-            deleted_at=datetime.utcnow() - timedelta(days=31),
+            deleted_at=datetime.now(UTC) - timedelta(days=31),
             chat_id="chat-1",
         )
         service._deleted_items["chat-1"].append(old_deletion)
@@ -308,7 +308,7 @@ class TestSoftDeleteService:
                 entity_type="task",
                 entity_id="task-1",
                 title="Task 1",
-                deleted_at=datetime.utcnow(),
+                deleted_at=datetime.now(UTC),
             )
         )
         service._deleted_items["chat-1"].append(
@@ -316,7 +316,7 @@ class TestSoftDeleteService:
                 entity_type="task",
                 entity_id="task-2",
                 title="Task 2",
-                deleted_at=datetime.utcnow() - timedelta(days=31),  # Expired
+                deleted_at=datetime.now(UTC) - timedelta(days=31),  # Expired
             )
         )
 
@@ -455,7 +455,7 @@ class TestAT118Integration:
         deleted_at: dict[str, datetime | None] = {}
 
         async def soft_delete(page_id: str):
-            deleted_at[page_id] = datetime.utcnow()
+            deleted_at[page_id] = datetime.now(UTC)
 
         async def undo_delete(page_id: str):
             deleted_at[page_id] = None
@@ -507,7 +507,7 @@ class TestAT118Integration:
             entity_type="task",
             entity_id="task-old",
             title="Old groceries",
-            deleted_at=datetime.utcnow() - timedelta(days=31),
+            deleted_at=datetime.now(UTC) - timedelta(days=31),
             chat_id="chat-1",
         )
         service._deleted_items["chat-1"].append(old_deletion)

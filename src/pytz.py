@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, tzinfo
+from datetime import datetime, timedelta, tzinfo
 from zoneinfo import ZoneInfo
 
 
@@ -9,10 +9,10 @@ class _PytzTimezone(tzinfo):
         self._zone = ZoneInfo(name)
         self.zone = name
 
-    def utcoffset(self, dt: datetime | None) -> object:
+    def utcoffset(self, dt: datetime | None) -> timedelta | None:
         return self._zone.utcoffset(dt)
 
-    def dst(self, dt: datetime | None) -> object:
+    def dst(self, dt: datetime | None) -> timedelta | None:
         return self._zone.dst(dt)
 
     def tzname(self, dt: datetime | None) -> str | None:

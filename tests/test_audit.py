@@ -3,7 +3,7 @@
 Tests AT-111 (every action logged) and AT-113 (idempotency).
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -121,12 +121,12 @@ class TestLogAction:
     @pytest.mark.asyncio
     async def test_log_action_includes_timestamp(self, audit_logger, mock_notion):
         """Log action includes timestamp."""
-        before = datetime.utcnow()
+        before = datetime.now(UTC)
         entry = await audit_logger.log_action(
             action_type=ActionType.CAPTURE,
             action_taken="Test action",
         )
-        after = datetime.utcnow()
+        after = datetime.now(UTC)
 
         assert before <= entry.timestamp <= after
 

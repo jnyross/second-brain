@@ -1254,7 +1254,7 @@ class TestAT122TravelTimeInMorningBriefing:
 
         # AT-122 Pass condition: Briefing contains "Leave by X"
         assert "Leave by" in result, f"AT-122 FAIL: 'Leave by' not found in briefing:\n{result}"
-        assert "13:40" in result, f"AT-122 FAIL: Expected departure time '13:40' not found:\n{result}"
+        assert "13:40" in result, f"AT-122 FAIL: Expected time '13:40' not found:\n{result}"
         assert "20 min" in result, f"AT-122 FAIL: Expected travel duration not found:\n{result}"
 
         # Verify Maps API was called correctly

@@ -14,7 +14,7 @@ Per PRD Section 6.2 - Undo & Rollback Semantics:
 import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from assistant.notion import NotionClient
 from assistant.notion.schemas import ActionType
@@ -33,13 +33,13 @@ class DeletedAction:
     entity_type: str  # "task", "person", "place", "project"
     entity_id: str  # Notion page ID
     title: str  # The title/name that was deleted
-    deleted_at: datetime = field(default_factory=datetime.utcnow)
+    deleted_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     chat_id: str = ""
     message_id: str = ""
 
     def is_within_undo_window(self, days: int = UNDO_WINDOW_DAYS) -> bool:
         """Check if this deletion can still be undone."""
-        return datetime.utcnow() - self.deleted_at < timedelta(days=days)
+        return datetime.now(UTC) - self.deleted_at < timedelta(days=days)
 
 
 @dataclass

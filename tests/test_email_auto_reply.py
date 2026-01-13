@@ -344,7 +344,10 @@ class TestShouldAutoReply:
 
     @pytest.mark.asyncio
     async def test_low_confidence(
-        self, service: EmailAutoReplyService, sample_email: EmailMessage, mock_gmail_client: MagicMock
+        self,
+        service: EmailAutoReplyService,
+        sample_email: EmailMessage,
+        mock_gmail_client: MagicMock,
     ) -> None:
         """Test rejection due to low confidence."""
         # Set up pattern with enough replies but low confidence
@@ -371,7 +374,10 @@ class TestShouldAutoReply:
 
     @pytest.mark.asyncio
     async def test_auto_reply_approved(
-        self, service: EmailAutoReplyService, sample_email: EmailMessage, mock_gmail_client: MagicMock
+        self,
+        service: EmailAutoReplyService,
+        sample_email: EmailMessage,
+        mock_gmail_client: MagicMock,
     ) -> None:
         """Test auto-reply approval when conditions met."""
         # Set up pattern with enough replies and high confidence
@@ -395,7 +401,7 @@ class TestShouldAutoReply:
         should, confidence, reason = await service.should_auto_reply(sample_email)
         assert should is True
         assert confidence == 100
-        assert "Pattern established" in reason
+        assert "Pattern" in reason and "replies" in reason
 
 
 # =============================================================================
@@ -463,7 +469,10 @@ class TestCreateReplyDraft:
 
     @pytest.mark.asyncio
     async def test_creates_draft(
-        self, service: EmailAutoReplyService, sample_email: EmailMessage, mock_gmail_client: MagicMock
+        self,
+        service: EmailAutoReplyService,
+        sample_email: EmailMessage,
+        mock_gmail_client: MagicMock,
     ) -> None:
         """Test draft creation."""
         result = await service.create_reply_draft(sample_email)
@@ -474,7 +483,10 @@ class TestCreateReplyDraft:
 
     @pytest.mark.asyncio
     async def test_adds_re_prefix(
-        self, service: EmailAutoReplyService, sample_email: EmailMessage, mock_gmail_client: MagicMock
+        self,
+        service: EmailAutoReplyService,
+        sample_email: EmailMessage,
+        mock_gmail_client: MagicMock,
     ) -> None:
         """Test that Re: prefix is added to subject."""
         await service.create_reply_draft(sample_email)
@@ -483,7 +495,10 @@ class TestCreateReplyDraft:
 
     @pytest.mark.asyncio
     async def test_preserves_thread(
-        self, service: EmailAutoReplyService, sample_email: EmailMessage, mock_gmail_client: MagicMock
+        self,
+        service: EmailAutoReplyService,
+        sample_email: EmailMessage,
+        mock_gmail_client: MagicMock,
     ) -> None:
         """Test that thread ID is preserved."""
         await service.create_reply_draft(sample_email)
@@ -513,7 +528,10 @@ class TestProcessAutoReply:
 
     @pytest.mark.asyncio
     async def test_creates_draft_for_low_confidence(
-        self, service: EmailAutoReplyService, sample_email: EmailMessage, mock_gmail_client: MagicMock
+        self,
+        service: EmailAutoReplyService,
+        sample_email: EmailMessage,
+        mock_gmail_client: MagicMock,
     ) -> None:
         """Test draft creation for low-confidence scenarios."""
         result = await service.process_auto_reply(sample_email)
@@ -521,7 +539,10 @@ class TestProcessAutoReply:
 
     @pytest.mark.asyncio
     async def test_force_draft(
-        self, service: EmailAutoReplyService, sample_email: EmailMessage, mock_gmail_client: MagicMock
+        self,
+        service: EmailAutoReplyService,
+        sample_email: EmailMessage,
+        mock_gmail_client: MagicMock,
     ) -> None:
         """Test force_draft parameter."""
         # Set up high-confidence pattern
@@ -548,7 +569,10 @@ class TestProcessAutoReply:
 
     @pytest.mark.asyncio
     async def test_auto_sends_high_confidence(
-        self, service: EmailAutoReplyService, sample_email: EmailMessage, mock_gmail_client: MagicMock
+        self,
+        service: EmailAutoReplyService,
+        sample_email: EmailMessage,
+        mock_gmail_client: MagicMock,
     ) -> None:
         """Test auto-send for high-confidence pattern."""
         # Set up high-confidence pattern
@@ -719,7 +743,10 @@ class TestPRDCompliance:
 
     @pytest.mark.asyncio
     async def test_prd_45_auto_send_flow(
-        self, service: EmailAutoReplyService, sample_email: EmailMessage, mock_gmail_client: MagicMock
+        self,
+        service: EmailAutoReplyService,
+        sample_email: EmailMessage,
+        mock_gmail_client: MagicMock,
     ) -> None:
         """Test PRD 4.5 auto-send flow."""
         # Setup: 7+ replies to same sender = 100% confidence
