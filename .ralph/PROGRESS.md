@@ -1819,7 +1819,7 @@
     - PYTHONPATH=src python3 -m pytest tests/test_schedule_conflict.py -v (33 passed)
     - scripts/verify.sh (8/8 pass)
   - Results: AT-123 verified - SF at 10am, LA at 11am creates conflict with "Travel time ~7 hours - schedule conflict detected" warning and needs_clarification=true
-  - Commit: (pending)
+  - Commit: b122a68
 
 - Iteration (T-157)
   - Task: Implement proximity task suggestions - Answer "What can I do near X?" with distance-sorted task list (AT-127)
@@ -1856,4 +1856,4 @@
     - /opt/homebrew/bin/python3 -m pytest tests/test_proximity.py -v (45 passed)
     - /opt/homebrew/bin/python3 -m pytest tests/ -q (1995 passed, 5 skipped)
   - Results: AT-127 verified - "What can I do near Union Square?" returns 3 downtown SF tasks with distance estimates, sorted by distance
-  - Commit: (pending)
+  - Commit: b122a68
