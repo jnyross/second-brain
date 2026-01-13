@@ -871,7 +871,8 @@ class TestT140WhatsAppIntegration:
         mock_processor.process.assert_called_once()
         call_args = mock_processor.process.call_args
         assert call_args[1]["text"] == "Call mom tomorrow at 3pm"
-        assert call_args[1]["source"] == "whatsapp"
+        assert call_args[1]["chat_id"] == "15551234567"
+        assert call_args[1]["message_id"] == "wamid.in"
 
         # Verify response was sent
         mock_client.send_text.assert_called_once()

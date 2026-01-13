@@ -6,7 +6,6 @@ behavior across both platforms.
 """
 
 import logging
-from io import BytesIO
 
 from assistant.services.corrections import (
     get_correction_handler,
@@ -158,12 +157,13 @@ class WhatsAppHandler:
         # Check for corrections first
         if is_correction_message(text):
             handler = get_correction_handler()
-            result = await handler.handle_correction(
+            correction_result = await handler.process_correction(
+                text=text,
                 chat_id=from_number,
-                message=text,
+                message_id=message.message_id,
             )
-            if result.handled:
-                response = result.response or "Got it, I've made that correction."
+            if correction_result.success:
+                response = correction_result.message or "Got it, I've made that correction."
                 await self.client.send_text(from_number, response)
                 return
 
@@ -172,7 +172,6 @@ class WhatsAppHandler:
             text=text,
             chat_id=from_number,
             message_id=message.message_id,
-            source="whatsapp",
         )
 
         # Track task creation for correction context
@@ -181,7 +180,7 @@ class WhatsAppHandler:
                 chat_id=from_number,
                 message_id=message.message_id,
                 task_id=result.task_id,
-                title=result.task_title or text,
+                title=text,
             )
 
         # Send response
@@ -231,10 +230,10 @@ class WhatsAppHandler:
                 elif "wav" in download_result.mime_type:
                     extension = "wav"
 
-            audio_file = BytesIO(download_result.content)
-            audio_file.name = f"voice.{extension}"
+            audio_data = download_result.content
+            filename = f"voice.{extension}"
 
-            transcription = await transcriber.transcribe(audio_file)
+            transcription = await transcriber.transcribe(audio_data, filename=filename)
 
         except TranscriptionError as e:
             logger.error(f"Transcription failed: {e}")
@@ -275,7 +274,6 @@ class WhatsAppHandler:
                 text=text,
                 chat_id=from_number,
                 message_id=message.message_id,
-                source="whatsapp_voice",
                 voice_file_id=message.audio_id,
                 transcript_confidence=transcription.confidence,
                 language=transcription.language,
@@ -293,7 +291,6 @@ class WhatsAppHandler:
                 text=text,
                 chat_id=from_number,
                 message_id=message.message_id,
-                source="whatsapp_voice",
             )
             response = result.response
 
@@ -303,7 +300,7 @@ class WhatsAppHandler:
                 chat_id=from_number,
                 message_id=message.message_id,
                 task_id=result.task_id,
-                title=result.task_title or text,
+                title=text,
             )
 
         await self.client.send_text(from_number, response)
@@ -334,7 +331,6 @@ class WhatsAppHandler:
             text=text,
             chat_id=from_number,
             message_id=message.message_id,
-            source="whatsapp",
         )
 
         await self.client.send_text(from_number, result.response)

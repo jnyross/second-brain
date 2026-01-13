@@ -1380,8 +1380,8 @@
       "description": "Fix 10 mypy errors in src/assistant/whatsapp/handlers.py: 1) Line 164: CorrectionHandler has no attribute handle_correction (maybe _apply_correction). 2) Lines 174, 277, 295, 336: Unexpected keyword argument source for MessageProcessor.process(). 3) Lines 187, 309: ProcessResult has no attribute task_title. 4) Line 240: Argument 1 to transcribe has incompatible type BytesIO expected bytes.",
       "depends_on": [],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": "",
+      "passes": true,
+      "evidence": "Fixed all 10 mypy errors: 1) Changed handle_correction() to process_correction() and result.handled to correction_result.success, 2) Removed source= parameter from all MessageProcessor.process() calls (lines 174, 277, 295, 336), 3) Changed result.task_title to text variable (lines 184, 306), 4) Changed BytesIO transcribe() arg to bytes with filename parameter. Removed unused BytesIO import. Updated test_whatsapp.py assertion. mypy shows 0 errors for handlers.py. All 42 WhatsApp tests pass. scripts/verify.sh passes (8/8).",
       "updated_at": "2026-01-13"
     },
     {
