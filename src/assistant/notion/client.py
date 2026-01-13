@@ -131,7 +131,7 @@ class NotionClient:
             "needs_clarification",
             "dedupe_key",
         },
-        "tasks": {"title", "status", "priority", "due_date", "confidence", "deleted_at", "place_ids"},
+        "tasks": {"title", "status", "priority", "due_date", "confidence", "deleted_at", "place_ids", "drive_file_id", "drive_file_url"},
         "people": {"name", "email", "relationship", "deleted_at", "archived"},
         "places": {"name", "place_type", "address", "lat", "lng", "google_place_id", "phone", "website"},
         "projects": {"name", "status", "deadline"},
@@ -971,6 +971,41 @@ class NotionClient:
         else:
             # Clear the calendar_event_id
             update["properties"]["calendar_event_id"] = {"rich_text": []}
+
+        await self._request("PATCH", f"/pages/{page_id}", update)
+
+    async def update_task_drive_file(
+        self,
+        page_id: str,
+        drive_file_id: str | None,
+        drive_file_url: str | None = None,
+    ) -> None:
+        """Update a task's linked Drive file ID and URL.
+
+        Args:
+            page_id: Notion page ID of the task
+            drive_file_id: Google Drive file ID (or None to clear)
+            drive_file_url: Google Drive web view URL (optional)
+        """
+        update: dict[str, Any] = {
+            "properties": {
+                "last_modified_at": {"date": {"start": datetime.utcnow().isoformat()}},
+            }
+        }
+
+        if drive_file_id:
+            update["properties"]["drive_file_id"] = {
+                "rich_text": [{"text": {"content": drive_file_id}}]
+            }
+        else:
+            update["properties"]["drive_file_id"] = {"rich_text": []}
+
+        if drive_file_url:
+            update["properties"]["drive_file_url"] = {
+                "url": drive_file_url
+            }
+        else:
+            update["properties"]["drive_file_url"] = {"url": None}
 
         await self._request("PATCH", f"/pages/{page_id}", update)
 

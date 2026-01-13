@@ -102,6 +102,8 @@ class Task(BaseModel):
     completed_at: datetime | None = None
     deleted_at: datetime | None = None
     calendar_event_id: str | None = None
+    drive_file_id: str | None = None
+    drive_file_url: str | None = None
     estimated_duration: int | None = None
     tags: list[str] = Field(default_factory=list)
     notes: str | None = None

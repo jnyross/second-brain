@@ -114,6 +114,25 @@ _EXPORTS: dict[str, tuple[str, str]] = {
         "get_research_formatter",
     ),
     "log_research_result": ("assistant.services.research_formatter", "log_research_result"),
+    # Research Pipeline (T-164)
+    "ResearchPipeline": ("assistant.services.research_pipeline", "ResearchPipeline"),
+    "ResearchPipelineResult": (
+        "assistant.services.research_pipeline",
+        "ResearchPipelineResult",
+    ),
+    "execute_research_pipeline": (
+        "assistant.services.research_pipeline",
+        "execute_research_pipeline",
+    ),
+    "extract_research_topic": (
+        "assistant.services.research_pipeline",
+        "extract_research_topic",
+    ),
+    "get_research_pipeline": (
+        "assistant.services.research_pipeline",
+        "get_research_pipeline",
+    ),
+    "is_research_request": ("assistant.services.research_pipeline", "is_research_request"),
     # Soft Delete (T-115)
     "DeletedAction": ("assistant.services.soft_delete", "DeletedAction"),
     "DeleteResult": ("assistant.services.soft_delete", "DeleteResult"),

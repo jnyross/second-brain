@@ -1234,8 +1234,8 @@
       "description": "When user requests research, create Drive doc with findings and link to Notion task.",
       "depends_on": ["T-162", "T-103"],
       "acceptance_tests": ["AT-124"],
-      "passes": false,
-      "evidence": "",
+      "passes": true,
+      "evidence": "Created src/assistant/services/research_pipeline.py with ResearchPipeline class. Features: 1) ResearchPipelineResult dataclass with success/query/findings/drive_file_id/task_id, 2) is_research_request() and extract_research_topic() pattern matchers, 3) execute() orchestrates research -> Drive doc -> Task creation, 4) _create_research_doc() uses DriveClient.create_research_document(), 5) _create_research_task() creates Notion Task with drive_file_id/drive_file_url. Added drive_file_id and drive_file_url fields to Task schema. Added NotionClient.update_task_drive_file() method. Updated services/__init__.py exports. Tests in tests/test_research_pipeline.py (35 tests pass) including TestAT124DriveResearchDocument (4 acceptance tests). scripts/verify.sh passes (8/8).",
       "updated_at": "2026-01-13"
     },
     {

@@ -13,9 +13,9 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phases 0-7 complete. Deployment complete. Phase 8 (Google Maps) in progress - T-155 complete. **Next: T-156 (schedule conflict detection)**.
-- Remaining Tasks: T-156, T-157 (Maps), T-164, T-165, T-166, T-167 (Drive)
-- Remaining ATs: AT-123, AT-124, AT-125, AT-126, AT-127
+- Status: Phases 0-7 complete. Deployment complete. Phase 8 (Google Maps) in progress. T-164 (research-to-doc pipeline) complete. **Next: T-165 (meeting notes creator)**.
+- Remaining Tasks: T-156, T-157 (Maps), T-165, T-166, T-167 (Drive)
+- Remaining ATs: AT-123, AT-125, AT-126, AT-127
 
 ## Iteration Log
 
@@ -1760,3 +1760,31 @@
     - mypy src (pass)
   - Results: AT-122 verified - morning briefing includes "Leave by X" departure times for calendar events and tasks with places
   - Commit: c2aea73
+
+- Iteration 81 (T-164: Build research-to-doc pipeline)
+  - Task: When user requests research, create Drive doc with findings and link to Notion task (AT-124)
+  - Changes:
+    1. Updated Task schema (schemas.py): Added drive_file_id and drive_file_url fields
+    2. Updated NotionClient (client.py): Added drive_file_id/drive_file_url to NOTION_DB_PROPERTIES["tasks"], added update_task_drive_file() method
+    3. Created ResearchPipeline (research_pipeline.py):
+       - ResearchPipelineResult dataclass with success/query/findings/drive_file_id/task_id
+       - is_research_request() and extract_research_topic() pattern matchers for "Research X", "Find out about X", etc.
+       - execute() orchestrates: web research → Drive doc creation → Notion task with drive_file_id
+       - _perform_research() calls WebResearcher.research_query()
+       - _create_research_doc() calls DriveClient.create_research_document()
+       - _create_research_task() creates Task with drive_file_id/drive_file_url and notes linking to doc
+    4. Updated services/__init__.py: Added 6 new exports (ResearchPipeline, ResearchPipelineResult, etc.)
+  - Tests added (35 tests):
+    - TestResearchPipelineResult (5): default values, has_drive_doc, has_task properties
+    - TestIsResearchRequest (7): research prefix, find out, look up, investigate, what are best, compare, negative cases
+    - TestExtractResearchTopic (5): extraction from various patterns
+    - TestResearchPipeline (8): init, execute success/failure, service call order, task with drive_file_id, messages
+    - TestAT124DriveResearchDocument (4): doc created, task has drive_file_id, doc in folder, doc populated with findings
+    - TestModuleLevelFunctions (2): singleton, convenience function
+    - TestTaskSchemaWithDriveFileId (2): field exists, optional
+    - TestNotionClientUpdateDriveFile (2): update and clear methods
+  - Commands:
+    - PYTHONPATH=src python3 -m pytest tests/test_research_pipeline.py -v (35 passed)
+    - scripts/verify.sh (8/8 pass)
+  - Results: AT-124 verified - research request creates Drive doc in Second Brain/Research/ folder, doc populated with findings, task created with drive_file_id populated
+  - Commit: 177d052
