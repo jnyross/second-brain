@@ -1920,4 +1920,4 @@
   - Commands:
     - PYTHONPATH=src python3 -m pytest tests/test_comparison_sheet.py -v (47 passed)
   - Results: AT-126 verified - "Compare iPhone vs Android - create a sheet" creates Google Sheet with structured columns (Criteria, Option1, Option2, Notes)
-  - Commit: pending
+  - Commit: e8da50e
