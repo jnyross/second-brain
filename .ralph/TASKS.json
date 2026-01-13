@@ -1356,8 +1356,8 @@
       "description": "Fix 3 mypy errors in src/assistant/services/comparison_sheet.py: Lines 303-305 have incompatible argument types for Task constructor - status, priority, and source arguments are str but expect TaskStatus, TaskPriority, and TaskSource enum types.",
       "depends_on": [],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": "",
+      "passes": true,
+      "evidence": "Imported TaskStatus, TaskPriority, TaskSource from schemas and changed strings to enum values (TaskStatus.TODO, TaskPriority.MEDIUM, TaskSource.AI_CREATED). mypy reports: Success: no issues found. All 47 comparison_sheet tests pass. scripts/verify.sh passes (8/8).",
       "updated_at": "2026-01-13"
     },
     {

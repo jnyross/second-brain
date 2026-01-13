@@ -21,6 +21,8 @@ if TYPE_CHECKING:
     from assistant.google.drive import DriveClient, DriveFile
     from assistant.notion.client import NotionClient
 
+from assistant.notion.schemas import TaskPriority, TaskSource, TaskStatus
+
 logger = logging.getLogger(__name__)
 
 # Patterns for detecting comparison requests
@@ -300,9 +302,9 @@ class ComparisonSheetService:
 
             task = Task(
                 title=task_title,
-                status="todo",
-                priority="medium",
-                source="ai_created",
+                status=TaskStatus.TODO,
+                priority=TaskPriority.MEDIUM,
+                source=TaskSource.AI_CREATED,
                 drive_file_id=drive_file.id,
                 drive_file_url=drive_file.web_view_link,
                 notes=f"Fill in comparison sheet with {len(result.criteria)} criteria across {len(result.options)} options.",

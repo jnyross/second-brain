@@ -1988,3 +1988,14 @@
   - Tests: python3 -m pytest tests/test_llm_client.py -v (50 passed)
   - Verification: scripts/verify.sh (8/8 pass)
   - Commit: pending
+
+- Iteration 96 (T-302) - Fix mypy type errors in comparison_sheet.py
+  - Fixed 3 mypy errors in src/assistant/services/comparison_sheet.py (lines 303-305):
+    - Changed status="todo" to status=TaskStatus.TODO
+    - Changed priority="medium" to priority=TaskPriority.MEDIUM
+    - Changed source="ai_created" to source=TaskSource.AI_CREATED
+    - Added import: from assistant.notion.schemas import TaskPriority, TaskSource, TaskStatus
+  - Commands: mypy src/assistant/services/comparison_sheet.py (Success: no issues found)
+  - Tests: python3 -m pytest tests/test_comparison_sheet.py -v (47 passed)
+  - Verification: scripts/verify.sh (8/8 pass)
+  - Commit: pending
