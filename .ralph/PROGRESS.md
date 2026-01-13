@@ -1889,4 +1889,4 @@
     - PYTHONPATH=src python3 -m pytest tests/test_meeting_notes.py -v (48 passed)
     - scripts/verify.sh (8/8 pass)
   - Results: AT-125 verified - "Create meeting notes for call with Sarah" creates Drive doc in Meeting Notes folder, linked to Sarah in People database
-  - Commit: pending
+  - Commit: fae06d2
