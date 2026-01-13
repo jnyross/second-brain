@@ -1273,6 +1273,102 @@
       "passes": true,
       "evidence": "Implemented bidirectional Drive-Task linking. Added: NotionClient.query_task_by_drive_file() for reverse lookup (Drive -> Task), NotionClient.get_task() for single task retrieval, DriveTaskLinker service with link/unlink/find/is_linked methods. Tests in tests/test_drive_task_linker.py (47 tests pass). Full test suite: 2137 tests pass.",
       "updated_at": "2026-01-13"
+    },
+    {
+      "id": "T-300",
+      "priority": "P3",
+      "risk": "R0",
+      "title": "Fix linting issues (line length, imports)",
+      "description": "Fix ruff linting issues: 1) Line too long (>100 chars) in notion/client.py lines 134, 136. 2) Import sorting (I001) in briefing.py. 3) Import from collections.abc instead of typing for Callable in always_on.py (UP035). 4) Rename AlwaysOnListenerNotAvailable to AlwaysOnListenerNotAvailableError (N818).",
+      "depends_on": [],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": "",
+      "updated_at": "2026-01-13"
+    },
+    {
+      "id": "T-301",
+      "priority": "P3",
+      "risk": "R1",
+      "title": "Fix mypy type errors in llm_client.py",
+      "description": "Fix 3 mypy errors in src/assistant/services/llm_client.py: 1) Line 78: Dict entry has incompatible type str: tuple[float, float] expected str: dict[str, tuple[float, float]]. 2) Line 88: Unsupported operand types for / (str and int). 3) Line 468: Incompatible types in assignment (None vs LLMProvider).",
+      "depends_on": [],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": "",
+      "updated_at": "2026-01-13"
+    },
+    {
+      "id": "T-302",
+      "priority": "P3",
+      "risk": "R1",
+      "title": "Fix mypy type errors in comparison_sheet.py",
+      "description": "Fix 3 mypy errors in src/assistant/services/comparison_sheet.py: Lines 303-305 have incompatible argument types for Task constructor - status, priority, and source arguments are str but expect TaskStatus, TaskPriority, and TaskSource enum types.",
+      "depends_on": [],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": "",
+      "updated_at": "2026-01-13"
+    },
+    {
+      "id": "T-303",
+      "priority": "P3",
+      "risk": "R1",
+      "title": "Fix mypy type errors in email_auto_reply.py",
+      "description": "Fix 9 mypy errors in src/assistant/services/email_auto_reply.py: 1) Lines 287-288: Argument key to max has incompatible type. 2) Line 510: Unexpected keyword arguments (trigger, meaning, pattern_type, confidence) for create_pattern. 3) Line 528: Unexpected keyword argument pattern_type for query_patterns. 4) Lines 536, 544: dict[str, Any] has no attribute trigger/confidence.",
+      "depends_on": [],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": "",
+      "updated_at": "2026-01-13"
+    },
+    {
+      "id": "T-304",
+      "priority": "P3",
+      "risk": "R1",
+      "title": "Fix mypy type errors in whatsapp/handlers.py",
+      "description": "Fix 10 mypy errors in src/assistant/whatsapp/handlers.py: 1) Line 164: CorrectionHandler has no attribute handle_correction (maybe _apply_correction). 2) Lines 174, 277, 295, 336: Unexpected keyword argument source for MessageProcessor.process(). 3) Lines 187, 309: ProcessResult has no attribute task_title. 4) Line 240: Argument 1 to transcribe has incompatible type BytesIO expected bytes.",
+      "depends_on": [],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": "",
+      "updated_at": "2026-01-13"
+    },
+    {
+      "id": "T-305",
+      "priority": "P3",
+      "risk": "R0",
+      "title": "Fix mypy type errors in telegram/handlers.py",
+      "description": "Fix 1 mypy error in src/assistant/telegram/handlers.py: Line 417: Incompatible types in assignment (expression has type BinaryIO, variable has type bytes).",
+      "depends_on": [],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": "",
+      "updated_at": "2026-01-13"
+    },
+    {
+      "id": "T-306",
+      "priority": "P3",
+      "risk": "R0",
+      "title": "Remove redundant casts in notion/client.py",
+      "description": "Fix 2 mypy warnings in src/assistant/notion/client.py: Lines 618 and 1064 have redundant cast to dict[str, Any]. Remove the unnecessary cast() calls.",
+      "depends_on": [],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": "",
+      "updated_at": "2026-01-13"
+    },
+    {
+      "id": "T-307",
+      "priority": "P3",
+      "risk": "R0",
+      "title": "Replace deprecated datetime.utcnow() calls",
+      "description": "Replace deprecated datetime.datetime.utcnow() calls with timezone-aware datetime.datetime.now(datetime.UTC). Affected files: patterns.py:510, notion/client.py:992, soft_delete.py:42, and multiple test files.",
+      "depends_on": [],
+      "acceptance_tests": [],
+      "passes": false,
+      "evidence": "",
+      "updated_at": "2026-01-13"
     }
   ]
 }
