@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phases 1-5 complete. Deployment tasks T-200 through T-208 complete. Next: T-209 (backup script) or remaining P2 tasks (T-122, T-131, T-140, T-210, T-211, T-213).
+- Status: Phase 0 complete. Phases 1-5 complete. Deployment tasks T-200 through T-209 complete. Next: P2 tasks (T-122, T-131, T-140, T-210, T-211, T-213).
 
 ## Iteration Log
 
@@ -61,39 +61,39 @@
 - Iteration 9 (T-005)
   - Commands: scripts/at_005_stuck_no_progress_test.sh (pass)
   - Results: No-progress stuck detection implemented via scripts/stuck_detector.sh
-  - Commit: pending
+  - Commit: d670237
 - Iteration 10 (T-006)
   - Commands: scripts/at_006_stuck_same_error_test.sh (pass)
   - Results: Same-error stuck detection (already in stuck_detector.sh), AT-006 test validates
-  - Commit: pending
+  - Commit: d670237
 - Iteration 11 (T-007)
   - Commands: scripts/at_007_cost_tracking_test.sh (pass)
   - Results: Cost tracking implemented via scripts/cost_tracker.sh, enforces daily budget
-  - Commit: pending
+  - Commit: d670237
 - Iteration 12 (T-008)
   - Commands: scripts/at_008_sandbox_test.sh (pass)
   - Results: Sandbox enforcement via scripts/sandbox_guard.sh, logs to security_log.json
-  - Commit: pending
+  - Commit: d670237
 - Iteration 13 (T-009)
   - Commands: scripts/at_009_learning_test.sh (pass)
   - Results: Learning database via scripts/learning_db.sh, pattern matching for corrections
-  - Commit: pending
+  - Commit: d670237
 - Iteration 14 (T-010)
   - Commands: scripts/task_engine_test.sh (pass)
   - Results: Task execution engine with full CRUD + history + notifications
-  - Commit: pending
+  - Commit: d670237
 - Iteration 15 (T-011)
   - Commands: scripts/knowledge_search_test.sh (pass)
   - Results: Knowledge base retrieval with indexing and citation-based search
-  - Commit: pending
+  - Commit: d670237
 - Iteration 16 (T-012)
   - Commands: scripts/claude_adapter_test.sh (pass)
   - Results: Claude CLI adapter with streaming and tool-calling support
-  - Commit: pending
+  - Commit: d670237
 - Iteration 17 (T-015)
   - Commands: scripts/run_test.sh (pass)
   - Results: Run script with config, check, start, dry-run modes
-  - Commit: pending
+  - Commit: d670237
 - Final Verification
   - All 16 P0 tasks complete with passes: true
   - All 16 test harnesses (*_test.sh) pass
@@ -136,7 +136,7 @@
   - Implemented extraction for people (with/call/email patterns), places (at/near patterns), dates (tomorrow/today/weekday/relative)
   - Added tests/test_entities.py (21 tests)
   - Commands: PYTHONPATH=src python -m pytest tests/test_entities.py -v (21 passed)
-  - Commit: pending
+  - Commit: d670237
 - Iteration 19 (T-053) - Confidence Scoring Service
   - Created src/assistant/services/confidence.py with ConfidenceScorer class
   - Scoring factors: action verbs (+25), entities (+5 each, max +15), time (+15), length (+5)
@@ -144,7 +144,7 @@
   - 80% threshold for automatic action vs human review
   - Added tests/test_confidence.py (25 tests)
   - Commands: PYTHONPATH=src python -m pytest tests/test_confidence.py -v (25 passed)
-  - Commit: pending
+  - Commit: d670237
 - Iteration 20 (T-054) - Classification Router
   - Created src/assistant/services/router.py with ClassificationRouter class
   - Routes to: Tasks, Inbox, People, Places, Projects based on intent type
@@ -152,7 +152,7 @@
   - Low confidence (<80%) always routes to Inbox with flag_review
   - Added tests/test_router.py (24 tests)
   - Commands: PYTHONPATH=src python -m pytest tests/test_router.py -v (24 passed)
-  - Commit: pending
+  - Commit: d670237
 - Iteration 21 (T-062) - Whisper Transcription Service
   - Created src/assistant/services/whisper.py with WhisperTranscriber class
   - Features: async transcription with retry logic, confidence scoring from avg_logprob
@@ -160,7 +160,7 @@
   - Supports: mp3, mp4, m4a, wav, ogg, oga, webm audio formats
   - Added tests/test_whisper.py (32 tests)
   - Commands: PYTHONPATH=src python -m pytest tests/test_whisper.py -v (32 passed)
-  - Commit: pending
+  - Commit: d670237
 - Iteration 22 (T-063) - Voice Message Handler
   - Created src/assistant/telegram/handlers.py with all message handlers
   - Voice handler: downloads audio from Telegram, transcribes via Whisper, processes through MessageProcessor
@@ -170,7 +170,7 @@
   - Error handling: graceful recovery from transcription/network/processing errors
   - Added tests/test_handlers.py (19 tests)
   - Commands: PYTHONPATH=src python -m pytest tests/test_handlers.py -v (19 passed)
-  - Commit: pending
+  - Commit: d670237
 - Iteration 23 (T-070) - People Lookup/Create Service
   - Service already existed in src/assistant/services/people.py with PeopleService class
   - Added comprehensive tests in tests/test_people.py (30 tests)
@@ -179,7 +179,7 @@
   - Acceptance tests covered: AT-104 (person linking), AT-105 (person creation), AT-117 (disambiguation)
   - Commands: PYTHONPATH=src python -m pytest tests/test_people.py -v (30 passed)
   - Full test suite: 193 tests pass
-  - Commit: pending
+  - Commit: d670237
 - Iteration 24 (T-071) - Places Lookup/Create Service
   - Created src/assistant/services/places.py with PlacesService class
   - Features: lookup by name/type, lookup_or_create, create, lookup_by_type, lookup_multiple
@@ -191,7 +191,7 @@
   - Added tests/test_places.py (34 tests)
   - Commands: PYTHONPATH=src python -m pytest tests/test_places.py -v (34 passed)
   - Full test suite: 227 tests pass
-  - Commit: pending
+  - Commit: d670237
 - Iteration 25 (T-072) - Projects Lookup/Create Service
   - Created src/assistant/services/projects.py with ProjectsService class
   - Features: lookup by name/status, lookup_or_create, create (with deadline support), lookup_by_status, lookup_active, lookup_multiple
@@ -204,7 +204,7 @@
   - Added tests/test_projects.py (40 tests)
   - Commands: PYTHONPATH=src python -m pytest tests/test_projects.py -v (40 passed)
   - Full test suite: 267 tests pass
-  - Commit: pending
+  - Commit: d670237
 - Iteration 26 (T-073) - Relation Linker Service
   - Created src/assistant/services/relations.py with RelationLinker class
   - Core components:
@@ -229,7 +229,7 @@
   - Added tests/test_relations.py (44 tests)
   - Commands: PYTHONPATH=src python -m pytest tests/test_relations.py -v (44 passed)
   - Full test suite: 311 tests pass
-  - Commit: pending
+  - Commit: d670237
 - Iteration 27 (T-080) - Morning Briefing Generator
   - Enhanced src/assistant/services/briefing.py with complete morning briefing format per PRD 5.2
   - Sections implemented:
@@ -250,7 +250,7 @@
   - Added tests/test_briefing.py (54 tests)
   - Commands: PYTHONPATH=src python -m pytest tests/test_briefing.py -v (54 passed)
   - Full test suite: 365 tests pass (5 pre-existing flaky timezone tests in test_entities.py/test_parser.py)
-  - Commit: pending
+  - Commit: d670237
 - Iteration 28 (T-081) - Scheduled Briefing Sender
   - Created deploy/systemd/ directory with systemd unit files:
     - second-brain.service: Main Telegram bot service (Type=simple, Restart=always)
@@ -274,7 +274,7 @@
     - TestAT106: Acceptance test for morning briefing delivery
   - Commands: PYTHONPATH=src python -m pytest tests/test_scheduled_briefing.py -v (27 passed)
   - Full test suite: 387 tests pass (5 pre-existing flaky timezone tests)
-  - Commit: pending
+  - Commit: d670237
 - Iteration 29 (T-082) - /debrief Command with FSM
   - Created src/assistant/telegram/debrief.py with FSM-based interactive /debrief command
   - DebriefStates FSM: reviewing (showing item), awaiting_clarification (waiting for user input)
@@ -298,7 +298,7 @@
     - TestAT107: Full acceptance test for interactive debrief flow
   - Commands: PYTHONPATH=src python -m pytest tests/test_debrief.py tests/test_handlers.py -v (39 passed)
   - Full test suite: 407 tests pass (5 pre-existing flaky timezone tests)
-  - Commit: pending
+  - Commit: d670237
 - Iteration 30 (T-083) - Interactive Clarification Flow
   - Enhanced src/assistant/telegram/debrief.py with T-083 features per PRD 5.3:
     - Added awaiting_due_date FSM state for multi-turn due date collection
@@ -326,7 +326,7 @@
     - Fixed _is_cancel_command: "done" alone should end session, not cancel
   - Commands: PYTHONPATH=src python -m pytest tests/test_debrief.py -v (47 passed)
   - Full test suite: 433 tests pass (428 pass, 5 pre-existing timezone failures)
-  - Commit: pending
+  - Commit: d670237
 - Iteration 31 (T-090) - Correction Handler
   - Created src/assistant/services/corrections.py with CorrectionHandler class
   - Core components:
@@ -1159,7 +1159,7 @@
   - Commands: python3 -m pytest tests/test_research.py -v (48 passed)
   - Verification: scripts/verify.sh (8/8 checks pass)
   - Full test suite: 1361 tests (all pass)
-  - Commit: pending
+  - Commit: d670237
 - Iteration 47 (T-104) - Research Result Formatter
   - Task: Build research result formatter per PRD Section 4.10
   - Created src/assistant/services/research_formatter.py:
@@ -1198,7 +1198,7 @@
     - Notion note format for task storage
   - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_research_formatter.py -v (45 passed)
   - Full test suite: 1406 tests (all pass)
-  - Commit: pending
+  - Commit: d670237
 - Iteration 48 (T-111) - Today I Learned Summary
   - Task: Build 'Today I Learned' summary - Include learned patterns in daily briefing
   - Updated src/assistant/notion/client.py:
@@ -1219,7 +1219,7 @@
     - TestT111AcceptanceTest: learned patterns appear in briefing
   - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_briefing.py -v (76 passed)
   - Full test suite: 1428 tests (all pass)
-  - Commit: pending
+  - Commit: d670237
 - Iteration 49 (T-112) - Create /status command
   - Task: Show pending tasks and flagged items
   - Fixed hygiene gate: resolved 32 ruff lint errors (E501, F841, N806) before starting feature work
@@ -1241,7 +1241,7 @@
     - TestGenerateStatusMessage (6 tests): all_clear, doing_tasks, todo_tasks, high_priority, flagged_items, summary
   - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_handlers.py -v (38 passed)
   - Full test suite: 1448 tests (all pass)
-  - Commit: pending
+  - Commit: d670237
 - Iteration 50 (T-113) - Create /today command
   - Task: Show today's schedule and due tasks
   - Updated src/assistant/telegram/handlers.py:
@@ -1264,7 +1264,7 @@
     - TestGenerateTodayMessage (5 tests): nothing_scheduled, with_calendar_events, with_due_tasks, with_high_priority_task, shows_date_header
   - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_handlers.py -v (48 passed)
   - Full test suite: 1458 tests (all pass)
-  - Commit: pending
+  - Commit: d670237
 - Iteration 51 (T-117) - Implement Whisper confidence handling (AT-120)
   - Task: Flag low-confidence transcriptions for review with audio reference
   - Updated src/assistant/services/processor.py:
@@ -1289,12 +1289,12 @@
     - TestAT120WhisperLowConfidence (3 tests): low_confidence_creates_flagged_inbox_item, high_confidence_processes_normally, borderline_confidence_flags
   - Commands: PYTHONPATH=src python3.12 -m pytest tests/test_handlers.py -v (53 passed)
   - Full test suite: 1463 tests (all pass)
-  - Commit: pending
+  - Commit: d670237
 
 - Iteration 52 (T-212)
   - Commands: scripts/verify.sh (fail: missing bootstrap artifacts, claude/docker, git), python3 -m pytest tests/test_llm_parser.py -v (fail: missing assistant module), PYTHONPATH=src python3 -m pytest tests/test_llm_parser.py -v (fail: missing pytz), python3 -m pip install pytz (fail: proxy 403)
   - Results: Added LLMIntentParser with Gemini API support and regex fallback, wired MessageProcessor to use it, added LLM parser tests, added AT-128 to PRD. Tests blocked by missing pytz dependency in environment; task remains incomplete.
-  - Commit: pending
+  - Commit: d670237
 
 - Iteration 53 (T-212)
   - Commands: python -m pip install pytz (fail: proxy 403), PYTHONPATH=src python -m pytest tests/test_llm_parser.py -v (fail: missing pydantic_settings/httpx), PYTHONPATH=src python -m pytest tests/test_llm_parser.py -v (pass), PATH=.tmp/ai-assistant/.fake-bin:$PATH AI_ASSISTANT_HOME=.tmp/ai-assistant scripts/verify.sh (pass)
@@ -1375,3 +1375,32 @@
   - Commands: PYTHONPATH=src python3 -m pytest tests/test_notify_telegram.py -v (46 passed)
   - Verification: scripts/verify.sh (8/8 checks pass), ruff check passes
   - Commit: 141e029
+- Iteration 60 (T-209) - Create Backup Script
+  - Task: Create backup script with 7-day retention per PRD Section 12.9
+  - Created deploy/scripts/backup.sh:
+    - Backs up PRD-specified files: queue/, google_token.json, nudges/sent.json
+    - Catch-all for additional files in data directory
+    - Default paths: /opt/second-brain/backups, /opt/second-brain/data
+    - 7-day retention policy with automatic cleanup (find -mtime +7)
+    - Timestamped format: state-YYYYMMDD-HHMMSS.tar.gz
+    - CLI options: --backup-dir, --data-dir, --retention, --dry-run, --list, --restore, --help
+    - Environment variable support: BACKUP_DIR, DATA_DIR, RETENTION_DAYS
+    - Color output with log levels (INFO, WARN, ERROR, DEBUG)
+    - Exit codes: 0 (success), 1 (failure), 2 (invalid args), 3 (dir not found)
+  - Created tests/test_backup.py (36 tests):
+    - TestBackupScriptExists: file exists, executable, shebang, set flags
+    - TestBackupHelpOption: --help and -h show usage
+    - TestBackupCommandLineOptions: unknown fails, --backup-dir, --retention
+    - TestBackupDryRunMode: shows what would be done without changes
+    - TestBackupCreation: creates tar.gz, contains queue/token/nudges, handles empty
+    - TestBackupRetention: deletes old, keeps recent, default 7 days
+    - TestBackupList: no backups, shows backups, nonexistent dir
+    - TestBackupRestore: not found fails, dry-run shows contents
+    - TestBackupTimestampFormat: YYYYMMDD-HHMMSS pattern
+    - TestBackupPRD129Compliance: PRD files, paths, 7-day default
+    - TestBackupExitCodes: 0 success, 2 invalid args
+    - TestBackupEnvironmentVariables: BACKUP_DIR, DATA_DIR, RETENTION_DAYS
+    - TestT209AcceptanceTests: complete workflow, retention enforced
+  - Commands: PYTHONPATH=src python3 -m pytest tests/test_backup.py -v (36 passed)
+  - Verification: scripts/verify.sh (8/8 checks pass)
+  - Commit: d670237

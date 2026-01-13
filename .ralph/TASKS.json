@@ -1022,8 +1022,8 @@
         "T-204"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created deploy/scripts/backup.sh per PRD 12.9. Features: backup queue/, google_token.json, nudges/sent.json + catch-all for other files; 7-day retention with automatic cleanup; --list/--restore/--dry-run/--backup-dir/--data-dir/--retention options; timestamped tar.gz format (state-YYYYMMDD-HHMMSS.tar.gz); environment variable support (BACKUP_DIR, DATA_DIR, RETENTION_DAYS). Tests in tests/test_backup.py (36 tests pass). Full suite verified with scripts/verify.sh (8/8 pass).",
       "updated_at": "2026-01-12"
     },
     {
