@@ -256,13 +256,17 @@ cleanup_old_backups() {
     log_info "Cleaning up backups older than $RETENTION_DAYS days..."
 
     local deleted_count=0
+    # Use -mmin (minutes) for more precise cross-platform behavior
+    # Convert days to minutes: days * 24 * 60
+    local retention_minutes=$((RETENTION_DAYS * 24 * 60))
+
     while IFS= read -r old_backup; do
         if [[ -n "$old_backup" ]]; then
             log_debug "Deleting old backup: $(basename "$old_backup")"
             rm -f "$old_backup"
             ((deleted_count++))
         fi
-    done < <(find "$BACKUP_DIR" -name "state-*.tar.gz" -type f -mtime "+$RETENTION_DAYS" 2>/dev/null)
+    done < <(find "$BACKUP_DIR" -name "state-*.tar.gz" -type f -mmin "+$retention_minutes" 2>/dev/null)
 
     if [[ $deleted_count -gt 0 ]]; then
         log_info "✓ Deleted $deleted_count old backup(s)"

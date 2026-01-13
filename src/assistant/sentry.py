@@ -21,8 +21,10 @@ Usage:
         raise
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 # Sentry SDK is optional - gracefully handle if not installed
 try:
@@ -32,8 +34,11 @@ try:
     SENTRY_AVAILABLE = True
 except ImportError:
     SENTRY_AVAILABLE = False
-    sentry_sdk = None
-    LoggingIntegration = None
+    sentry_sdk = None  # type: ignore[assignment]
+    LoggingIntegration = None  # type: ignore[assignment,misc]
+
+if TYPE_CHECKING:
+    from sentry_sdk._types import Event, Hint
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +126,7 @@ def init_sentry(
     return True
 
 
-def _before_send(event: dict[str, Any], hint: dict[str, Any]) -> dict[str, Any] | None:
+def _before_send(event: Event, hint: Hint) -> Event | None:
     """Filter/modify events before sending to Sentry.
 
     This callback allows us to:
@@ -145,12 +150,14 @@ def _before_send(event: dict[str, Any], hint: dict[str, Any]) -> dict[str, Any] 
 
     # Scrub sensitive data from request/breadcrumbs
     if "request" in event:
-        _scrub_dict(event["request"])
+        _scrub_dict(cast(dict[str, Any], event["request"]))
 
-    if "breadcrumbs" in event and "values" in event["breadcrumbs"]:
-        for breadcrumb in event["breadcrumbs"]["values"]:
-            if "data" in breadcrumb:
-                _scrub_dict(breadcrumb["data"])
+    if "breadcrumbs" in event:
+        breadcrumbs = cast(dict[str, Any], event["breadcrumbs"])
+        if "values" in breadcrumbs:
+            for breadcrumb in breadcrumbs["values"]:
+                if "data" in breadcrumb:
+                    _scrub_dict(breadcrumb["data"])
 
     return event
 
@@ -292,7 +299,7 @@ def capture_message(message: str, level: str = "info") -> str | None:
     if not SENTRY_AVAILABLE or not _initialized:
         return None
 
-    return sentry_sdk.capture_message(message, level=level)
+    return sentry_sdk.capture_message(message, level=level)  # type: ignore[arg-type]
 
 
 def flush(timeout: float = 2.0) -> None:

@@ -464,4 +464,4 @@ class TestSentryWithSDK:
 
         with patch("assistant.sentry.sentry_sdk") as mock_sentry:
             flush(timeout=5.0)
-            mock_sentry.flush.assert_called_once_with(5.0)
+            mock_sentry.flush.assert_called_once_with(timeout=5.0)
