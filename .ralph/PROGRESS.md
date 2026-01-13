@@ -1722,7 +1722,7 @@
     6. T-166: Comparison sheet tests → AT-126
     7. T-157: Proximity task suggestions → AT-127
     8. T-167: Notion ↔ Drive file linking
-  - Commit: pending
+  - Commit: c2aea73
 
 - Iteration 67 (T-153: Integrate Maps with Places database)
   - Task: When a place is mentioned, geocode via Maps API and store enriched data in Notion Places database
@@ -1737,7 +1737,7 @@
     - PYTHONPATH=src python3 -m pytest tests/ (1872 passed, 5 skipped)
     - scripts/verify.sh (8/8 pass)
   - Results: AT-121 verified - place geocoded with address, lat/lng, google_place_id, phone, website when Maps API enabled
-  - Commit: pending
+  - Commit: c2aea73
 
 - Iteration 80 (T-155: Add travel times to morning briefing)
   - Task: Include 'Leave by X' departure times for location-based tasks in morning briefing per PRD 5.2
@@ -1759,4 +1759,4 @@
     - PYTHONPATH=src python3 -m pytest tests/ (1882 passed, 5 skipped)
     - mypy src (pass)
   - Results: AT-122 verified - morning briefing includes "Leave by X" departure times for calendar events and tasks with places
-  - Commit: pending
+  - Commit: c2aea73
