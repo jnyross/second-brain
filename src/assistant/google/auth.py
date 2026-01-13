@@ -18,7 +18,25 @@ SCOPES = [
 ]
 
 TOKEN_PATH = Path.home() / ".second-brain" / "google_token.json"
-CREDENTIALS_PATH = Path(__file__).parent.parent.parent.parent / "google_credentials.json"
+
+# Check multiple locations for credentials file
+_CREDENTIALS_LOCATIONS = [
+    Path("/var/lib/second-brain/google_credentials.json"),  # Docker mounted volume
+    Path.home() / ".second-brain" / "google_credentials.json",  # User home
+    Path(__file__).parent.parent.parent.parent / "google_credentials.json",  # Source relative
+]
+
+
+def _find_credentials_path() -> Path:
+    """Find the first existing credentials file from known locations."""
+    for path in _CREDENTIALS_LOCATIONS:
+        if path.exists():
+            return path
+    # Return default location for error messages
+    return _CREDENTIALS_LOCATIONS[0]
+
+
+CREDENTIALS_PATH = _find_credentials_path()
 
 
 def extract_oauth_code(text: str) -> str | None:
