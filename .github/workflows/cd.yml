@@ -118,14 +118,23 @@ jobs:
         id: deploy
         if: steps.check-config.outputs.skip != 'true'
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_SSH_KEY }}
           script_stop: true
+          envs: GHCR_PAT
           script: |
             set -e
             cd /opt/second-brain
+
+            # Authenticate with GHCR if PAT is provided
+            if [[ -n "$GHCR_PAT" ]]; then
+              echo "Logging in to GHCR..."
+              echo "$GHCR_PAT" | docker login ghcr.io -u jnyross --password-stdin
+            fi
 
             # Pull the new image
             echo "Pulling new image..."
