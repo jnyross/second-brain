@@ -1258,8 +1258,8 @@
       "description": "Create comparison matrix sheets with structured criteria columns.",
       "depends_on": ["T-163"],
       "acceptance_tests": ["AT-126"],
-      "passes": false,
-      "evidence": "DriveClient.create_comparison_sheet() exists with Criteria + options + Notes columns. Need to verify AT-126 compliance and add tests.",
+      "passes": true,
+      "evidence": "Created src/assistant/services/comparison_sheet.py with ComparisonSheetService. Features: is_comparison_request() detection, extract_comparison_options() for extracting items to compare, create_comparison_sheet() for creating Google Sheets via DriveClient. Default criteria: Price, Features, Ease of Use, Support, Integration, Performance, Security, Scalability. Creates Notion task linked to sheet. Tests in tests/test_comparison_sheet.py (47 tests pass) including AT-126 acceptance tests. AT-126: 'Compare iPhone vs Android - create a sheet' creates Google Sheet with structured columns (Criteria, Option1, Option2, Notes).",
       "updated_at": "2026-01-13"
     },
     {

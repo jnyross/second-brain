@@ -1890,3 +1890,34 @@
     - scripts/verify.sh (8/8 pass)
   - Results: AT-125 verified - "Create meeting notes for call with Sarah" creates Drive doc in Meeting Notes folder, linked to Sarah in People database
   - Commit: fae06d2
+
+- Iteration 69 (T-166) - Comparison Sheet Generator
+  - Task: Implement comparison sheet generator per PRD AT-126
+  - Created src/assistant/services/comparison_sheet.py with:
+    - COMPARISON_PATTERNS: regex patterns for detecting comparison requests (compare X vs Y, create comparison sheet, etc.)
+    - SHEET_INDICATORS: patterns indicating sheet creation is desired (create sheet, spreadsheet, comparison matrix)
+    - ComparisonSheetResult dataclass: success, topic, options, criteria, drive_file_id/url, task_id/title, error, has_drive_sheet, has_task
+    - is_comparison_request(): detects if text is a comparison sheet request (requires both comparison pattern AND sheet indicator)
+    - extract_comparison_options(): extracts items to compare from "X vs Y", "X and Y", "X, Y, and Z" formats
+    - extract_comparison_topic(): creates topic string from options
+    - ComparisonSheetService class:
+      - DEFAULT_CRITERIA: Price, Features, Ease of Use, Support, Integration, Performance, Security, Scalability
+      - create_comparison_sheet(): creates Google Sheet via DriveClient.create_comparison_sheet(), creates Notion task linked to sheet
+      - _create_task(): creates Notion task with drive_file_id and drive_file_url
+      - format_success_message(), format_failure_message(): user-facing messages
+    - Module-level singleton: get_comparison_sheet_service(), create_comparison_sheet() convenience function
+  - Updated services/__init__.py: Added 7 new exports (ComparisonSheetResult, ComparisonSheetService, create_comparison_sheet, etc.)
+  - Tests added (47 tests) in tests/test_comparison_sheet.py:
+    - TestComparisonSheetResult (6): default values, has_drive_sheet, has_task, options/criteria lists
+    - TestIsComparisonRequest (7): compare vs, comparison sheet, spreadsheet, comparison matrix, case insensitive
+    - TestExtractComparisonOptions (7): vs/versus, three options, comma separated, sheet suffix removal, capitalization
+    - TestExtractComparisonTopic (2): two options topic, default topic
+    - TestComparisonSheetService (16): init, default criteria, create success, explicit options, custom criteria, needs two options, without task, topic formatting
+    - TestDriveClientIntegration (2): API call, sheet structure columns
+    - TestAT126ComparisonSheetCreation (4): AT-126 acceptance tests - creates sheet, structured columns, Drive API confirms, correct structure
+    - TestModuleLevelFunctions (2): singleton, convenience function
+    - TestPatternConstants (3): patterns not empty, valid regex
+  - Commands:
+    - PYTHONPATH=src python3 -m pytest tests/test_comparison_sheet.py -v (47 passed)
+  - Results: AT-126 verified - "Compare iPhone vs Android - create a sheet" creates Google Sheet with structured columns (Criteria, Option1, Option2, Notes)
+  - Commit: pending

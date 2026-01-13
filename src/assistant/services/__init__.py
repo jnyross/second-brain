@@ -235,6 +235,35 @@ _EXPORTS: dict[str, tuple[str, str]] = {
         "assistant.services.meeting_notes",
         "is_meeting_notes_request",
     ),
+    # Comparison Sheet (T-166)
+    "ComparisonSheetResult": (
+        "assistant.services.comparison_sheet",
+        "ComparisonSheetResult",
+    ),
+    "ComparisonSheetService": (
+        "assistant.services.comparison_sheet",
+        "ComparisonSheetService",
+    ),
+    "create_comparison_sheet": (
+        "assistant.services.comparison_sheet",
+        "create_comparison_sheet",
+    ),
+    "extract_comparison_options": (
+        "assistant.services.comparison_sheet",
+        "extract_comparison_options",
+    ),
+    "extract_comparison_topic": (
+        "assistant.services.comparison_sheet",
+        "extract_comparison_topic",
+    ),
+    "get_comparison_sheet_service": (
+        "assistant.services.comparison_sheet",
+        "get_comparison_sheet_service",
+    ),
+    "is_comparison_request": (
+        "assistant.services.comparison_sheet",
+        "is_comparison_request",
+    ),
     # Always-On Listening (T-131 - Future Phase 3)
     "AlwaysOnListener": ("assistant.services.always_on", "AlwaysOnListener"),
     "AlwaysOnListenerNotAvailable": (
