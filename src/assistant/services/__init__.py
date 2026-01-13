@@ -185,6 +185,25 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "get_llm_client": ("assistant.services.llm_client", "get_llm_client"),
     "is_llm_available": ("assistant.services.llm_client", "is_llm_available"),
     "llm_complete": ("assistant.services.llm_client", "llm_complete"),
+    # Schedule Conflict Detection (T-156)
+    "ConflictCheckResult": ("assistant.services.schedule_conflict", "ConflictCheckResult"),
+    "ScheduleConflict": ("assistant.services.schedule_conflict", "ScheduleConflict"),
+    "ScheduleConflictDetector": (
+        "assistant.services.schedule_conflict",
+        "ScheduleConflictDetector",
+    ),
+    "check_schedule_conflicts": (
+        "assistant.services.schedule_conflict",
+        "check_schedule_conflicts",
+    ),
+    "get_conflict_detector": (
+        "assistant.services.schedule_conflict",
+        "get_conflict_detector",
+    ),
+    "is_schedule_conflict_impossible": (
+        "assistant.services.schedule_conflict",
+        "is_schedule_conflict_impossible",
+    ),
     # Always-On Listening (T-131 - Future Phase 3)
     "AlwaysOnListener": ("assistant.services.always_on", "AlwaysOnListener"),
     "AlwaysOnListenerNotAvailable": (

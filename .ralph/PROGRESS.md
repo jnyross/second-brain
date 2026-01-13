@@ -13,9 +13,9 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phases 0-7 complete. Deployment complete. Phase 8 (Google Maps) in progress. T-164 (research-to-doc pipeline) complete. **Next: T-165 (meeting notes creator)**.
-- Remaining Tasks: T-156, T-157 (Maps), T-165, T-166, T-167 (Drive)
-- Remaining ATs: AT-123, AT-125, AT-126, AT-127
+- Status: Phases 0-7 complete. Deployment complete. Phase 8 (Google Maps) complete. Phase 9 (Google Drive) in progress. **Next: T-157 (proximity task suggestions)**.
+- Remaining Tasks: T-157 (Maps), T-165, T-166, T-167 (Drive)
+- Remaining ATs: AT-125, AT-126, AT-127
 
 ## Iteration Log
 
@@ -1788,3 +1788,35 @@
     - scripts/verify.sh (8/8 pass)
   - Results: AT-124 verified - research request creates Drive doc in Second Brain/Research/ folder, doc populated with findings, task created with drive_file_id populated
   - Commit: 177d052
+
+- Iteration 82 (T-156: Implement schedule conflict detection)
+  - Task: Detect unrealistic schedules (e.g., meetings in SF at 10am and LA at 11am) and warn user (AT-123)
+  - Changes:
+    1. Created src/assistant/services/schedule_conflict.py with ScheduleConflictDetector class:
+       - ScheduleConflict dataclass: existing_event, new_event_time/location, travel_time, travel_duration_minutes, available_time_minutes
+       - is_impossible property: True when travel_duration > available_time
+       - warning_message property: "Travel time ~X hours - schedule conflict detected. You have a meeting at..."
+       - _format_duration() helper: "45 min", "1 hour", "2 hr 30 min"
+    2. ConflictCheckResult dataclass:
+       - has_conflict, conflicts list, needs_clarification (True if any impossible)
+       - primary_conflict property: Returns most severe conflict
+       - warning_message property: Delegates to primary conflict
+    3. ScheduleConflictDetector class:
+       - check_for_conflicts(): Main entry point, fetches calendar events if not provided
+       - _check_single_event(): Checks travel time between new event and existing
+       - _locations_match(): Case-insensitive, partial match detection
+    4. Module-level convenience functions: get_conflict_detector(), check_schedule_conflicts(), is_schedule_conflict_impossible()
+    5. Updated services/__init__.py: Added 6 new exports (ScheduleConflictDetector, ConflictCheckResult, etc.)
+  - Tests added (33 tests):
+    - TestScheduleConflict (7): is_impossible, warning messages, _format_duration
+    - TestConflictCheckResult (5): needs_clarification, primary_conflict, warning_message
+    - TestScheduleConflictDetector (8): no conflict cases, conflict detection, API failure handling
+    - TestLocationMatching (4): exact, case-insensitive, partial, different
+    - TestModuleLevelFunctions (3): singleton, convenience functions
+    - TestAT123UnrealisticScheduleDetection (4): SF 10am → LA 11am conflict, travel time warning, needs_clarification=true
+    - TestPRDSection44Compliance (2): buffer time, traffic time usage
+  - Commands:
+    - PYTHONPATH=src python3 -m pytest tests/test_schedule_conflict.py -v (33 passed)
+    - scripts/verify.sh (8/8 pass)
+  - Results: AT-123 verified - SF at 10am, LA at 11am creates conflict with "Travel time ~7 hours - schedule conflict detected" warning and needs_clarification=true
+  - Commit: (pending)

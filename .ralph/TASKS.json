@@ -1162,8 +1162,8 @@
       "description": "Detect unrealistic schedules (e.g., meetings in SF at 10am and LA at 11am) and warn user.",
       "depends_on": ["T-154"],
       "acceptance_tests": ["AT-123"],
-      "passes": false,
-      "evidence": "",
+      "passes": true,
+      "evidence": "Created src/assistant/services/schedule_conflict.py with ScheduleConflictDetector class. Features: 1) ScheduleConflict dataclass with is_impossible, warning_message properties, 2) ConflictCheckResult with needs_clarification flag for handler integration, 3) Travel time check via MapsClient.get_travel_time(), 4) Buffer time (15 min) added to travel estimates, 5) Location matching (case-insensitive, partial), 6) Calendar event fetching for conflict window. Tests in tests/test_schedule_conflict.py (33 tests pass) including TestAT123UnrealisticScheduleDetection (4 tests verifying SF 10am to LA 11am conflict detection with ~7hr travel warning and needs_clarification=true). scripts/verify.sh passes (8/8).",
       "updated_at": "2026-01-13"
     },
     {
