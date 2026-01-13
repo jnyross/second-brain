@@ -20,6 +20,10 @@ jobs:
     permissions:
       checks: read
     steps:
+      # Give CI workflow time to register its checks
+      - name: Wait for CI checks to register
+        run: sleep 30
+
       - name: Wait for CI workflow
         uses: lewagon/wait-on-check-action@v1.3.4
         with:
