@@ -9,7 +9,6 @@ Tests cover:
 - AT-127 acceptance test
 """
 
-import math
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest

@@ -4,9 +4,7 @@ These tests verify the Sentry module works correctly both when sentry-sdk
 is installed and when it's not (graceful degradation).
 """
 
-import logging
-from typing import TYPE_CHECKING
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -24,7 +22,6 @@ from assistant.sentry import (
     set_tag,
     set_user_context,
 )
-
 
 # ============================================================
 # Test SDK Availability

@@ -12,19 +12,18 @@ Per PRD AT-124:
 - Pass: Drive API confirms doc exists AND task.drive_file_id populated
 """
 
-import pytest
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
-from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from assistant.services.research_pipeline import (
     ResearchPipeline,
     ResearchPipelineResult,
-    is_research_request,
+    execute_research_pipeline,
     extract_research_topic,
     get_research_pipeline,
-    execute_research_pipeline,
-    RESEARCH_PATTERNS,
+    is_research_request,
 )
 
 

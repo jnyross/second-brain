@@ -2,7 +2,6 @@ import re
 from datetime import datetime, timedelta
 
 import pytz
-
 from assistant.config import settings
 from assistant.services.intent import ParsedIntent
 

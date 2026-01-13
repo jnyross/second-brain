@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -11,7 +10,6 @@ import pytest
 
 from assistant.services.llm_client import (
     AnthropicProvider,
-    BaseLLMProvider,
     GeminiProvider,
     LLMClient,
     LLMProvider,
@@ -23,7 +21,6 @@ from assistant.services.llm_client import (
     get_llm_client,
     is_llm_available,
 )
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Test Fixtures

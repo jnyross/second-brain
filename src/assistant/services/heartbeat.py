@@ -20,7 +20,6 @@ import asyncio
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
 import httpx
 
@@ -41,8 +40,8 @@ class HeartbeatResult:
 
     success: bool
     timestamp: datetime
-    response_code: Optional[int] = None
-    error: Optional[str] = None
+    response_code: int | None = None
+    error: str | None = None
 
     @property
     def status_message(self) -> str:
@@ -68,7 +67,7 @@ class HeartbeatService:
 
     def __init__(
         self,
-        heartbeat_url: Optional[str] = None,
+        heartbeat_url: str | None = None,
         interval: int = DEFAULT_HEARTBEAT_INTERVAL,
     ):
         """Initialize heartbeat service.
@@ -82,9 +81,9 @@ class HeartbeatService:
         )
         self._interval = interval
         self._running = False
-        self._task: Optional[asyncio.Task[None]] = None
-        self._last_result: Optional[HeartbeatResult] = None
-        self._client: Optional[httpx.AsyncClient] = None
+        self._task: asyncio.Task[None] | None = None
+        self._last_result: HeartbeatResult | None = None
+        self._client: httpx.AsyncClient | None = None
 
     @property
     def is_configured(self) -> bool:
@@ -97,7 +96,7 @@ class HeartbeatService:
         return self._running
 
     @property
-    def last_result(self) -> Optional[HeartbeatResult]:
+    def last_result(self) -> HeartbeatResult | None:
         """Get the last heartbeat result."""
         return self._last_result
 
@@ -223,7 +222,7 @@ class HeartbeatService:
 
 
 # Module-level singleton for convenience
-_heartbeat_service: Optional[HeartbeatService] = None
+_heartbeat_service: HeartbeatService | None = None
 
 
 def get_heartbeat_service() -> HeartbeatService:

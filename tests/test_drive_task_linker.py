@@ -10,18 +10,19 @@ Per T-167 requirements:
 - Enable bidirectional linking (Task -> Drive and Drive -> Task)
 """
 
-import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from assistant.services.drive_task_linker import (
     DriveTaskLinker,
     LinkResult,
     TaskInfo,
-    get_drive_task_linker,
-    link_drive_to_task,
     find_task_by_drive_file,
+    get_drive_task_linker,
     is_drive_file_linked,
+    link_drive_to_task,
     unlink_drive_from_task,
 )
 

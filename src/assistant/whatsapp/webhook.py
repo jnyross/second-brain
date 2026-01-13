@@ -20,7 +20,6 @@ import logging
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any
 
 from assistant.whatsapp.client import MessageType, WhatsAppMessage
 

@@ -14,21 +14,21 @@ Per PRD AT-126:
 
 from __future__ import annotations
 
-import pytest
 from dataclasses import dataclass
-from typing import Optional
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
 from assistant.services.comparison_sheet import (
-    ComparisonSheetService,
+    COMPARISON_PATTERNS,
+    SHEET_INDICATORS,
     ComparisonSheetResult,
-    is_comparison_request,
+    ComparisonSheetService,
+    create_comparison_sheet,
     extract_comparison_options,
     extract_comparison_topic,
     get_comparison_sheet_service,
-    create_comparison_sheet,
-    COMPARISON_PATTERNS,
-    SHEET_INDICATORS,
+    is_comparison_request,
 )
 
 
@@ -41,7 +41,7 @@ class MockDriveFile:
     name: str
     mime_type: str
     web_view_link: str
-    parent_id: Optional[str] = None
+    parent_id: str | None = None
 
 
 class TestComparisonSheetResult:
@@ -256,7 +256,6 @@ class TestComparisonSheetService:
         )
 
         # Patch the Task import in _create_task
-        import assistant.services.comparison_sheet as cs_module
         with MagicMock() as mock_schemas:
             mock_schemas.Task = mock_task_class
             import sys

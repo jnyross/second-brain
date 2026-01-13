@@ -39,7 +39,6 @@ from assistant.google.gmail import (
     get_gmail_client,
 )
 from assistant.notion import NotionClient
-from assistant.notion.schemas import Pattern
 
 logger = logging.getLogger(__name__)
 

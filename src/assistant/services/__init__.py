@@ -290,9 +290,9 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     ),
     # Always-On Listening (T-131 - Future Phase 3)
     "AlwaysOnListener": ("assistant.services.always_on", "AlwaysOnListener"),
-    "AlwaysOnListenerNotAvailable": (
+    "AlwaysOnListenerNotAvailableError": (
         "assistant.services.always_on",
-        "AlwaysOnListenerNotAvailable",
+        "AlwaysOnListenerNotAvailableError",
     ),
     "CaptureResult": ("assistant.services.always_on", "CaptureResult"),
     "ListenerConfig": ("assistant.services.always_on", "ListenerConfig"),

@@ -14,7 +14,6 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import pytz
-
 from assistant.config import settings
 from assistant.google.calendar import CalendarClient, CalendarEvent, get_calendar_client
 from assistant.google.gmail import EmailMessage, GmailClient, get_gmail_client

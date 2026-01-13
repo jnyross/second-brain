@@ -19,7 +19,6 @@ import pytest
 
 from assistant.whatsapp.client import (
     MAX_MESSAGE_LENGTH,
-    MediaDownloadResult,
     MessageType,
     SendResult,
     WhatsAppClient,
@@ -29,7 +28,6 @@ from assistant.whatsapp.client import (
 )
 from assistant.whatsapp.webhook import (
     MessageStatus,
-    StatusUpdate,
     WebhookEvent,
     WebhookEventType,
     WebhookParseError,
@@ -39,7 +37,6 @@ from assistant.whatsapp.webhook import (
     parse_payload,
     verify_webhook,
 )
-
 
 # =============================================================================
 # WhatsApp Client Tests
@@ -814,7 +811,7 @@ class TestT140WhatsAppIntegration:
 
     def test_whatsapp_module_exports(self):
         """Test that whatsapp module exports required classes."""
-        from assistant.whatsapp import WhatsAppClient, WhatsAppWebhook, WebhookEvent
+        from assistant.whatsapp import WebhookEvent, WhatsAppClient, WhatsAppWebhook
 
         assert WhatsAppClient is not None
         assert WhatsAppWebhook is not None

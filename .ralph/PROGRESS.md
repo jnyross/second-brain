@@ -1962,3 +1962,20 @@
     - PYTHONPATH=src python3 -m pytest tests/test_drive_task_linker.py -v (47 passed)
     - PYTHONPATH=src python3 -m pytest tests/ -q (2137 passed, 5 skipped)
   - Results: T-167 verified - bidirectional linking implemented with forward (Task -> Drive via drive_file_id/url) and reverse (Drive -> Task via query_task_by_drive_file) lookup
+
+- Iteration (T-300)
+  - Task: Fix linting issues (line length, imports) - P3, R0
+  - Changes:
+    1. notion/client.py (lines 134, 136): Wrapped long dict literals for tasks and places across multiple lines
+    2. briefing.py: Auto-fixed import sorting via `ruff check --fix --select=I001`
+    3. always_on.py: Changed `from typing import Callable` to `from collections.abc import Callable` (UP035)
+    4. Renamed AlwaysOnListenerNotAvailable → AlwaysOnListenerNotAvailableError (N818) in:
+       - src/assistant/services/always_on.py
+       - src/assistant/services/__init__.py
+       - tests/test_always_on.py
+  - Commands:
+    - ruff check src/assistant/notion/client.py src/assistant/services/briefing.py src/assistant/services/always_on.py (All checks passed!)
+    - PYTHONPATH=src python3 -m pytest tests/test_always_on.py -v (43 passed)
+  - Results: All 4 linting issues fixed, tests pass
+  - Files modified: 5
+  - Commit: e013b10

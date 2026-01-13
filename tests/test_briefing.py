@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-import pytz
 
+import pytz
 from assistant.services.briefing import (
     BriefingGenerator,
     generate_briefing,
@@ -1192,8 +1192,8 @@ class TestAT122TravelTimeInMorningBriefing:
         Then: Briefing includes travel estimate from home
         Pass condition: Briefing contains "Leave by X" with calculated departure time
         """
-        from assistant.google.maps import MapsClient, TravelTime
         from assistant.google.calendar import CalendarClient
+        from assistant.google.maps import MapsClient, TravelTime
 
         # Mock Notion with a task that has a place
         mock_notion = AsyncMock()

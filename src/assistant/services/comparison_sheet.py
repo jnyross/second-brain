@@ -15,7 +15,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional, List
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from assistant.google.drive import DriveClient, DriveFile
@@ -190,8 +190,8 @@ class ComparisonSheetService:
 
     def __init__(
         self,
-        drive_client: "DriveClient | None" = None,
-        notion_client: "NotionClient | None" = None,
+        drive_client: DriveClient | None = None,
+        notion_client: NotionClient | None = None,
     ) -> None:
         """Initialize comparison sheet service.
 
@@ -202,7 +202,7 @@ class ComparisonSheetService:
         self._drive_client = drive_client
         self._notion_client = notion_client
 
-    def _get_drive_client(self) -> "DriveClient":
+    def _get_drive_client(self) -> DriveClient:
         """Get or create DriveClient."""
         if self._drive_client is None:
             from assistant.google.drive import DriveClient
@@ -210,7 +210,7 @@ class ComparisonSheetService:
             self._drive_client = DriveClient()
         return self._drive_client
 
-    def _get_notion_client(self) -> "NotionClient":
+    def _get_notion_client(self) -> NotionClient:
         """Get or create NotionClient."""
         if self._notion_client is None:
             from assistant.notion.client import NotionClient
@@ -282,7 +282,7 @@ class ComparisonSheetService:
         return result
 
     async def _create_task(
-        self, result: ComparisonSheetResult, drive_file: "DriveFile"
+        self, result: ComparisonSheetResult, drive_file: DriveFile
     ) -> None:
         """Create a Notion task linked to the comparison sheet.
 

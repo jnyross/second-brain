@@ -14,8 +14,6 @@ Tests verify:
 
 from datetime import datetime
 
-import pytest
-
 
 class TestListenerState:
     """Tests for ListenerState enum."""
@@ -256,22 +254,22 @@ class TestAlwaysOnListener:
         assert listener.on_state_change is not None
 
 
-class TestAlwaysOnListenerNotAvailable:
-    """Tests for AlwaysOnListenerNotAvailable exception."""
+class TestAlwaysOnListenerNotAvailableError:
+    """Tests for AlwaysOnListenerNotAvailableError exception."""
 
     def test_exception_with_default_message(self):
         """Exception has descriptive default message."""
-        from assistant.services.always_on import AlwaysOnListenerNotAvailable
+        from assistant.services.always_on import AlwaysOnListenerNotAvailableError
 
-        exc = AlwaysOnListenerNotAvailable()
+        exc = AlwaysOnListenerNotAvailableError()
         assert "not yet available" in str(exc)
         assert "voice activity detection" in str(exc)
 
     def test_exception_with_custom_message(self):
         """Exception accepts custom message."""
-        from assistant.services.always_on import AlwaysOnListenerNotAvailable
+        from assistant.services.always_on import AlwaysOnListenerNotAvailableError
 
-        exc = AlwaysOnListenerNotAvailable("Custom reason")
+        exc = AlwaysOnListenerNotAvailableError("Custom reason")
         assert str(exc) == "Custom reason"
 
 
@@ -391,7 +389,6 @@ class TestT131AcceptanceTest:
         """Interface for always-on listening is defined."""
         from assistant.services.always_on import (
             AlwaysOnListener,
-            CaptureResult,
             ListenerConfig,
             ListenerState,
         )

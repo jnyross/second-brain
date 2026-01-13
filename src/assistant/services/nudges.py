@@ -26,7 +26,6 @@ from pathlib import Path
 from typing import Any
 
 import pytz
-
 from assistant.config import settings
 from assistant.notion import NotionClient
 

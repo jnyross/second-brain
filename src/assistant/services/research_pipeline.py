@@ -16,7 +16,6 @@ Per PRD AT-124:
 import logging
 import re
 from dataclasses import dataclass
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -362,7 +361,7 @@ class ResearchPipeline:
             "",
             f"Found {result.findings_count} items from {result.sources_count} sources",
             "",
-            f"Created Google Doc with findings",
+            "Created Google Doc with findings",
             f"[View Document]({result.drive_file_url})",
             "",
             f"Created task: **{result.task_title}**",

@@ -9,7 +9,6 @@ Tests the pattern-based email auto-reply functionality per PRD Section 4.5 and 6
 """
 
 from datetime import datetime, timedelta
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo
 
@@ -24,12 +23,9 @@ from assistant.services.email_auto_reply import (
     EmailAutoReplyService,
     SenderPattern,
     analyze_sender_pattern,
-    create_reply_draft,
     get_auto_reply_service,
-    process_auto_reply,
     should_auto_reply,
 )
-
 
 # =============================================================================
 # Test Fixtures

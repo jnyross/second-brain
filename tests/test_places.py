@@ -24,11 +24,8 @@ from assistant.services.places import (
     PlacesService,
     PlaceType,
     create_place,
-    create_place_enriched,
-    enrich_place,
     get_places_service,
     lookup_or_create_place,
-    lookup_or_create_place_enriched,
     lookup_place,
 )
 

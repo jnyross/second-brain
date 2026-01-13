@@ -10,8 +10,6 @@ import pytest
 from assistant.services.meeting_notes import (
     MeetingNotesResult,
     MeetingNotesService,
-    create_meeting_notes,
-    create_meeting_notes_from_request,
     extract_attendees,
     extract_meeting_title,
     get_meeting_notes_service,
@@ -353,7 +351,6 @@ class TestConvenienceFunctions:
         assert service1 is service2
 
     def test_get_meeting_notes_service_with_args_creates_new(self) -> None:
-        from assistant.services.meeting_notes import _service
         drive = MagicMock()
         service = get_meeting_notes_service(drive_client=drive)
         assert service._drive_client is drive

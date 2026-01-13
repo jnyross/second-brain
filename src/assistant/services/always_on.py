@@ -37,10 +37,10 @@ When implemented, the always-on listener would:
 7. Send responses via Telegram (or local audio output)
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Callable
 
 
 class ListenerState(Enum):
@@ -221,7 +221,7 @@ class AlwaysOnListener:
         )
 
 
-class AlwaysOnListenerNotAvailable(Exception):
+class AlwaysOnListenerNotAvailableError(Exception):
     """Raised when always-on listening is attempted but not available."""
 
     def __init__(self, message: str | None = None):

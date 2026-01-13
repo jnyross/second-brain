@@ -29,7 +29,7 @@ class LLMIntentParser:
         api_key: str | None = None,
         model: str | None = None,
         base_parser: Parser | None = None,
-        client: "httpx.Client | None" = None,
+        client: httpx.Client | None = None,
         timeout: float = DEFAULT_TIMEOUT_SECONDS,
     ) -> None:
         resolved_api_key = api_key

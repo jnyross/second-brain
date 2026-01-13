@@ -8,7 +8,7 @@ https://developers.facebook.com/docs/whatsapp/cloud-api
 """
 
 from assistant.whatsapp.client import WhatsAppClient
-from assistant.whatsapp.webhook import WhatsAppWebhook, WebhookEvent
+from assistant.whatsapp.webhook import WebhookEvent, WhatsAppWebhook
 
 __all__ = [
     "WhatsAppClient",

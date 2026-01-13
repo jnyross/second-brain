@@ -15,8 +15,8 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-import pytz
 
+import pytz
 from assistant.services.nudges import (
     NUDGE_WINDOW_DUE_TODAY_END,
     NUDGE_WINDOW_DUE_TODAY_START,

@@ -14,10 +14,10 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from assistant.google.maps import MapsClient, TravelTime
+    from assistant.google.maps import MapsClient
     from assistant.notion.client import NotionClient
 
 logger = logging.getLogger(__name__)
@@ -206,8 +206,8 @@ class ProximityTaskService:
 
     def __init__(
         self,
-        notion_client: "NotionClient | None" = None,
-        maps_client: "MapsClient | None" = None,
+        notion_client: NotionClient | None = None,
+        maps_client: MapsClient | None = None,
         max_distance_meters: int = MAX_NEARBY_DISTANCE_METERS,
     ):
         self.notion = notion_client
@@ -419,8 +419,8 @@ _service: ProximityTaskService | None = None
 
 
 def get_proximity_service(
-    notion_client: "NotionClient | None" = None,
-    maps_client: "MapsClient | None" = None,
+    notion_client: NotionClient | None = None,
+    maps_client: MapsClient | None = None,
 ) -> ProximityTaskService:
     """Get or create a ProximityTaskService instance."""
     global _service

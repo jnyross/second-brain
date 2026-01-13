@@ -17,7 +17,6 @@ import pytest
 from assistant.google.calendar import CalendarEvent
 from assistant.google.maps import TravelTime
 from assistant.services.schedule_conflict import (
-    BUFFER_MINUTES,
     ConflictCheckResult,
     ScheduleConflict,
     ScheduleConflictDetector,
@@ -25,7 +24,6 @@ from assistant.services.schedule_conflict import (
     get_conflict_detector,
     is_schedule_conflict_impossible,
 )
-
 
 # --- Test Fixtures ---
 

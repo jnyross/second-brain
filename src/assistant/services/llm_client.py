@@ -98,7 +98,7 @@ class BaseLLMProvider(ABC):
         self,
         api_key: str,
         model: str | None = None,
-        client: "httpx.Client | None" = None,
+        client: httpx.Client | None = None,
         timeout: float = 30.0,
     ) -> None:
         self.api_key = api_key

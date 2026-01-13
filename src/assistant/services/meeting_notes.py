@@ -62,7 +62,7 @@ class MeetingNotesResult:
     """Result of creating meeting notes."""
 
     success: bool
-    drive_file: "DriveFile | None" = None
+    drive_file: DriveFile | None = None
     drive_file_id: str | None = None
     drive_file_url: str | None = None
     meeting_title: str = ""
@@ -159,16 +159,16 @@ class MeetingNotesService:
 
     def __init__(
         self,
-        drive_client: "DriveClient | None" = None,
-        people_service: "PeopleService | None" = None,
-        notion_client: "NotionClient | None" = None,
+        drive_client: DriveClient | None = None,
+        people_service: PeopleService | None = None,
+        notion_client: NotionClient | None = None,
     ):
         self._drive_client = drive_client
         self._people_service = people_service
         self._notion_client = notion_client
 
     @property
-    def drive_client(self) -> "DriveClient":
+    def drive_client(self) -> DriveClient:
         """Get or create DriveClient."""
         if self._drive_client is None:
             from assistant.google.drive import DriveClient
@@ -176,7 +176,7 @@ class MeetingNotesService:
         return self._drive_client
 
     @property
-    def people_service(self) -> "PeopleService":
+    def people_service(self) -> PeopleService:
         """Get or create PeopleService."""
         if self._people_service is None:
             from assistant.services.people import PeopleService
@@ -259,9 +259,9 @@ _service: MeetingNotesService | None = None
 
 
 def get_meeting_notes_service(
-    drive_client: "DriveClient | None" = None,
-    people_service: "PeopleService | None" = None,
-    notion_client: "NotionClient | None" = None,
+    drive_client: DriveClient | None = None,
+    people_service: PeopleService | None = None,
+    notion_client: NotionClient | None = None,
 ) -> MeetingNotesService:
     """Get or create MeetingNotesService instance."""
     global _service

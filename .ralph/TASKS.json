@@ -1282,8 +1282,8 @@
       "description": "Fix ruff linting issues: 1) Line too long (>100 chars) in notion/client.py lines 134, 136. 2) Import sorting (I001) in briefing.py. 3) Import from collections.abc instead of typing for Callable in always_on.py (UP035). 4) Rename AlwaysOnListenerNotAvailable to AlwaysOnListenerNotAvailableError (N818).",
       "depends_on": [],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": "",
+      "passes": true,
+      "evidence": "Fixed all 4 issues: 1) Wrapped long lines in notion/client.py (tasks/places dicts), 2) ruff --fix sorted imports in briefing.py, 3) Changed typing.Callable to collections.abc.Callable in always_on.py, 4) Renamed exception to AlwaysOnListenerNotAvailableError across always_on.py, __init__.py, and test_always_on.py. All 43 always_on tests pass. ruff check passes on all target files.",
       "updated_at": "2026-01-13"
     },
     {

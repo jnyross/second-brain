@@ -14,8 +14,6 @@ import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
-import pytest
-
 # Path to the backup script
 SCRIPT_PATH = Path(__file__).parent.parent / "deploy" / "scripts" / "backup.sh"
 

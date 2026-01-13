@@ -18,8 +18,6 @@ from assistant.services.heartbeat import (
     get_heartbeat_service,
     is_heartbeat_configured,
     send_heartbeat,
-    start_heartbeat,
-    stop_heartbeat,
 )
 
 if TYPE_CHECKING:

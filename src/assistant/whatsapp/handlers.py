@@ -6,7 +6,6 @@ behavior across both platforms.
 """
 
 import logging
-from datetime import UTC, datetime
 from io import BytesIO
 
 from assistant.services.corrections import (
@@ -21,9 +20,7 @@ from assistant.services.whisper import (
     WhisperTranscriber,
 )
 from assistant.whatsapp.client import (
-    MediaDownloadResult,
     MessageType,
-    SendResult,
     WhatsAppClient,
     WhatsAppMessage,
     get_whatsapp_client,
