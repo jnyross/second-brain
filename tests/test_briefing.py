@@ -99,7 +99,8 @@ class TestBriefingGeneratorInit:
             mock_settings.has_notion = False
             mock_settings.user_timezone = "America/Los_Angeles"
             generator = BriefingGenerator()
-            assert generator.timezone == pytz.timezone("America/Los_Angeles")
+            # Compare timezone zones by name rather than object identity
+            assert str(generator.timezone) == str(pytz.timezone("America/Los_Angeles"))
 
 
 class TestBriefingGeneratorExtractors:

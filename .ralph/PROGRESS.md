@@ -1684,3 +1684,16 @@
   - Commands: PYTHONPATH=src python3 -m pytest tests/test_llm_client.py -v (50 passed)
   - Verification: scripts/verify.sh (8/8 checks pass)
   - Commit: pending
+  - Commit: 7d94747
+
+- Iteration 78 (hygiene): Fix pytz timezone comparison test
+  - Task: Fix failing test_init_with_timezone due to pytz object identity comparison
+  - Issue: pytz.timezone() creates new object each call, so == comparison fails
+  - Solution: Compare str(timezone) instead of object identity
+  - Changed: tests/test_briefing.py line 102
+    - Old: `assert generator.timezone == pytz.timezone("America/Los_Angeles")`
+    - New: `assert str(generator.timezone) == str(pytz.timezone("America/Los_Angeles"))`
+  - Commands: PYTHONPATH=src python3 -m pytest tests/test_briefing.py::TestBriefingGeneratorInit::test_init_with_timezone -v (pass)
+  - Full suite: 1845 passed, 5 skipped
+  - Verification: scripts/verify.sh (8/8 pass)
+  - Commit: pending
