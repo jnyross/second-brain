@@ -5,8 +5,10 @@ This service handles:
 - Creating new places when they don't exist
 - Matching places from extracted text to database entries
 - Ranking matches by recency and confidence
+- Geocoding places via Google Maps API (T-153)
 """
 
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -15,7 +17,10 @@ from typing import TYPE_CHECKING
 from assistant.notion.schemas import Place
 
 if TYPE_CHECKING:
+    from assistant.google.maps import MapsClient
     from assistant.notion.client import NotionClient
+
+logger = logging.getLogger(__name__)
 
 
 class PlaceType(str, Enum):
@@ -85,11 +90,35 @@ TYPE_PRIORITY = {
 }
 
 
+@dataclass
+class EnrichmentResult:
+    """Result of place enrichment via Maps API."""
+
+    success: bool
+    address: str | None = None
+    lat: float | None = None
+    lng: float | None = None
+    google_place_id: str | None = None
+    phone: str | None = None
+    website: str | None = None
+    error: str | None = None
+
+    @property
+    def is_geocoded(self) -> bool:
+        """Check if geocoding succeeded."""
+        return self.lat is not None and self.lng is not None
+
+
 class PlacesService:
     """Service for managing place entities."""
 
-    def __init__(self, notion_client: "NotionClient | None" = None):
+    def __init__(
+        self,
+        notion_client: "NotionClient | None" = None,
+        maps_client: "MapsClient | None" = None,
+    ):
         self.notion = notion_client
+        self.maps = maps_client
 
     async def lookup(
         self,
@@ -233,6 +262,152 @@ class PlacesService:
             place.id = place_id
 
         return place
+
+    async def enrich(self, place: Place) -> EnrichmentResult:
+        """Enrich a place with geocoding data from Google Maps API.
+
+        Args:
+            place: Place object to enrich (must have id for Notion update)
+
+        Returns:
+            EnrichmentResult with geocoding data or error
+        """
+        if not self.maps:
+            return EnrichmentResult(success=False, error="Maps client not configured")
+
+        # Build search query from name and address
+        search_query = place.name
+        if place.address:
+            search_query = f"{place.name}, {place.address}"
+
+        try:
+            # Use enrich_place which does search + detailed lookup
+            place_details = await self.maps.enrich_place(search_query)
+
+            if not place_details:
+                return EnrichmentResult(
+                    success=False,
+                    error=f"No results found for '{search_query}'",
+                )
+
+            result = EnrichmentResult(
+                success=True,
+                address=place_details.address,
+                lat=place_details.lat,
+                lng=place_details.lng,
+                google_place_id=place_details.place_id,
+                phone=place_details.phone,
+                website=place_details.website,
+            )
+
+            # Update Notion if we have a place ID and client
+            if place.id and self.notion:
+                await self.notion.update_place(
+                    place_id=place.id,
+                    address=result.address,
+                    lat=result.lat,
+                    lng=result.lng,
+                    google_place_id=result.google_place_id,
+                    phone=result.phone,
+                    website=result.website,
+                )
+                logger.info(f"Enriched place '{place.name}' with geocoding data")
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Failed to enrich place '{place.name}': {e}")
+            return EnrichmentResult(success=False, error=str(e))
+
+    async def create_enriched(
+        self,
+        name: str,
+        place_type: str | None = None,
+        address: str | None = None,
+        context: str | None = None,
+    ) -> tuple[Place, EnrichmentResult | None]:
+        """Create a new place and enrich with Maps API data.
+
+        Args:
+            name: Place name
+            place_type: Type (restaurant, cinema, office, home, venue, other)
+            address: Optional address
+            context: Optional context for notes field
+
+        Returns:
+            Tuple of (Place, EnrichmentResult or None if Maps not configured)
+        """
+        # Create the place first
+        place = await self.create(name, place_type, address, context)
+
+        # Enrich if Maps client is available
+        enrichment = None
+        if self.maps:
+            enrichment = await self.enrich(place)
+            # Update local place object with enriched data
+            if enrichment.success:
+                place.address = enrichment.address or place.address
+                place.lat = enrichment.lat
+                place.lng = enrichment.lng
+                place.google_place_id = enrichment.google_place_id
+                place.phone = enrichment.phone
+                place.website = enrichment.website
+
+        return place, enrichment
+
+    async def lookup_or_create_enriched(
+        self,
+        name: str,
+        place_type: str | None = None,
+        address: str | None = None,
+        context: str | None = None,
+    ) -> tuple[PlaceLookupResult, EnrichmentResult | None]:
+        """Look up a place, creating and enriching it if not found.
+
+        This is the main entry point for AT-121 - when a place is mentioned,
+        geocode via Maps API and store enriched data in Notion.
+
+        Args:
+            name: The place name to search for
+            place_type: Optional type (restaurant, cinema, etc.)
+            address: Optional address for new place
+            context: Optional context about where this place was mentioned
+
+        Returns:
+            Tuple of (PlaceLookupResult, EnrichmentResult or None)
+        """
+        result = await self.lookup(name, place_type)
+
+        if result.found:
+            # Check if existing place needs enrichment
+            enrichment = None
+            if self.maps and result.place_id:
+                # TODO: Check if place already has coordinates before enriching
+                # For now, we don't re-enrich existing places
+                pass
+            return result, enrichment
+
+        # Create and enrich new place
+        place, enrichment = await self.create_enriched(name, place_type, address, context)
+
+        lookup_result = PlaceLookupResult(
+            found=True,
+            place_id=place.id if hasattr(place, "id") else None,
+            place=place,
+            matches=[
+                PlaceMatch(
+                    place_id=place.id if hasattr(place, "id") else "",
+                    name=name,
+                    confidence=1.0,
+                    place_type=place_type,
+                    address=enrichment.address if enrichment and enrichment.success else address,
+                    matched_by="created",
+                )
+            ],
+            is_new=True,
+        )
+
+        return lookup_result, enrichment
 
     async def lookup_multiple(
         self,
@@ -429,11 +604,14 @@ class PlacesService:
 _service: PlacesService | None = None
 
 
-def get_places_service(notion_client: "NotionClient | None" = None) -> PlacesService:
+def get_places_service(
+    notion_client: "NotionClient | None" = None,
+    maps_client: "MapsClient | None" = None,
+) -> PlacesService:
     """Get or create a PlacesService instance."""
     global _service
-    if _service is None or notion_client is not None:
-        _service = PlacesService(notion_client)
+    if _service is None or notion_client is not None or maps_client is not None:
+        _service = PlacesService(notion_client, maps_client)
     return _service
 
 
@@ -455,6 +633,18 @@ async def lookup_or_create_place(
     return await get_places_service().lookup_or_create(name, place_type, address, context)
 
 
+async def lookup_or_create_place_enriched(
+    name: str,
+    place_type: str | None = None,
+    address: str | None = None,
+    context: str | None = None,
+) -> tuple[PlaceLookupResult, EnrichmentResult | None]:
+    """Look up a place, creating and enriching it if not found."""
+    return await get_places_service().lookup_or_create_enriched(
+        name, place_type, address, context
+    )
+
+
 async def create_place(
     name: str,
     place_type: str | None = None,
@@ -463,3 +653,18 @@ async def create_place(
 ) -> Place:
     """Create a new place."""
     return await get_places_service().create(name, place_type, address, context)
+
+
+async def create_place_enriched(
+    name: str,
+    place_type: str | None = None,
+    address: str | None = None,
+    context: str | None = None,
+) -> tuple[Place, EnrichmentResult | None]:
+    """Create a new place and enrich with Maps API data."""
+    return await get_places_service().create_enriched(name, place_type, address, context)
+
+
+async def enrich_place(place: Place) -> EnrichmentResult:
+    """Enrich a place with geocoding data from Google Maps API."""
+    return await get_places_service().enrich(place)

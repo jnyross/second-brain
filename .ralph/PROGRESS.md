@@ -13,9 +13,9 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phases 0-7 complete. Deployment complete. **Next: Phase 8 (Google Maps Integration) and Phase 9 (Google Drive Integration)**.
-- Remaining Tasks: T-153, T-155, T-156, T-157 (Maps), T-164, T-165, T-166, T-167 (Drive)
-- Remaining ATs: AT-121, AT-122, AT-123, AT-124, AT-125, AT-126, AT-127
+- Status: Phases 0-7 complete. Deployment complete. Phase 8 (Google Maps) in progress - T-153 complete. **Next: T-155 (travel times in briefing)**.
+- Remaining Tasks: T-155, T-156, T-157 (Maps), T-164, T-165, T-166, T-167 (Drive)
+- Remaining ATs: AT-122, AT-123, AT-124, AT-125, AT-126, AT-127
 
 ## Iteration Log
 
@@ -1722,4 +1722,19 @@
     6. T-166: Comparison sheet tests → AT-126
     7. T-157: Proximity task suggestions → AT-127
     8. T-167: Notion ↔ Drive file linking
+  - Commit: pending
+
+- Iteration 67 (T-153: Integrate Maps with Places database)
+  - Task: When a place is mentioned, geocode via Maps API and store enriched data in Notion Places database
+  - Changes:
+    1. Updated Place schema (schemas.py): Added lat, lng, google_place_id, phone, website fields + coordinates/is_geocoded properties
+    2. Updated NotionClient (client.py): Added update_place() and get_place() methods, added new fields to NOTION_DB_PROPERTIES["places"]
+    3. Updated PlacesService (places.py): Added MapsClient dependency, EnrichmentResult dataclass, enrich(), create_enriched(), lookup_or_create_enriched() methods
+    4. Added convenience functions: lookup_or_create_place_enriched(), create_place_enriched(), enrich_place()
+    5. Tests: 27 new tests in test_places.py (61 total) including TestAT121PlaceEnrichmentViaMapsAPI
+  - Commands:
+    - PYTHONPATH=src python3 -m pytest tests/test_places.py -v (61 passed)
+    - PYTHONPATH=src python3 -m pytest tests/ (1872 passed, 5 skipped)
+    - scripts/verify.sh (8/8 pass)
+  - Results: AT-121 verified - place geocoded with address, lat/lng, google_place_id, phone, website when Maps API enabled
   - Commit: pending

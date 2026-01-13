@@ -143,12 +143,29 @@ class Place(BaseModel):
     name: str
     place_type: str = "other"
     address: str | None = None
+    lat: float | None = None
+    lng: float | None = None
+    google_place_id: str | None = None
+    phone: str | None = None
+    website: str | None = None
     your_preference: str | None = None
     last_visit: datetime | None = None
     rating: int | None = None
     archived: bool = False
     deleted_at: datetime | None = None
     notes: str | None = None
+
+    @property
+    def coordinates(self) -> tuple[float, float] | None:
+        """Return (lat, lng) tuple if both coordinates are set."""
+        if self.lat is not None and self.lng is not None:
+            return (self.lat, self.lng)
+        return None
+
+    @property
+    def is_geocoded(self) -> bool:
+        """Check if this place has been geocoded."""
+        return self.lat is not None and self.lng is not None
 
 
 class Preference(BaseModel):

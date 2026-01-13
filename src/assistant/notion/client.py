@@ -133,7 +133,7 @@ class NotionClient:
         },
         "tasks": {"title", "status", "priority", "due_date", "confidence", "deleted_at"},
         "people": {"name", "email", "relationship", "deleted_at", "archived"},
-        "places": {"name", "place_type", "address"},
+        "places": {"name", "place_type", "address", "lat", "lng", "google_place_id", "phone", "website"},
         "projects": {"name", "status", "deadline"},
         "log": {"action_type", "action_taken", "timestamp", "idempotency_key", "confidence"},
         "patterns": {"trigger", "meaning", "confidence"},
@@ -560,6 +560,64 @@ class NotionClient:
             },
         )
         return cast(str, result["id"])
+
+    async def update_place(
+        self,
+        place_id: str,
+        address: str | None = None,
+        lat: float | None = None,
+        lng: float | None = None,
+        google_place_id: str | None = None,
+        phone: str | None = None,
+        website: str | None = None,
+    ) -> None:
+        """Update a place with enriched data from Maps API.
+
+        Args:
+            place_id: Notion page ID of the place to update
+            address: Full formatted address
+            lat: Latitude coordinate
+            lng: Longitude coordinate
+            google_place_id: Google Places API ID
+            phone: Phone number
+            website: Website URL
+        """
+        properties: dict[str, Any] = {}
+
+        if address is not None:
+            properties["address"] = {"rich_text": [{"text": {"content": address}}]}
+        if lat is not None:
+            properties["lat"] = {"number": lat}
+        if lng is not None:
+            properties["lng"] = {"number": lng}
+        if google_place_id is not None:
+            properties["google_place_id"] = {"rich_text": [{"text": {"content": google_place_id}}]}
+        if phone is not None:
+            properties["phone"] = {"rich_text": [{"text": {"content": phone}}]}
+        if website is not None:
+            properties["website"] = {"url": website}
+
+        if properties:
+            await self._request(
+                "PATCH",
+                f"/pages/{place_id}",
+                {"properties": properties},
+            )
+
+    async def get_place(self, place_id: str) -> dict[str, Any] | None:
+        """Get a place by its Notion page ID.
+
+        Args:
+            place_id: Notion page ID
+
+        Returns:
+            Place data dict or None if not found
+        """
+        try:
+            result = await self._request("GET", f"/pages/{place_id}")
+            return cast(dict[str, Any], result)
+        except Exception:
+            return None
 
     async def query_projects(
         self,

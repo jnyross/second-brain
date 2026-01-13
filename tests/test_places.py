@@ -4,22 +4,31 @@ Covers T-071: Implement Places lookup/create service
 - Look up existing places by name/type
 - Create new entries when needed
 - Handle disambiguation for similar places
+
+Covers T-153: Integrate Maps with Places database
+- Geocode places via Google Maps API
+- Store enriched data (lat/lng, address, phone, website) in Notion
+- AT-121: Place enrichment via Maps API
 """
 
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from assistant.services.places import (
     TYPE_PRIORITY,
+    EnrichmentResult,
     PlaceLookupResult,
     PlaceMatch,
     PlacesService,
     PlaceType,
     create_place,
+    create_place_enriched,
+    enrich_place,
     get_places_service,
     lookup_or_create_place,
+    lookup_or_create_place_enriched,
     lookup_place,
 )
 
@@ -723,3 +732,551 @@ class TestModuleFunctions:
         assert place.name == "Created Place"
         assert place.place_type == "restaurant"
         assert place.address == "123 Main St"
+
+
+# =============================================================================
+# T-153: Maps Integration Tests
+# =============================================================================
+
+
+class TestEnrichmentResult:
+    """Tests for EnrichmentResult dataclass."""
+
+    def test_is_geocoded_true_when_coordinates_present(self):
+        """is_geocoded should be True when lat/lng are set."""
+        result = EnrichmentResult(
+            success=True,
+            lat=37.7749,
+            lng=-122.4194,
+        )
+        assert result.is_geocoded is True
+
+    def test_is_geocoded_false_when_no_lat(self):
+        """is_geocoded should be False when lat is missing."""
+        result = EnrichmentResult(
+            success=True,
+            lng=-122.4194,
+        )
+        assert result.is_geocoded is False
+
+    def test_is_geocoded_false_when_no_lng(self):
+        """is_geocoded should be False when lng is missing."""
+        result = EnrichmentResult(
+            success=True,
+            lat=37.7749,
+        )
+        assert result.is_geocoded is False
+
+    def test_is_geocoded_false_when_failed(self):
+        """is_geocoded should be False when enrichment failed."""
+        result = EnrichmentResult(success=False, error="No results found")
+        assert result.is_geocoded is False
+
+    def test_enrichment_result_with_all_fields(self):
+        """EnrichmentResult should store all Maps API fields."""
+        result = EnrichmentResult(
+            success=True,
+            address="315 Linden St, San Francisco, CA 94102",
+            lat=37.7749,
+            lng=-122.4194,
+            google_place_id="ChIJrTLr-GyuEmsRBfy61i59si0",
+            phone="+1 415-555-1234",
+            website="https://bluebottlecoffee.com",
+        )
+        assert result.success is True
+        assert result.address == "315 Linden St, San Francisco, CA 94102"
+        assert result.lat == 37.7749
+        assert result.lng == -122.4194
+        assert result.google_place_id == "ChIJrTLr-GyuEmsRBfy61i59si0"
+        assert result.phone == "+1 415-555-1234"
+        assert result.website == "https://bluebottlecoffee.com"
+
+
+class TestPlacesServiceMapsIntegration:
+    """Tests for PlacesService with Maps API integration (T-153)."""
+
+    @pytest.fixture
+    def mock_maps_client(self):
+        """Create a mock MapsClient."""
+        from assistant.google.maps import PlaceDetails
+
+        client = MagicMock()
+        client.enrich_place = AsyncMock(
+            return_value=PlaceDetails(
+                name="Blue Bottle Coffee",
+                address="315 Linden St, San Francisco, CA 94102",
+                lat=37.7749,
+                lng=-122.4194,
+                place_id="ChIJrTLr-GyuEmsRBfy61i59si0",
+                phone="+1 415-555-1234",
+                website="https://bluebottlecoffee.com",
+            )
+        )
+        return client
+
+    @pytest.fixture
+    def mock_notion_client(self):
+        """Create a mock NotionClient."""
+        client = AsyncMock()
+        client.create_place = AsyncMock(return_value="place-123")
+        client.update_place = AsyncMock()
+        client.query_places = AsyncMock(return_value=[])
+        return client
+
+    @pytest.mark.asyncio
+    async def test_enrich_without_maps_client(self, mock_notion_client):
+        """enrich should return error when Maps client not configured."""
+        from assistant.notion.schemas import Place
+
+        service = PlacesService(notion_client=mock_notion_client, maps_client=None)
+        place = Place(id="place-123", name="Test Place")
+
+        result = await service.enrich(place)
+
+        assert result.success is False
+        assert result.error == "Maps client not configured"
+
+    @pytest.mark.asyncio
+    async def test_enrich_calls_maps_api(self, mock_notion_client, mock_maps_client):
+        """enrich should call Maps API with place name."""
+        from assistant.notion.schemas import Place
+
+        service = PlacesService(
+            notion_client=mock_notion_client, maps_client=mock_maps_client
+        )
+        place = Place(id="place-123", name="Blue Bottle Coffee")
+
+        result = await service.enrich(place)
+
+        mock_maps_client.enrich_place.assert_called_once_with("Blue Bottle Coffee")
+        assert result.success is True
+        assert result.lat == 37.7749
+        assert result.lng == -122.4194
+
+    @pytest.mark.asyncio
+    async def test_enrich_uses_address_in_query(
+        self, mock_notion_client, mock_maps_client
+    ):
+        """enrich should include address in Maps API query when available."""
+        from assistant.notion.schemas import Place
+
+        service = PlacesService(
+            notion_client=mock_notion_client, maps_client=mock_maps_client
+        )
+        place = Place(
+            id="place-123", name="Blue Bottle Coffee", address="Hayes Valley, SF"
+        )
+
+        await service.enrich(place)
+
+        mock_maps_client.enrich_place.assert_called_once_with(
+            "Blue Bottle Coffee, Hayes Valley, SF"
+        )
+
+    @pytest.mark.asyncio
+    async def test_enrich_updates_notion(self, mock_notion_client, mock_maps_client):
+        """enrich should update Notion with geocoding data."""
+        from assistant.notion.schemas import Place
+
+        service = PlacesService(
+            notion_client=mock_notion_client, maps_client=mock_maps_client
+        )
+        place = Place(id="place-123", name="Blue Bottle Coffee")
+
+        await service.enrich(place)
+
+        mock_notion_client.update_place.assert_called_once_with(
+            place_id="place-123",
+            address="315 Linden St, San Francisco, CA 94102",
+            lat=37.7749,
+            lng=-122.4194,
+            google_place_id="ChIJrTLr-GyuEmsRBfy61i59si0",
+            phone="+1 415-555-1234",
+            website="https://bluebottlecoffee.com",
+        )
+
+    @pytest.mark.asyncio
+    async def test_enrich_handles_no_results(
+        self, mock_notion_client, mock_maps_client
+    ):
+        """enrich should handle when Maps API returns no results."""
+        from assistant.notion.schemas import Place
+
+        mock_maps_client.enrich_place.return_value = None
+
+        service = PlacesService(
+            notion_client=mock_notion_client, maps_client=mock_maps_client
+        )
+        place = Place(id="place-123", name="Nonexistent Place XYZ123")
+
+        result = await service.enrich(place)
+
+        assert result.success is False
+        assert "No results found" in result.error
+
+    @pytest.mark.asyncio
+    async def test_enrich_handles_api_error(
+        self, mock_notion_client, mock_maps_client
+    ):
+        """enrich should handle Maps API errors gracefully."""
+        from assistant.notion.schemas import Place
+
+        mock_maps_client.enrich_place.side_effect = Exception("API quota exceeded")
+
+        service = PlacesService(
+            notion_client=mock_notion_client, maps_client=mock_maps_client
+        )
+        place = Place(id="place-123", name="Blue Bottle Coffee")
+
+        result = await service.enrich(place)
+
+        assert result.success is False
+        assert "API quota exceeded" in result.error
+
+
+class TestCreateEnriched:
+    """Tests for create_enriched method."""
+
+    @pytest.fixture
+    def mock_maps_client(self):
+        """Create a mock MapsClient."""
+        from assistant.google.maps import PlaceDetails
+
+        client = MagicMock()
+        client.enrich_place = AsyncMock(
+            return_value=PlaceDetails(
+                name="Blue Bottle Coffee",
+                address="315 Linden St, San Francisco, CA 94102",
+                lat=37.7749,
+                lng=-122.4194,
+                place_id="ChIJrTLr-GyuEmsRBfy61i59si0",
+                phone=None,
+                website=None,
+            )
+        )
+        return client
+
+    @pytest.fixture
+    def mock_notion_client(self):
+        """Create a mock NotionClient."""
+        client = AsyncMock()
+        client.create_place = AsyncMock(return_value="place-456")
+        client.update_place = AsyncMock()
+        client.query_places = AsyncMock(return_value=[])
+        return client
+
+    @pytest.mark.asyncio
+    async def test_create_enriched_creates_and_enriches(
+        self, mock_notion_client, mock_maps_client
+    ):
+        """create_enriched should create place and enrich it."""
+        service = PlacesService(
+            notion_client=mock_notion_client, maps_client=mock_maps_client
+        )
+
+        place, enrichment = await service.create_enriched(
+            name="Blue Bottle Coffee",
+            place_type="restaurant",
+        )
+
+        assert place.name == "Blue Bottle Coffee"
+        assert place.id == "place-456"
+        assert enrichment is not None
+        assert enrichment.success is True
+        assert place.lat == 37.7749
+        assert place.lng == -122.4194
+
+    @pytest.mark.asyncio
+    async def test_create_enriched_without_maps(self, mock_notion_client):
+        """create_enriched should create place without enrichment when Maps not configured."""
+        service = PlacesService(notion_client=mock_notion_client, maps_client=None)
+
+        place, enrichment = await service.create_enriched(
+            name="Test Place",
+            place_type="other",
+        )
+
+        assert place.name == "Test Place"
+        assert enrichment is None
+        assert place.lat is None
+        assert place.lng is None
+
+
+class TestLookupOrCreateEnriched:
+    """Tests for lookup_or_create_enriched method."""
+
+    @pytest.fixture
+    def mock_maps_client(self):
+        """Create a mock MapsClient."""
+        from assistant.google.maps import PlaceDetails
+
+        client = MagicMock()
+        client.enrich_place = AsyncMock(
+            return_value=PlaceDetails(
+                name="Blue Bottle Coffee",
+                address="315 Linden St, San Francisco, CA 94102",
+                lat=37.7749,
+                lng=-122.4194,
+                place_id="ChIJrTLr-GyuEmsRBfy61i59si0",
+                phone=None,
+                website=None,
+            )
+        )
+        return client
+
+    @pytest.fixture
+    def mock_notion_client(self):
+        """Create a mock NotionClient."""
+        client = AsyncMock()
+        client.create_place = AsyncMock(return_value="place-789")
+        client.update_place = AsyncMock()
+        client.query_places = AsyncMock(return_value=[])
+        return client
+
+    @pytest.mark.asyncio
+    async def test_lookup_or_create_enriched_creates_new(
+        self, mock_notion_client, mock_maps_client
+    ):
+        """Should create and enrich when place not found."""
+        service = PlacesService(
+            notion_client=mock_notion_client, maps_client=mock_maps_client
+        )
+
+        result, enrichment = await service.lookup_or_create_enriched(
+            name="Blue Bottle Coffee",
+            place_type="restaurant",
+        )
+
+        assert result.found is True
+        assert result.is_new is True
+        assert result.place_id == "place-789"
+        assert enrichment is not None
+        assert enrichment.success is True
+        assert enrichment.lat == 37.7749
+
+    @pytest.mark.asyncio
+    async def test_lookup_or_create_enriched_finds_existing(
+        self, mock_notion_client, mock_maps_client
+    ):
+        """Should return existing place without enrichment."""
+        mock_notion_client.query_places.return_value = [
+            {
+                "id": "existing-place-123",
+                "properties": {
+                    "name": {"title": [{"text": {"content": "Blue Bottle Coffee"}}]},
+                    "place_type": {"select": {"name": "restaurant"}},
+                    "address": {
+                        "rich_text": [{"text": {"content": "315 Linden St, SF"}}]
+                    },
+                },
+            }
+        ]
+
+        service = PlacesService(
+            notion_client=mock_notion_client, maps_client=mock_maps_client
+        )
+
+        result, enrichment = await service.lookup_or_create_enriched(
+            name="Blue Bottle Coffee"
+        )
+
+        assert result.found is True
+        assert result.is_new is False
+        assert result.place_id == "existing-place-123"
+        assert enrichment is None  # No enrichment for existing places
+
+
+# =============================================================================
+# AT-121: Place Enrichment via Maps API
+# =============================================================================
+
+
+class TestAT121PlaceEnrichmentViaMapsAPI:
+    """Acceptance tests for AT-121: Place Enrichment via Maps API.
+
+    Given: User sends "Meet Dave at Blue Bottle Coffee tomorrow"
+    When: Google Maps API enabled
+    Then: Place geocoded and enriched with address, lat/lng
+    """
+
+    @pytest.fixture
+    def mock_maps_client(self):
+        """Create a mock MapsClient with realistic response."""
+        from assistant.google.maps import PlaceDetails
+
+        client = MagicMock()
+        client.enrich_place = AsyncMock(
+            return_value=PlaceDetails(
+                name="Blue Bottle Coffee",
+                address="315 Linden St, San Francisco, CA 94102, USA",
+                lat=37.7765,
+                lng=-122.4216,
+                place_id="ChIJrTLr-GyuEmsRBfy61i59si0",
+                phone="+1 415-653-3394",
+                website="https://bluebottlecoffee.com/cafes/hayes-valley",
+            )
+        )
+        return client
+
+    @pytest.fixture
+    def mock_notion_client(self):
+        """Create a mock NotionClient."""
+        client = AsyncMock()
+        client.create_place = AsyncMock(return_value="notion-place-id-abc")
+        client.update_place = AsyncMock()
+        client.query_places = AsyncMock(return_value=[])
+        return client
+
+    @pytest.mark.asyncio
+    async def test_at121_place_geocoded_when_maps_enabled(
+        self, mock_notion_client, mock_maps_client
+    ):
+        """AT-121: Place should be geocoded when Maps API is enabled."""
+        service = PlacesService(
+            notion_client=mock_notion_client, maps_client=mock_maps_client
+        )
+
+        # Simulate: User mentioned "Blue Bottle Coffee" in a message
+        result, enrichment = await service.lookup_or_create_enriched(
+            name="Blue Bottle Coffee",
+            place_type="restaurant",
+            context="Meet Dave at Blue Bottle Coffee tomorrow",
+        )
+
+        # Verify place was created and geocoded
+        assert result.found is True
+        assert result.is_new is True
+        assert enrichment is not None
+        assert enrichment.success is True
+
+    @pytest.mark.asyncio
+    async def test_at121_enriched_with_address(
+        self, mock_notion_client, mock_maps_client
+    ):
+        """AT-121: Place should have formatted address from Maps API."""
+        service = PlacesService(
+            notion_client=mock_notion_client, maps_client=mock_maps_client
+        )
+
+        _, enrichment = await service.lookup_or_create_enriched(
+            name="Blue Bottle Coffee"
+        )
+
+        assert enrichment.address == "315 Linden St, San Francisco, CA 94102, USA"
+
+    @pytest.mark.asyncio
+    async def test_at121_enriched_with_coordinates(
+        self, mock_notion_client, mock_maps_client
+    ):
+        """AT-121: Place should have lat/lng coordinates from Maps API."""
+        service = PlacesService(
+            notion_client=mock_notion_client, maps_client=mock_maps_client
+        )
+
+        _, enrichment = await service.lookup_or_create_enriched(
+            name="Blue Bottle Coffee"
+        )
+
+        assert enrichment.lat == 37.7765
+        assert enrichment.lng == -122.4216
+        assert enrichment.is_geocoded is True
+
+    @pytest.mark.asyncio
+    async def test_at121_notion_updated_with_enrichment(
+        self, mock_notion_client, mock_maps_client
+    ):
+        """AT-121: Notion should be updated with geocoding data."""
+        service = PlacesService(
+            notion_client=mock_notion_client, maps_client=mock_maps_client
+        )
+
+        await service.lookup_or_create_enriched(name="Blue Bottle Coffee")
+
+        # Verify Notion update was called with enriched data
+        mock_notion_client.update_place.assert_called_once()
+        call_kwargs = mock_notion_client.update_place.call_args.kwargs
+        assert call_kwargs["lat"] == 37.7765
+        assert call_kwargs["lng"] == -122.4216
+        assert call_kwargs["google_place_id"] == "ChIJrTLr-GyuEmsRBfy61i59si0"
+
+    @pytest.mark.asyncio
+    async def test_at121_phone_and_website_stored(
+        self, mock_notion_client, mock_maps_client
+    ):
+        """AT-121: Phone and website should be stored if available."""
+        service = PlacesService(
+            notion_client=mock_notion_client, maps_client=mock_maps_client
+        )
+
+        _, enrichment = await service.lookup_or_create_enriched(
+            name="Blue Bottle Coffee"
+        )
+
+        assert enrichment.phone == "+1 415-653-3394"
+        assert enrichment.website == "https://bluebottlecoffee.com/cafes/hayes-valley"
+
+        # Verify Notion update includes phone and website
+        call_kwargs = mock_notion_client.update_place.call_args.kwargs
+        assert call_kwargs["phone"] == "+1 415-653-3394"
+        assert call_kwargs["website"] == "https://bluebottlecoffee.com/cafes/hayes-valley"
+
+
+class TestPlaceSchemaCoordinates:
+    """Tests for Place schema coordinate properties."""
+
+    def test_place_coordinates_property(self):
+        """Place.coordinates should return (lat, lng) tuple."""
+        from assistant.notion.schemas import Place
+
+        place = Place(name="Test", lat=37.7749, lng=-122.4194)
+        assert place.coordinates == (37.7749, -122.4194)
+
+    def test_place_coordinates_none_when_missing_lat(self):
+        """Place.coordinates should be None when lat is missing."""
+        from assistant.notion.schemas import Place
+
+        place = Place(name="Test", lng=-122.4194)
+        assert place.coordinates is None
+
+    def test_place_coordinates_none_when_missing_lng(self):
+        """Place.coordinates should be None when lng is missing."""
+        from assistant.notion.schemas import Place
+
+        place = Place(name="Test", lat=37.7749)
+        assert place.coordinates is None
+
+    def test_place_is_geocoded_true(self):
+        """Place.is_geocoded should be True when both coordinates set."""
+        from assistant.notion.schemas import Place
+
+        place = Place(name="Test", lat=37.7749, lng=-122.4194)
+        assert place.is_geocoded is True
+
+    def test_place_is_geocoded_false(self):
+        """Place.is_geocoded should be False when coordinates missing."""
+        from assistant.notion.schemas import Place
+
+        place = Place(name="Test")
+        assert place.is_geocoded is False
+
+    def test_place_google_place_id_field(self):
+        """Place should have google_place_id field."""
+        from assistant.notion.schemas import Place
+
+        place = Place(
+            name="Blue Bottle Coffee",
+            google_place_id="ChIJrTLr-GyuEmsRBfy61i59si0",
+        )
+        assert place.google_place_id == "ChIJrTLr-GyuEmsRBfy61i59si0"
+
+    def test_place_phone_and_website_fields(self):
+        """Place should have phone and website fields."""
+        from assistant.notion.schemas import Place
+
+        place = Place(
+            name="Blue Bottle Coffee",
+            phone="+1 415-555-1234",
+            website="https://bluebottlecoffee.com",
+        )
+        assert place.phone == "+1 415-555-1234"
+        assert place.website == "https://bluebottlecoffee.com"

@@ -1126,8 +1126,8 @@
       "description": "When a place is mentioned, geocode via Maps API and store enriched data in Notion Places database. Link tasks to enriched places.",
       "depends_on": ["T-152", "T-071"],
       "acceptance_tests": ["AT-121"],
-      "passes": false,
-      "evidence": "",
+      "passes": true,
+      "evidence": "Added Place schema fields (lat, lng, google_place_id, phone, website, coordinates property, is_geocoded property). Added NotionClient.update_place() and get_place() methods. Added PlacesService.enrich(), create_enriched(), lookup_or_create_enriched() methods with MapsClient integration. Added EnrichmentResult dataclass. Tests in tests/test_places.py (61 tests pass) including TestAT121PlaceEnrichmentViaMapsAPI (5 acceptance tests). Full suite: 1872 tests pass. scripts/verify.sh (8/8).",
       "updated_at": "2026-01-13"
     },
     {
