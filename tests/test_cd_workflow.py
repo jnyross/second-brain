@@ -49,14 +49,15 @@ class TestCDWorkflowExists:
 class TestCDWorkflowTriggers:
     """Verify CD workflow trigger configuration."""
 
-    def test_triggers_on_main_push(self, workflow):
-        """CD workflow should trigger on push to main branch."""
+    def test_triggers_on_ci_workflow_completion(self, workflow):
+        """CD workflow should trigger when CI workflow completes on main."""
         # 'on' is parsed as True in YAML, so check for True key
         triggers = workflow.get(True, workflow.get("on", {}))
-        assert "push" in triggers
-        push_config = triggers["push"]
-        assert "branches" in push_config
-        assert "main" in push_config["branches"]
+        assert "workflow_run" in triggers
+        workflow_run = triggers["workflow_run"]
+        assert "CI" in workflow_run.get("workflows", [])
+        assert "completed" in workflow_run.get("types", [])
+        assert "main" in workflow_run.get("branches", [])
 
     def test_has_manual_trigger(self, workflow):
         """CD workflow should have workflow_dispatch for manual deploys."""
@@ -72,13 +73,9 @@ class TestCDWorkflowTriggers:
 class TestCDWorkflowJobs:
     """Verify CD workflow job structure."""
 
-    def test_has_ci_check_job(self, workflow):
-        """CD workflow should have a ci-check job."""
-        assert "jobs" in workflow
-        assert "ci-check" in workflow["jobs"]
-
     def test_has_build_job(self, workflow):
         """CD workflow should have a build job."""
+        assert "jobs" in workflow
         assert "build" in workflow["jobs"]
 
     def test_has_deploy_job(self, workflow):
@@ -91,36 +88,25 @@ class TestCDWorkflowJobs:
             assert job.get("runs-on") == "ubuntu-latest", f"{job_name} should run on ubuntu-latest"
 
 
-class TestCICheckJob:
-    """Verify CI check job configuration."""
+class TestCIGatingViaWorkflowRun:
+    """Verify CI gating via workflow_run trigger."""
 
-    def test_waits_for_ci(self, workflow):
-        """ci-check job should wait for CI Success check."""
-        ci_check = workflow["jobs"]["ci-check"]
-        steps = ci_check.get("steps", [])
-        wait_step = next((s for s in steps if "wait-on-check-action" in str(s)), None)
-        assert wait_step is not None, "Should have wait-on-check-action step"
+    def test_build_only_runs_on_ci_success(self, workflow):
+        """Build job should only run when CI succeeds (or manual dispatch)."""
+        build = workflow["jobs"]["build"]
+        if_condition = build.get("if", "")
+        # Should check for workflow_run success or manual dispatch
+        assert "workflow_run.conclusion" in if_condition or "workflow_dispatch" in if_condition
 
-    def test_ci_check_waits_for_ci_success(self, workflow):
-        """ci-check should wait for 'CI Success' check name."""
-        ci_check = workflow["jobs"]["ci-check"]
-        steps = ci_check.get("steps", [])
-        wait_step = next((s for s in steps if "wait-on-check-action" in str(s)), None)
-        assert "CI Success" in str(wait_step.get("with", {}))
+    def test_build_checks_ci_success_conclusion(self, workflow):
+        """Build should check that CI workflow concluded successfully."""
+        build = workflow["jobs"]["build"]
+        if_condition = build.get("if", "")
+        assert "success" in if_condition
 
 
 class TestBuildJob:
     """Verify Docker build job configuration."""
-
-    def test_build_depends_on_ci_check(self, workflow):
-        """Build job should depend on ci-check job."""
-        build = workflow["jobs"]["build"]
-        assert "needs" in build
-        needs = build["needs"]
-        if isinstance(needs, list):
-            assert "ci-check" in needs
-        else:
-            assert needs == "ci-check"
 
     def test_build_has_checkout_step(self, workflow):
         """Build job should checkout repository."""
@@ -257,11 +243,12 @@ class TestAT204CDPipelineDeploys:
     - And: Container restarted on server
     """
 
-    def test_at204_triggers_on_main_merge(self, workflow):
-        """AT-204: CD should trigger on push to main (merge)."""
+    def test_at204_triggers_after_ci_on_main(self, workflow):
+        """AT-204: CD should trigger after CI completes on main branch."""
         triggers = workflow.get(True, workflow.get("on", {}))
-        assert "push" in triggers
-        assert "main" in triggers["push"]["branches"]
+        assert "workflow_run" in triggers
+        workflow_run = triggers["workflow_run"]
+        assert "main" in workflow_run.get("branches", [])
 
     def test_at204_pushes_to_ghcr(self, workflow):
         """AT-204: CD should push image to GHCR."""
