@@ -1443,3 +1443,44 @@
   - Full suite: 1647 tests pass (1 pre-existing pytz comparison test)
   - Verification: scripts/verify.sh (8/8 checks pass)
   - Commit: efff480
+
+
+- Iteration 62 (T-131) - Always-On Listening Mode Stub
+  - Task: Create stub interface for always-on listening per PRD Section 6.5 (Phase 3: "When models ready")
+  - PRD Context: PRD 6.5 explicitly lists "Always-on listening mode" as a Phase 3 feature requiring more capable models
+  - Implementation approach: Stub/placeholder with well-defined interface for future implementation
+  - Created src/assistant/services/always_on.py:
+    - ListenerState enum: NOT_AVAILABLE, STOPPED, LISTENING, ACTIVATED, PROCESSING, RESPONDING
+    - ListenerConfig dataclass: wake_word ("hey brain"), vad_threshold, sample_rate, privacy settings
+    - CaptureResult dataclass: text, confidence, timestamps, is_reliable property
+    - AlwaysOnListener class:
+      - is_available: returns False (feature not ready per PRD 6.5)
+      - start(): returns False (not available)
+      - stop(): safe no-op
+      - get_status(): returns availability info with PRD 6.5 reference
+      - Callbacks: on_capture, on_state_change for future use
+    - AlwaysOnListenerNotAvailable exception with descriptive message
+    - Module-level functions: get_always_on_listener(), is_always_on_available(), get_always_on_status()
+  - Documentation includes prerequisites for future implementation:
+    - Voice Activity Detection (VAD) - local processing for cost/privacy
+    - Wake Word Detection - "hey brain" or similar activation
+    - Streaming Transcription - sub-500ms latency
+    - Audio Device Management - microphone access
+    - Background Service Architecture - daemon or system service
+  - Privacy-first defaults: always_local_vad=True, always_local_wake_word=True, store_audio_locally=False
+  - Updated src/assistant/services/__init__.py with lazy exports:
+    - AlwaysOnListener, AlwaysOnListenerNotAvailable, CaptureResult, ListenerConfig, ListenerState
+    - get_always_on_listener, get_always_on_status, is_always_on_available
+  - Created tests/test_always_on.py (43 tests):
+    - TestListenerState (6): all enum values defined
+    - TestListenerConfig (7): defaults, privacy settings, custom config
+    - TestCaptureResult (4): creation, is_reliable logic
+    - TestAlwaysOnListener (8): creation, is_not_available, start/stop, status, callbacks
+    - TestAlwaysOnListenerNotAvailable (2): exception messages
+    - TestModuleLevelFunctions (3): singleton, availability, status
+    - TestModuleExports (5): services/__init__.py exports work
+    - TestPRDSection65Compliance (4): documentation, PRD reference, prerequisites, privacy defaults
+    - TestT131AcceptanceTest (4): interface defined, not available, context provided, doesn't block
+  - Commands: PYTHONPATH=src python3 -m pytest tests/test_always_on.py -v (43 passed)
+  - Verification: scripts/verify.sh (8/8 checks pass)
+  - Commit: 2d20666

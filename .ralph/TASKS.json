@@ -857,9 +857,9 @@
         "T-062"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Created src/assistant/services/always_on.py with stub interface for Phase 3 feature (PRD 6.5). Classes: AlwaysOnListener (state machine, start/stop/status), ListenerState (enum), ListenerConfig (VAD, wake word, privacy settings), CaptureResult (capture dataclass). Module returns is_available=False per PRD 6.5 'When models ready'. Updated services/__init__.py exports. Tests in tests/test_always_on.py (43 tests pass). scripts/verify.sh passes (8/8).",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-140",

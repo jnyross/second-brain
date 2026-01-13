@@ -144,6 +144,18 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "get_auto_reply_service": ("assistant.services.email_auto_reply", "get_auto_reply_service"),
     "process_auto_reply": ("assistant.services.email_auto_reply", "process_auto_reply"),
     "should_auto_reply": ("assistant.services.email_auto_reply", "should_auto_reply"),
+    # Always-On Listening (T-131 - Future Phase 3)
+    "AlwaysOnListener": ("assistant.services.always_on", "AlwaysOnListener"),
+    "AlwaysOnListenerNotAvailable": (
+        "assistant.services.always_on",
+        "AlwaysOnListenerNotAvailable",
+    ),
+    "CaptureResult": ("assistant.services.always_on", "CaptureResult"),
+    "ListenerConfig": ("assistant.services.always_on", "ListenerConfig"),
+    "ListenerState": ("assistant.services.always_on", "ListenerState"),
+    "get_always_on_listener": ("assistant.services.always_on", "get_always_on_listener"),
+    "get_always_on_status": ("assistant.services.always_on", "get_always_on_status"),
+    "is_always_on_available": ("assistant.services.always_on", "is_always_on_available"),
 }
 
 __all__ = list(_EXPORTS.keys())
