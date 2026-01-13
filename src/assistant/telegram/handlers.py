@@ -86,7 +86,46 @@ async def cmd_help(message: Message) -> None:
         "**Commands:**\n"
         "/today - See today's schedule\n"
         "/status - Check pending tasks\n"
-        "/debrief - Review unclear items"
+        "/debrief - Review unclear items\n"
+        "/setup_google - Connect Google Calendar/Gmail"
+    )
+
+
+@router.message(Command("setup_google"))
+async def cmd_setup_google(message: Message) -> None:
+    """Handle /setup_google command - initiate Google OAuth flow."""
+    from assistant.google.auth import google_auth
+
+    # Check if already authenticated
+    if google_auth.load_saved_credentials() and google_auth.is_authenticated():
+        await message.answer(
+            "✅ **Google already connected!**\n\n"
+            "Calendar, Gmail, and Drive integration is active.\n\n"
+            "To reconnect with a different account, delete the token "
+            "and run /setup_google again."
+        )
+        return
+
+    # Generate auth URL
+    auth_url = google_auth.get_auth_url()
+
+    if not auth_url:
+        await message.answer(
+            "❌ **Google OAuth not configured**\n\n"
+            "The server needs a google_credentials.json file. "
+            "Please contact the administrator."
+        )
+        return
+
+    await message.answer(
+        "🔐 **Connect Google Account**\n\n"
+        "1. Click this link to authorize:\n"
+        f"{auth_url}\n\n"
+        "2. After authorizing, you'll be redirected to a page "
+        "(it might say 'This site can't be reached').\n\n"
+        "3. Copy the **entire URL** from your browser's address bar "
+        "and send it to me.\n\n"
+        "_The URL will contain a code I need to complete the connection._"
     )
 
 
@@ -520,6 +559,10 @@ async def handle_text(message: Message) -> None:
     logger.info(f"Received text message: '{text[:50]}...'")
 
     try:
+        # Check if this is a Google OAuth callback URL/code
+        if await _try_google_oauth_code(message, text):
+            return
+
         # Check if this is a correction first
         if is_correction_message(text):
             handler = get_correction_handler()
@@ -560,6 +603,47 @@ async def handle_text(message: Message) -> None:
             "Sorry, something went wrong. Your message has been noted - "
             "I'll process it when I'm back online."
         )
+
+
+async def _try_google_oauth_code(message: Message, text: str) -> bool:
+    """Check if text contains a Google OAuth code and complete auth if so.
+
+    Returns True if the text was an OAuth callback (handled), False otherwise.
+    """
+    # Only check if it looks like a callback URL or code
+    if not ("code=" in text or "localhost" in text.lower() or len(text) > 30):
+        return False
+
+    from assistant.google.auth import extract_oauth_code, google_auth
+
+    # Check if already authenticated
+    if google_auth.is_authenticated():
+        return False
+
+    # Try to extract OAuth code
+    code = extract_oauth_code(text)
+    if not code:
+        return False
+
+    logger.info("Detected Google OAuth callback, attempting to complete auth")
+
+    # Try to complete authentication
+    if google_auth.complete_auth_with_code(code):
+        await message.answer(
+            "✅ **Google connected successfully!**\n\n"
+            "Calendar, Gmail, and Drive integration is now active.\n\n"
+            "You can now use:\n"
+            "• /today - See calendar events\n"
+            "• Tasks will sync to Google Calendar"
+        )
+        return True
+    else:
+        await message.answer(
+            "❌ **Authentication failed**\n\n"
+            "The code might have expired or been invalid.\n"
+            "Please try /setup_google again to get a fresh link."
+        )
+        return True
 
 
 def _extract_task_title(response: str) -> str:
