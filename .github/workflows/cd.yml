@@ -79,10 +79,28 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     environment: production
+    outputs:
+      deployment_status: ${{ steps.deploy.outcome }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Send deployment started notification
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_NOTIFY_CHAT_ID }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: |
+          if [[ -n "$TELEGRAM_CHAT_ID" ]]; then
+            bash deploy/scripts/notify-telegram.sh started "Starting deployment of Second Brain..."
+          else
+            echo "Telegram notifications not configured (TELEGRAM_NOTIFY_CHAT_ID not set)"
+          fi
+
       - name: Deploy via SSH
+        id: deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DO_HOST }}
@@ -119,22 +137,48 @@ jobs:
             echo "Cleaning up old images..."
             docker image prune -af --filter "until=168h" || true
 
-  # Notify on deployment status
+  # Notify on deployment status via Telegram
   notify:
-    name: Notify Deployment Status
+    name: Send Telegram Notification
     runs-on: ubuntu-latest
     needs: [build, deploy]
     if: always()
     steps:
-      - name: Deployment succeeded
-        if: needs.deploy.result == 'success'
-        run: |
-          echo "✅ Deployment to production succeeded"
-          echo "Image digest: ${{ needs.build.outputs.image_digest }}"
+      - uses: actions/checkout@v4
 
-      - name: Deployment failed
-        if: needs.deploy.result == 'failure'
+      - name: Send success notification
+        if: needs.deploy.result == 'success'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_NOTIFY_CHAT_ID }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
-          echo "❌ Deployment to production failed"
-          echo "Check the deploy job logs for details"
-          exit 1
+          if [[ -n "$TELEGRAM_CHAT_ID" ]]; then
+            bash deploy/scripts/notify-telegram.sh success "Second Brain deployed successfully!"
+          else
+            echo "Telegram notifications not configured (TELEGRAM_NOTIFY_CHAT_ID not set)"
+          fi
+
+      - name: Send failure notification
+        if: needs.deploy.result == 'failure'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_NOTIFY_CHAT_ID }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: |
+          if [[ -n "$TELEGRAM_CHAT_ID" ]]; then
+            bash deploy/scripts/notify-telegram.sh failure "Deployment failed! Check the workflow logs for details."
+          else
+            echo "Telegram notifications not configured (TELEGRAM_NOTIFY_CHAT_ID not set)"
+          fi
+
+      - name: Log deployment status (always)
+        run: |
+          echo "Deployment result: ${{ needs.deploy.result }}"
+          echo "Image digest: ${{ needs.build.outputs.image_digest }}"

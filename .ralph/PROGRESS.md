@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phases 1-5 complete. Deployment tasks T-200 through T-207 complete. Next: T-208 (Telegram notifications) or T-209 (backup script).
+- Status: Phase 0 complete. Phases 1-5 complete. Deployment tasks T-200 through T-208 complete. Next: T-209 (backup script) or remaining P2 tasks (T-122, T-131, T-140, T-210, T-211, T-213).
 
 ## Iteration Log
 
@@ -1336,3 +1336,42 @@
   - Commands: PYTHONPATH=src python3 -m pytest tests/test_systemd_timers.py -v (58 passed)
   - Verification: scripts/verify.sh (8/8 checks pass)
   - Commit: 7fe5749
+
+- Iteration 55 (T-208) - Add Telegram deployment notifications
+  - Task: Send Telegram message on successful/failed deployments
+  - Created deploy/scripts/notify-telegram.sh:
+    - Sends deployment status messages via Telegram Bot API
+    - Status types: success, failure, rollback, started, info
+    - MarkdownV2 formatting with special character escaping
+    - Includes: repository name, commit SHA (short), triggering actor, workflow link, timestamp
+    - Retry logic: 3 attempts with 2s delay between retries
+    - Graceful failure: doesn't fail pipeline if notification fails
+    - Required env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+    - Optional env: GITHUB_SHA, GITHUB_REPOSITORY, GITHUB_ACTOR, GITHUB_RUN_ID, GITHUB_SERVER_URL
+  - Updated .github/workflows/cd.yml:
+    - Added "Send deployment started notification" step in deploy job (before SSH deploy)
+    - Updated notify job with success/failure notification steps
+    - Environment variables passed safely (not interpolated in run commands)
+    - Graceful handling when TELEGRAM_NOTIFY_CHAT_ID not configured (just logs)
+    - Uses new TELEGRAM_NOTIFY_CHAT_ID secret (separate from bot's user chat)
+  - Created tests/test_notify_telegram.py (46 tests):
+    - TestNotifyScriptExists: file exists, executable, shebang, set -e
+    - TestNotifyScriptValidation: requires TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+    - TestNotifyScriptStatusTypes: success, failure, rollback, started, default info
+    - TestNotifyScriptMessageBuilding: repository, commit SHA, actor, workflow link, timestamp
+    - TestNotifyScriptMarkdown: MarkdownV2 parse mode, escapes special chars
+    - TestNotifyScriptRetry: retry loop exists, reasonable retry count (3)
+    - TestNotifyScriptErrorHandling: continues on notification failure
+    - TestCDWorkflowNotifyJob: exists, runs always, depends on deploy/build
+    - TestCDWorkflowNotifySteps: success/failure steps with conditions
+    - TestCDWorkflowSecrets: uses TELEGRAM_BOT_TOKEN, TELEGRAM_NOTIFY_CHAT_ID
+    - TestCDWorkflowEnvironmentVariables: passes SHA, repository, actor, run_id
+    - TestCDWorkflowDeployNotification: started notification before deploy
+    - TestT208TelegramDeploymentNotifications: acceptance tests (5)
+    - TestNotificationSecurity: no secrets in logs, HTTPS, env for secrets
+  - Configuration required in GitHub:
+    - secrets.TELEGRAM_BOT_TOKEN (same as app uses)
+    - secrets.TELEGRAM_NOTIFY_CHAT_ID (user's chat ID for notifications)
+  - Commands: PYTHONPATH=src python3 -m pytest tests/test_notify_telegram.py -v (46 passed)
+  - Verification: scripts/verify.sh (8/8 checks pass), ruff check passes
+  - Commit: 141e029
