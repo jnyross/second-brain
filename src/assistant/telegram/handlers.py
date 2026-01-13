@@ -94,40 +94,46 @@ async def cmd_help(message: Message) -> None:
 @router.message(Command("setup_google"))
 async def cmd_setup_google(message: Message) -> None:
     """Handle /setup_google command - initiate Google OAuth flow."""
-    from assistant.google.auth import google_auth
+    try:
+        from assistant.google.auth import google_auth
 
-    # Check if already authenticated
-    if google_auth.load_saved_credentials() and google_auth.is_authenticated():
+        # Check if already authenticated
+        if google_auth.load_saved_credentials() and google_auth.is_authenticated():
+            await message.answer(
+                "Google already connected!\n\n"
+                "Calendar, Gmail, and Drive integration is active.\n\n"
+                "To reconnect with a different account, delete the token "
+                "and run /setup_google again."
+            )
+            return
+
+        # Generate auth URL
+        auth_url = google_auth.get_auth_url()
+
+        if not auth_url:
+            await message.answer(
+                "Google OAuth not configured.\n\n"
+                "The server needs a google_credentials.json file. "
+                "Please contact the administrator."
+            )
+            return
+
+        # Note: Don't use parse_mode - the auth URL contains special chars
         await message.answer(
-            "✅ **Google already connected!**\n\n"
-            "Calendar, Gmail, and Drive integration is active.\n\n"
-            "To reconnect with a different account, delete the token "
-            "and run /setup_google again."
+            "Connect Google Account\n\n"
+            "1. Click this link to authorize:\n"
+            f"{auth_url}\n\n"
+            "2. After authorizing, you'll be redirected to a page "
+            "(it might say 'This site can't be reached').\n\n"
+            "3. Copy the ENTIRE URL from your browser's address bar "
+            "and send it to me.\n\n"
+            "The URL will contain a code I need to complete the connection."
         )
-        return
-
-    # Generate auth URL
-    auth_url = google_auth.get_auth_url()
-
-    if not auth_url:
+    except Exception as e:
+        logger.exception(f"setup_google command failed: {e}")
         await message.answer(
-            "❌ **Google OAuth not configured**\n\n"
-            "The server needs a google_credentials.json file. "
-            "Please contact the administrator."
+            "Sorry, something went wrong setting up Google. Please try again later."
         )
-        return
-
-    # Note: Don't use parse_mode here - the auth URL contains special chars
-    await message.answer(
-        "🔐 Connect Google Account\n\n"
-        "1. Click this link to authorize:\n"
-        f"{auth_url}\n\n"
-        "2. After authorizing, you'll be redirected to a page "
-        "(it might say 'This site can't be reached').\n\n"
-        "3. Copy the ENTIRE URL from your browser's address bar "
-        "and send it to me.\n\n"
-        "The URL will contain a code I need to complete the connection."
-    )
 
 
 @router.message(Command("today"))
