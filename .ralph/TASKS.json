@@ -1368,8 +1368,8 @@
       "description": "Fix 9 mypy errors in src/assistant/services/email_auto_reply.py: 1) Lines 287-288: Argument key to max has incompatible type. 2) Line 510: Unexpected keyword arguments (trigger, meaning, pattern_type, confidence) for create_pattern. 3) Line 528: Unexpected keyword argument pattern_type for query_patterns. 4) Lines 536, 544: dict[str, Any] has no attribute trigger/confidence.",
       "depends_on": [],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": "",
+      "passes": true,
+      "evidence": "Fixed 9 mypy errors: 1) Changed max() key from greetings.get/signoffs.get to explicit lambdas, 2) Changed create_pattern() to accept Pattern object instead of kwargs, 3) Changed query_patterns() to use trigger= instead of pattern_type=, 4) Changed pattern.trigger/confidence to pattern_dict.get(). mypy reports: Success: no issues found. All 42 email_auto_reply tests pass. scripts/verify.sh passes (8/8).",
       "updated_at": "2026-01-13"
     },
     {

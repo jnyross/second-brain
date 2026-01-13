@@ -39,6 +39,7 @@ from assistant.google.gmail import (
     get_gmail_client,
 )
 from assistant.notion import NotionClient
+from assistant.notion.schemas import Pattern
 
 logger = logging.getLogger(__name__)
 
@@ -283,8 +284,8 @@ class EmailAutoReplyService:
                     break
 
         # Determine most common greeting and signoff
-        typical_greeting = max(greetings, key=greetings.get) if greetings else ""
-        typical_signoff = max(signoffs, key=signoffs.get) if signoffs else ""
+        typical_greeting = max(greetings, key=lambda k: greetings[k]) if greetings else ""
+        typical_signoff = max(signoffs, key=lambda k: signoffs[k]) if signoffs else ""
 
         # Determine tone
         if formal_indicators > casual_indicators:
@@ -506,12 +507,12 @@ class EmailAutoReplyService:
             True if stored successfully
         """
         try:
-            await self.notion.create_pattern(
+            pattern = Pattern(
                 trigger=f"email_from:{sender_email}",
                 meaning=str(pattern_data),
-                pattern_type="email_reply",
                 confidence=pattern_data.get("confidence", 50),
             )
+            await self.notion.create_pattern(pattern)
             return True
         except Exception as e:
             logger.warning(f"Failed to store email pattern: {e}")
@@ -524,15 +525,16 @@ class EmailAutoReplyService:
             Dict mapping sender email to SenderPattern
         """
         try:
+            # Query patterns with email_from: trigger prefix
             patterns = await self.notion.query_patterns(
-                pattern_type="email_reply",
+                trigger="email_from:",
                 min_confidence=PATTERN_CONFIDENCE_THRESHOLD,
             )
 
             loaded: dict[str, SenderPattern] = {}
-            for pattern in patterns:
-                # Extract sender email from trigger
-                trigger = pattern.trigger or ""
+            for pattern_dict in patterns:
+                # Extract sender email from trigger (patterns is list[dict])
+                trigger = pattern_dict.get("trigger", "")
                 if trigger.startswith("email_from:"):
                     sender_email = trigger.replace("email_from:", "")
                     # Parse meaning as pattern data
@@ -540,7 +542,7 @@ class EmailAutoReplyService:
                     loaded[sender_email] = SenderPattern(
                         sender_email=sender_email,
                         sender_name=sender_email.split("@")[0].title(),
-                        confidence=pattern.confidence or 50,
+                        confidence=pattern_dict.get("confidence", 50),
                     )
 
             return loaded
