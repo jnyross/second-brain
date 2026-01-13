@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 
 import pytz
-
 from assistant.services.parser import Parser
 
 
