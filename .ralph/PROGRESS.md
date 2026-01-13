@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phases 1-5 complete. Deployment tasks T-200 through T-206 complete. Next: T-103 (Playwright integration) or T-207 (systemd timers).
+- Status: Phase 0 complete. Phases 1-5 complete. Deployment tasks T-200 through T-207 complete. Next: T-208 (Telegram notifications) or T-209 (backup script).
 
 ## Iteration Log
 
@@ -1300,3 +1300,39 @@
   - Commands: python -m pip install pytz (fail: proxy 403), PYTHONPATH=src python -m pytest tests/test_llm_parser.py -v (fail: missing pydantic_settings/httpx), PYTHONPATH=src python -m pytest tests/test_llm_parser.py -v (pass), PATH=.tmp/ai-assistant/.fake-bin:$PATH AI_ASSISTANT_HOME=.tmp/ai-assistant scripts/verify.sh (pass)
   - Results: Added ParsedIntent module, lazy service exports, pytz shim, and lazy httpx/settings access so LLM parser tests run without external deps; T-212 now passes.
   - Commit: 86a6d9b
+
+- Iteration 54 (T-207) - Configure systemd timers on server
+  - Task: Set up systemd timers for morning briefing and nudge schedules per AT-206
+  - Updated deploy/systemd/install.sh:
+    - Added copy commands for nudge.service and nudge.timer
+    - Added chmod 644 for nudge service and timer files
+    - Added systemctl enable second-brain-nudge.timer
+    - Updated next steps documentation to include both timers
+    - Updated useful commands with nudge timer info
+  - Updated deploy/systemd/second-brain-nudge.service:
+    - Changed from venv-based execution to docker exec for consistency with PRD
+    - Added installation documentation comments
+    - Added commented alternative for non-Docker setups
+    - Added security hardening (ProtectKernelTunables, ProtectKernelModules, etc.)
+  - Created tests/test_systemd_timers.py (58 tests):
+    - TestInstallScriptExists: shebang, executable, strict mode
+    - TestBriefingTimerFiles: 7am, persistent, randomized delay, unit trigger
+    - TestNudgeTimerFiles: 9am/2pm/6pm, persistent, unit trigger
+    - TestInstallScriptCopiesAllFiles: main service, briefing, nudge files
+    - TestInstallScriptEnablesTimers: both timers enabled, daemon reload order
+    - TestInstallScriptPermissions: 644 permissions on all files
+    - TestInstallScriptDocumentation: usage, next steps, useful commands
+    - TestServiceFiles: docker exec, correct commands
+    - TestAT206ScheduledTimersWork: 7am/2pm timers, persistent, both enabled
+    - TestT207PRDCompliance: PRD 5.2/2.2/1.2 compliance
+    - TestSetupServerTimerIntegration: helper script created, timers referenced
+    - TestTimerUnits: [Unit]/[Timer]/[Install] sections, WantedBy=timers.target
+    - TestTimerAccuracy: AccuracySec settings
+  - AT-206 Verification:
+    - Given: Deployed to droplet with systemd timers
+    - When: Timer triggers (briefing at 7am, nudge at 2pm)
+    - Then: Command executes successfully via docker exec
+    - Pass condition: Both timers installed/enabled by install.sh, Persistent=true
+  - Commands: PYTHONPATH=src python3 -m pytest tests/test_systemd_timers.py -v (58 passed)
+  - Verification: scripts/verify.sh (8/8 checks pass)
+  - Commit: 7fe5749

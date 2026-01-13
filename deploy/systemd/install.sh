@@ -117,11 +117,15 @@ log_info "Installing systemd unit files..."
 cp "${SCRIPT_DIR}/second-brain.service" /etc/systemd/system/
 cp "${SCRIPT_DIR}/second-brain-briefing.service" /etc/systemd/system/
 cp "${SCRIPT_DIR}/second-brain-briefing.timer" /etc/systemd/system/
+cp "${SCRIPT_DIR}/second-brain-nudge.service" /etc/systemd/system/
+cp "${SCRIPT_DIR}/second-brain-nudge.timer" /etc/systemd/system/
 
 # Set permissions
 chmod 644 /etc/systemd/system/second-brain.service
 chmod 644 /etc/systemd/system/second-brain-briefing.service
 chmod 644 /etc/systemd/system/second-brain-briefing.timer
+chmod 644 /etc/systemd/system/second-brain-nudge.service
+chmod 644 /etc/systemd/system/second-brain-nudge.timer
 
 # Reload systemd
 log_info "Reloading systemd daemon..."
@@ -131,6 +135,7 @@ systemctl daemon-reload
 log_info "Enabling services..."
 systemctl enable second-brain.service
 systemctl enable second-brain-briefing.timer
+systemctl enable second-brain-nudge.timer
 
 log_info "Installation complete!"
 echo
@@ -138,10 +143,13 @@ echo "Next steps:"
 echo "  1. Edit /etc/second-brain.env with your credentials"
 echo "  2. Build or pull the Docker image: docker build -t second-brain:latest ."
 echo "  3. Start the bot: sudo systemctl start second-brain.service"
-echo "  4. Start the briefing timer: sudo systemctl start second-brain-briefing.timer"
+echo "  4. Start the timers:"
+echo "     sudo systemctl start second-brain-briefing.timer  # 7am briefing"
+echo "     sudo systemctl start second-brain-nudge.timer     # 9am/2pm/6pm nudges"
 echo
 echo "Useful commands:"
 echo "  systemctl status second-brain.service     # Check bot status"
 echo "  journalctl -u second-brain.service -f    # View bot logs"
-echo "  systemctl list-timers                    # Check timer schedule"
+echo "  systemctl list-timers                    # Check all timer schedules"
 echo "  systemctl start second-brain-briefing    # Send briefing now"
+echo "  systemctl start second-brain-nudge       # Send nudges now"

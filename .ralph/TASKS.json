@@ -994,8 +994,8 @@
       "acceptance_tests": [
         "AT-206"
       ],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Updated install.sh to copy and enable both briefing (7am) and nudge (9am/2pm/6pm) timers. Fixed nudge.service to use docker exec. Tests in tests/test_systemd_timers.py (58 tests pass). AT-206 verified: both timers configured with Persistent=true, install script enables both.",
       "updated_at": "2026-01-12"
     },
     {

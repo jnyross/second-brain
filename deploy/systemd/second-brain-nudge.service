@@ -3,6 +3,15 @@
 #
 # This is a oneshot service triggered by second-brain-nudge.timer
 # Checks for tasks due today/tomorrow and sends appropriate reminders
+#
+# Installation:
+#   1. Copy to /etc/systemd/system/
+#   2. Edit paths and user as needed
+#   3. sudo systemctl daemon-reload
+#   4. Enable the timer: sudo systemctl enable second-brain-nudge.timer
+#
+# Manual test:
+#   sudo systemctl start second-brain-nudge.service
 
 [Unit]
 Description=Second Brain Proactive Nudges
@@ -15,14 +24,24 @@ Type=oneshot
 User=second-brain
 Group=second-brain
 
-# Working directory
-WorkingDirectory=/opt/second-brain
-
 # Run the nudge command
-ExecStart=/opt/second-brain/venv/bin/python -m assistant nudge
+# Option 1: Direct Python invocation (without Docker)
+# ExecStart=/opt/second-brain/venv/bin/python -m assistant nudge
+
+# Option 2: Docker invocation (recommended for production)
+ExecStart=/usr/bin/docker exec second-brain python -m assistant nudge
 
 # Environment file with API keys
 EnvironmentFile=/etc/second-brain.env
+
+# Working directory
+WorkingDirectory=/opt/second-brain
+
+# Restart policy - don't restart oneshot service
+Restart=no
+
+# Timeout (nudges should complete within 120 seconds)
+TimeoutStartSec=120
 
 # Logging
 StandardOutput=journal
@@ -32,16 +51,11 @@ SyslogIdentifier=second-brain-nudge
 # Security hardening
 NoNewPrivileges=true
 ProtectSystem=strict
-ProtectHome=read-only
+ProtectHome=true
 PrivateTmp=true
-ReadWritePaths=/var/lib/second-brain
-
-# Resource limits
-MemoryMax=256M
-CPUQuota=50%
-
-# Timeout (nudges should complete quickly)
-TimeoutStartSec=120
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
 
 [Install]
 WantedBy=multi-user.target
