@@ -206,7 +206,16 @@ class NotionClient:
                 if all(isinstance(v, str) for v in value):
                     properties[key] = {"multi_select": [{"name": v} for v in value]}
             elif isinstance(value, str):
-                if key in ("title", "name", "preference", "trigger", "subject", "raw_input", "action_taken"):
+                title_fields = (
+                    "title",
+                    "name",
+                    "preference",
+                    "trigger",
+                    "subject",
+                    "raw_input",
+                    "action_taken",
+                )
+                if key in title_fields:
                     properties[key] = {"title": [{"text": {"content": value}}]}
                 elif key in (
                     "status",
