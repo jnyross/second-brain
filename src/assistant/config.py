@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     user_home_address: str = ""
     user_telegram_chat_id: str = ""
 
+    # Sentry error tracking
+    sentry_dsn: str = ""
+    sentry_environment: str = "production"
+
     confidence_threshold: int = 80
     morning_briefing_hour: int = 7
     log_level: str = "INFO"
@@ -66,6 +70,10 @@ class Settings(BaseSettings):
     @property
     def has_whatsapp(self) -> bool:
         return bool(self.whatsapp_phone_number_id and self.whatsapp_access_token)
+
+    @property
+    def has_sentry(self) -> bool:
+        return bool(self.sentry_dsn)
 
 
 settings = Settings()

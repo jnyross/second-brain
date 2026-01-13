@@ -1036,8 +1036,8 @@
         "T-201"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created src/assistant/sentry.py with complete Sentry SDK integration. Features: 1) init_sentry() with configurable DSN, environment, release, sample rates, 2) Graceful degradation when SDK not installed (SENTRY_AVAILABLE flag), 3) _before_send() filter for network errors and user input validation, 4) _scrub_dict() for sensitive data redaction (tokens, API keys, secrets), 5) Context helpers: set_user_context(), set_tag(), set_context(), add_breadcrumb(), 6) Capture functions: capture_exception(), capture_message(), flush(). Added sentry-sdk>=2.0.0 to pyproject.toml. Updated config.py with sentry_dsn, sentry_environment, has_sentry. Updated cli.py with Sentry initialization at startup and flush on exit. Tests in tests/test_sentry.py (36 tests, 31 pass, 5 skipped when SDK not installed). scripts/verify.sh passes (8/8).",
       "updated_at": "2026-01-12"
     },
     {

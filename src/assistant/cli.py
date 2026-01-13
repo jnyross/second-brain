@@ -4,6 +4,8 @@ import logging
 import sys
 
 from assistant.config import settings
+from assistant.sentry import flush as sentry_flush
+from assistant.sentry import init_sentry
 
 
 def setup_logging() -> None:
@@ -55,6 +57,7 @@ async def check_config() -> None:
         ("Notion API Key", settings.has_notion),
         ("OpenAI API Key", settings.has_openai),
         ("Google OAuth", settings.has_google),
+        ("Sentry DSN", settings.has_sentry),
         ("User Telegram Chat ID", bool(settings.user_telegram_chat_id)),
         ("Notion Inbox DB", bool(settings.notion_inbox_db_id)),
         ("Notion Tasks DB", bool(settings.notion_tasks_db_id)),
@@ -169,18 +172,28 @@ def main() -> None:
 
     setup_logging()
 
-    if args.command == "run":
-        asyncio.run(run_bot())
-    elif args.command == "briefing":
-        asyncio.run(send_briefing())
-    elif args.command == "check":
-        asyncio.run(check_config())
-    elif args.command == "sync":
-        asyncio.run(process_queue())
-    elif args.command == "nudge":
-        asyncio.run(send_nudges())
-    else:
-        parser.print_help()
+    # Initialize Sentry for error tracking (disabled if no DSN configured)
+    init_sentry(
+        dsn=settings.sentry_dsn if settings.has_sentry else None,
+        environment=settings.sentry_environment,
+    )
+
+    try:
+        if args.command == "run":
+            asyncio.run(run_bot())
+        elif args.command == "briefing":
+            asyncio.run(send_briefing())
+        elif args.command == "check":
+            asyncio.run(check_config())
+        elif args.command == "sync":
+            asyncio.run(process_queue())
+        elif args.command == "nudge":
+            asyncio.run(send_nudges())
+        else:
+            parser.print_help()
+    finally:
+        # Flush any pending Sentry events before exit
+        sentry_flush(timeout=2.0)
 
 
 if __name__ == "__main__":

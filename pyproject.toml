@@ -25,6 +25,7 @@ dependencies = [
     "google-auth-oauthlib>=1.2.0",
     "google-api-python-client>=2.118.0",
     "playwright>=1.40.0",
+    "sentry-sdk>=2.0.0",
 ]
 
 [project.optional-dependencies]

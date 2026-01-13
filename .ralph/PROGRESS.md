@@ -13,7 +13,7 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phase 0 complete. Phases 1-5 complete. Deployment tasks T-200 through T-209 complete. Next: P2 tasks (T-122, T-131, T-140, T-210, T-211, T-213).
+- Status: Phase 0 complete. Phases 1-5 complete. Deployment tasks T-200 through T-210 complete. Next: P2 tasks (T-211, T-213).
 
 ## Iteration Log
 
@@ -1531,3 +1531,50 @@
   - Commands: PYTHONPATH=src python3 -m pytest tests/test_whatsapp.py -v (42 passed)
   - Verification: scripts/verify.sh (8/8 checks pass)
   - Commit: 0d50c18
+
+- Iteration 65 (T-210) - Add Sentry Error Tracking
+  - Task: Integrate Sentry for production error tracking and alerting per PRD Section 12.8
+  - Created src/assistant/sentry.py with complete Sentry SDK integration:
+    - init_sentry(): configurable DSN, environment, release, sample rates, debug mode
+    - SENTRY_AVAILABLE flag for graceful degradation when SDK not installed
+    - _before_send(): filters network errors (TimeoutError, ConnectionError) and user input validation
+    - _scrub_dict(): redacts sensitive keys (token, api_key, password, secrets, notion_api_key, etc.)
+    - Context helpers: set_user_context(), set_tag(), set_context()
+    - Breadcrumbs: add_breadcrumb() for debugging trails
+    - Capture: capture_exception(), capture_message()
+    - Lifecycle: flush() for shutdown, is_enabled() for status check
+    - LoggingIntegration: captures ERROR+ to Sentry, INFO+ as breadcrumbs
+  - Updated pyproject.toml:
+    - Added sentry-sdk>=2.0.0 to dependencies
+  - Updated src/assistant/config.py:
+    - Added sentry_dsn setting (empty by default = disabled)
+    - Added sentry_environment setting (default: production)
+    - Added has_sentry property for availability check
+  - Updated src/assistant/cli.py:
+    - Imports init_sentry and sentry_flush
+    - Initializes Sentry at startup in main()
+    - Flushes pending events on exit (try/finally)
+    - Added Sentry DSN to check_config() output
+  - Created tests/test_sentry.py (36 tests):
+    - TestSentryAvailability (2): bool type check, not enabled before init
+    - TestSentryInitNoSDK (3): empty DSN, None DSN, returns false without SDK
+    - TestDataScrubbing (6): token, api_key, password, nested, case-insensitive, project-specific keys
+    - TestBeforeSend (7): timeout/connection filtered, other exceptions pass, user input filtered, scrubs request/breadcrumb data
+    - TestContextFunctions (3): graceful no-op when not initialized
+    - TestBreadcrumbs (1): no-op when not initialized
+    - TestCaptureFunctions (2): return None when not initialized
+    - TestFlush (1): no-op when not initialized
+    - TestConfigIntegration (2): has_sentry property, sentry_environment field
+    - TestCLIIntegration (1): CLI imports sentry functions
+    - TestPRDCompliance (3): dependency in pyproject.toml, config fields, disabled by default
+    - TestSentryWithSDK (5): skipped when SDK not installed
+  - Security features:
+    - Sensitive data scrubbing before sending to Sentry
+    - No PII by default (send_default_pii=False)
+    - Network errors filtered to reduce noise
+  - PRD 12.8 Compliance:
+    - Sentry listed as monitoring option
+    - Error tracking enabled via SENTRY_DSN environment variable
+    - Free tier compatible
+  - Commands: PYTHONPATH=src python3 -m pytest tests/test_sentry.py -v (31 passed, 5 skipped)
+  - Verification: scripts/verify.sh (8/8 checks pass)
