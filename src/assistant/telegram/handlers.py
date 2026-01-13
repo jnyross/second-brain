@@ -132,7 +132,7 @@ async def cmd_setup_google(message: Message) -> None:
     except Exception as e:
         logger.exception(f"setup_google command failed: {e}")
         await message.answer(
-            "Sorry, something went wrong setting up Google. Please try again later."
+            f"Error setting up Google: {type(e).__name__}: {e}"
         )
 
 
