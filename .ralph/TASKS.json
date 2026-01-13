@@ -1246,8 +1246,8 @@
       "description": "Create meeting notes doc linked to People database attendees.",
       "depends_on": ["T-162", "T-070"],
       "acceptance_tests": ["AT-125"],
-      "passes": false,
-      "evidence": "DriveClient.create_meeting_notes() exists but does not link to People database. Need to integrate PeopleService lookup.",
+      "passes": true,
+      "evidence": "Created src/assistant/services/meeting_notes.py with MeetingNotesService class. Features: 1) is_meeting_notes_request() and extract_meeting_title() pattern matchers, 2) extract_attendees() extracts names from 'meeting/call/sync with X' patterns, 3) MeetingNotesService.create_meeting_notes() looks up attendees via PeopleService.lookup_or_create(), 4) Creates Drive doc via DriveClient.create_meeting_notes(), 5) Returns MeetingNotesResult with drive_file_id and people_ids for Notion task linking. Tests in tests/test_meeting_notes.py (48 tests pass) including TestAT125MeetingNotesWithPeopleLink (5 acceptance tests). AT-125 verified: Drive doc created, linked to Sarah in People database.",
       "updated_at": "2026-01-13"
     },
     {

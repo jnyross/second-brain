@@ -13,9 +13,9 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phases 0-8 complete (Maps). Phase 9 (Google Drive) in progress. **Next: T-165 (meeting notes creator)**.
-- Remaining Tasks: T-165, T-166, T-167 (Drive)
-- Remaining ATs: AT-125, AT-126
+- Status: Phases 0-8 complete (Maps). Phase 9 (Google Drive) in progress. **Next: T-166 (comparison sheet generator)**.
+- Remaining Tasks: T-166, T-167 (Drive)
+- Remaining ATs: AT-126
 
 ## Iteration Log
 
@@ -1857,3 +1857,36 @@
     - /opt/homebrew/bin/python3 -m pytest tests/ -q (1995 passed, 5 skipped)
   - Results: AT-127 verified - "What can I do near Union Square?" returns 3 downtown SF tasks with distance estimates, sorted by distance
   - Commit: b122a68
+
+- Iteration (T-165)
+  - Task: Implement meeting notes creator linked to People database (AT-125)
+  - Changes:
+    1. Created src/assistant/services/meeting_notes.py with MeetingNotesService class:
+       - MEETING_PATTERNS: "meeting with X", "call with X", "X meeting", "meet with X"
+       - MEETING_REQUEST_PATTERNS: "create meeting notes for", "make notes for meeting", etc.
+       - is_meeting_notes_request(): Pattern matcher for meeting notes requests
+       - extract_meeting_title(): Removes common prefixes to get clean meeting title
+       - extract_attendees(): Extracts names from patterns like "call with Sarah and John"
+       - MeetingNotesResult dataclass: success, drive_file, drive_file_id/url, meeting_title, attendee_names, people_ids, new_people_created, error
+         - has_attendees, summary properties
+       - MeetingNotesService class:
+         - create_meeting_notes(): Extracts attendees, looks up via PeopleService.lookup_or_create(), creates Drive doc, returns linked IDs
+         - create_from_request(): Parses natural language request and creates meeting notes
+       - Module-level convenience functions: get_meeting_notes_service, create_meeting_notes, create_meeting_notes_from_request
+    2. Updated services/__init__.py: Added 8 new exports (MeetingNotesService, MeetingNotesResult, create_meeting_notes, etc.)
+  - Tests added (48 tests):
+    - TestIsMeetingNotesRequest (12): pattern matching for request types, rejection of non-requests
+    - TestExtractMeetingTitle (4): prefix removal (create/make/meeting notes)
+    - TestExtractAttendees (9): single/multiple attendees, and/comma/& splits, stop words, prepended names
+    - TestMeetingNotesResult (5): has_attendees, summary formatting
+    - TestMeetingNotesServiceInit (2): client initialization
+    - TestMeetingNotesServiceCreateMeetingNotes (5): attendee lookup, extraction, new people creation, error handling, agenda
+    - TestMeetingNotesServiceCreateFromRequest (1): parses request and creates
+    - TestConvenienceFunctions (2): singleton behavior
+    - TestAT125MeetingNotesWithPeopleLink (5): AT-125 acceptance tests - folder, title, Sarah link, pass condition, new person creation
+    - TestMultipleAttendees (2): multiple people lookup and Drive doc creation
+  - Commands:
+    - PYTHONPATH=src python3 -m pytest tests/test_meeting_notes.py -v (48 passed)
+    - scripts/verify.sh (8/8 pass)
+  - Results: AT-125 verified - "Create meeting notes for call with Sarah" creates Drive doc in Meeting Notes folder, linked to Sarah in People database
+  - Commit: pending

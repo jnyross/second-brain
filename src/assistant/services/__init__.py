@@ -217,6 +217,24 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "handle_proximity_query": ("assistant.services.proximity", "handle_proximity_query"),
     "haversine_distance": ("assistant.services.proximity", "haversine_distance"),
     "is_proximity_query": ("assistant.services.proximity", "is_proximity_query"),
+    # Meeting Notes (T-165)
+    "MeetingNotesResult": ("assistant.services.meeting_notes", "MeetingNotesResult"),
+    "MeetingNotesService": ("assistant.services.meeting_notes", "MeetingNotesService"),
+    "create_meeting_notes": ("assistant.services.meeting_notes", "create_meeting_notes"),
+    "create_meeting_notes_from_request": (
+        "assistant.services.meeting_notes",
+        "create_meeting_notes_from_request",
+    ),
+    "extract_attendees": ("assistant.services.meeting_notes", "extract_attendees"),
+    "extract_meeting_title": ("assistant.services.meeting_notes", "extract_meeting_title"),
+    "get_meeting_notes_service": (
+        "assistant.services.meeting_notes",
+        "get_meeting_notes_service",
+    ),
+    "is_meeting_notes_request": (
+        "assistant.services.meeting_notes",
+        "is_meeting_notes_request",
+    ),
     # Always-On Listening (T-131 - Future Phase 3)
     "AlwaysOnListener": ("assistant.services.always_on", "AlwaysOnListener"),
     "AlwaysOnListenerNotAvailable": (
