@@ -1979,3 +1979,12 @@
   - Results: All 4 linting issues fixed, tests pass
   - Files modified: 5
   - Commit: e013b10
+- Iteration 95 (T-301) - Fix mypy type errors in llm_client.py
+  - Fixed 3 mypy errors in src/assistant/services/llm_client.py:
+    - Line 69: Changed PROVIDER_COSTS type from dict[str, dict[str, tuple[float, float]]] to dict[str, tuple[float, float]]
+    - Line 88: Cost calculation now works (was cascading error from wrong type annotation)
+    - Line 459: Added explicit type annotation self._primary: LLMProvider | None = None
+  - Commands: mypy src/assistant/services/llm_client.py (Success: no issues found)
+  - Tests: python3 -m pytest tests/test_llm_client.py -v (50 passed)
+  - Verification: scripts/verify.sh (8/8 pass)
+  - Commit: pending

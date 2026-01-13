@@ -66,7 +66,7 @@ class LLMUsageStats:
 
 
 # Cost per 1M tokens (input/output) - prices as of Jan 2026
-PROVIDER_COSTS: dict[str, dict[str, tuple[float, float]]] = {
+PROVIDER_COSTS: dict[str, tuple[float, float]] = {
     "gemini-2.5-flash-lite": (0.075, 0.30),  # Very cheap
     "gemini-2.5-flash": (0.15, 0.60),
     "gemini-2.5-pro": (1.25, 5.00),
@@ -456,6 +456,7 @@ class LLMClient:
             )
 
         # Determine provider order
+        self._primary: LLMProvider | None = None
         if primary_provider and primary_provider in self._providers:
             self._primary = primary_provider
         elif self._providers:
@@ -464,8 +465,6 @@ class LLMClient:
                 if p in self._providers:
                     self._primary = p
                     break
-        else:
-            self._primary = None
 
         if fallback_order:
             self._fallback_order = [p for p in fallback_order if p in self._providers]

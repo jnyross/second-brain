@@ -706,7 +706,7 @@
       ],
       "acceptance_tests": [],
       "passes": true,
-      "evidence": "Implemented /status command in handlers.py. Features: query Notion for pending tasks (todo/doing status), flagged inbox items (needs_clarification=true), format with sections (IN PROGRESS, PENDING TASKS, NEEDS CLARIFICATION), show priority indicators (🔴 for high/urgent), due date formatting (today/tomorrow/overdue/day name/Mon DD). Tests in test_handlers.py (38 tests pass): TestCommandHandlers (cmd_status_with_tasks_and_flagged, cmd_status_handles_error), TestStatusHelpers (12 tests for _extract_task_prop, _extract_inbox_prop, _format_due_brief), TestGenerateStatusMessage (6 tests for all_clear, doing_tasks, todo_tasks, high_priority, flagged_items, summary).",
+      "evidence": "Implemented /status command in handlers.py. Features: query Notion for pending tasks (todo/doing status), flagged inbox items (needs_clarification=true), format with sections (IN PROGRESS, PENDING TASKS, NEEDS CLARIFICATION), show priority indicators (\ud83d\udd34 for high/urgent), due date formatting (today/tomorrow/overdue/day name/Mon DD). Tests in test_handlers.py (38 tests pass): TestCommandHandlers (cmd_status_with_tasks_and_flagged, cmd_status_handles_error), TestStatusHelpers (12 tests for _extract_task_prop, _extract_inbox_prop, _format_due_brief), TestGenerateStatusMessage (6 tests for all_clear, doing_tasks, todo_tasks, high_priority, flagged_items, summary).",
       "updated_at": "2026-01-12"
     },
     {
@@ -721,7 +721,7 @@
       ],
       "acceptance_tests": [],
       "passes": true,
-      "evidence": "Implemented /today command in handlers.py. Features: query Google Calendar via list_todays_events(), query Notion for today's due tasks (due_before/due_after with exclude_statuses), format with sections (TODAY'S SCHEDULE, DUE TODAY), date header (weekday, month day), priority indicators (🔴 for high/urgent), event time formatting (All day, HH:MM-HH:MM, HH:MM), location display. Tests in test_handlers.py: TestCommandHandlers (2 new), TestTodayHelpers (4 for _format_event_time), TestGenerateTodayMessage (5 for nothing_scheduled, calendar_events, due_tasks, high_priority, date_header). All 48 handler tests pass.",
+      "evidence": "Implemented /today command in handlers.py. Features: query Google Calendar via list_todays_events(), query Notion for today's due tasks (due_before/due_after with exclude_statuses), format with sections (TODAY'S SCHEDULE, DUE TODAY), date header (weekday, month day), priority indicators (\ud83d\udd34 for high/urgent), event time formatting (All day, HH:MM-HH:MM, HH:MM), location display. Tests in test_handlers.py: TestCommandHandlers (2 new), TestTodayHelpers (4 for _format_event_time), TestGenerateTodayMessage (5 for nothing_scheduled, calendar_events, due_tasks, high_priority, date_header). All 48 handler tests pass.",
       "updated_at": "2026-01-12"
     },
     {
@@ -1100,7 +1100,9 @@
       "risk": "R1",
       "title": "Implement place geocoding",
       "description": "Convert addresses to coordinates using Google Geocoding API.",
-      "depends_on": ["T-150"],
+      "depends_on": [
+        "T-150"
+      ],
       "acceptance_tests": [],
       "passes": true,
       "evidence": "MapsClient.geocode() implemented - takes address string, returns PlaceDetails with lat/lng coordinates, formatted address, place_id.",
@@ -1112,7 +1114,9 @@
       "risk": "R1",
       "title": "Implement place enrichment",
       "description": "Get full place details including phone, website, hours from Places API.",
-      "depends_on": ["T-151"],
+      "depends_on": [
+        "T-151"
+      ],
       "acceptance_tests": [],
       "passes": true,
       "evidence": "MapsClient.get_place_details() and enrich_place() implemented - retrieves name, address, coordinates, phone, website from place_id.",
@@ -1124,8 +1128,13 @@
       "risk": "R1",
       "title": "Integrate Maps with Places database",
       "description": "When a place is mentioned, geocode via Maps API and store enriched data in Notion Places database. Link tasks to enriched places.",
-      "depends_on": ["T-152", "T-071"],
-      "acceptance_tests": ["AT-121"],
+      "depends_on": [
+        "T-152",
+        "T-071"
+      ],
+      "acceptance_tests": [
+        "AT-121"
+      ],
       "passes": true,
       "evidence": "Added Place schema fields (lat, lng, google_place_id, phone, website, coordinates property, is_geocoded property). Added NotionClient.update_place() and get_place() methods. Added PlacesService.enrich(), create_enriched(), lookup_or_create_enriched() methods with MapsClient integration. Added EnrichmentResult dataclass. Tests in tests/test_places.py (61 tests pass) including TestAT121PlaceEnrichmentViaMapsAPI (5 acceptance tests). Full suite: 1872 tests pass. scripts/verify.sh (8/8).",
       "updated_at": "2026-01-13"
@@ -1136,7 +1145,9 @@
       "risk": "R1",
       "title": "Implement travel time calculator",
       "description": "Calculate travel time between locations using Distance Matrix API with real-time traffic.",
-      "depends_on": ["T-150"],
+      "depends_on": [
+        "T-150"
+      ],
       "acceptance_tests": [],
       "passes": true,
       "evidence": "MapsClient.get_travel_time() implemented - takes origin/destination (string or coords), returns TravelTime with distance, duration, duration_in_traffic. Supports driving mode with departure_time=now for traffic.",
@@ -1148,10 +1159,15 @@
       "risk": "R1",
       "title": "Add travel times to morning briefing",
       "description": "Include 'Leave by X' departure times for location-based tasks in morning briefing per PRD 5.2.",
-      "depends_on": ["T-154", "T-080"],
-      "acceptance_tests": ["AT-122"],
+      "depends_on": [
+        "T-154",
+        "T-080"
+      ],
+      "acceptance_tests": [
+        "AT-122"
+      ],
       "passes": true,
-      "evidence": "Added TravelInfo dataclass and MapsClient integration to BriefingGenerator. Features: _calculate_travel_times_for_events() chains travel from home→event1→event2, _calculate_travel_times_for_tasks() for tasks with places and due times, _extract_place_ids() handles relation/multi_select/rich_text formats. Updated _format_calendar_events() and _format_tasks_due_today() to show 'Leave by HH:MM (X min)'. Tests in tests/test_briefing.py: TestTravelTimeInBriefing (3), TestTravelInfoDataclass (2), TestExtractPlaceIds (4), TestAT122TravelTimeInMorningBriefing (1). All 86 briefing tests pass. Full suite: 1882 tests pass.",
+      "evidence": "Added TravelInfo dataclass and MapsClient integration to BriefingGenerator. Features: _calculate_travel_times_for_events() chains travel from home\u2192event1\u2192event2, _calculate_travel_times_for_tasks() for tasks with places and due times, _extract_place_ids() handles relation/multi_select/rich_text formats. Updated _format_calendar_events() and _format_tasks_due_today() to show 'Leave by HH:MM (X min)'. Tests in tests/test_briefing.py: TestTravelTimeInBriefing (3), TestTravelInfoDataclass (2), TestExtractPlaceIds (4), TestAT122TravelTimeInMorningBriefing (1). All 86 briefing tests pass. Full suite: 1882 tests pass.",
       "updated_at": "2026-01-13"
     },
     {
@@ -1160,8 +1176,12 @@
       "risk": "R1",
       "title": "Implement schedule conflict detection",
       "description": "Detect unrealistic schedules (e.g., meetings in SF at 10am and LA at 11am) and warn user.",
-      "depends_on": ["T-154"],
-      "acceptance_tests": ["AT-123"],
+      "depends_on": [
+        "T-154"
+      ],
+      "acceptance_tests": [
+        "AT-123"
+      ],
       "passes": true,
       "evidence": "Created src/assistant/services/schedule_conflict.py with ScheduleConflictDetector class. Features: 1) ScheduleConflict dataclass with is_impossible, warning_message properties, 2) ConflictCheckResult with needs_clarification flag for handler integration, 3) Travel time check via MapsClient.get_travel_time(), 4) Buffer time (15 min) added to travel estimates, 5) Location matching (case-insensitive, partial), 6) Calendar event fetching for conflict window. Tests in tests/test_schedule_conflict.py (33 tests pass) including TestAT123UnrealisticScheduleDetection (4 tests verifying SF 10am to LA 11am conflict detection with ~7hr travel warning and needs_clarification=true). scripts/verify.sh passes (8/8).",
       "updated_at": "2026-01-13"
@@ -1172,8 +1192,13 @@
       "risk": "R1",
       "title": "Implement proximity task suggestions",
       "description": "Answer 'What tasks can I do near here?' with distance-sorted task list.",
-      "depends_on": ["T-151", "T-153"],
-      "acceptance_tests": ["AT-127"],
+      "depends_on": [
+        "T-151",
+        "T-153"
+      ],
+      "acceptance_tests": [
+        "AT-127"
+      ],
       "passes": true,
       "evidence": "Created src/assistant/services/proximity.py with ProximityTaskService class. Features: 1) is_proximity_query() and extract_location_from_query() pattern matchers for 'what can I do near', 'tasks near', 'errands near', etc. 2) haversine_distance() for O(1) distance calculations, 3) find_tasks_near() queries Notion tasks with places, geocodes query location via MapsClient, calculates distances, returns sorted NearbyTask list within 5km radius, 4) ProximityResult.format_response() for Telegram-friendly output. Tests in tests/test_proximity.py (45 tests pass) including TestAT127ProximityTaskSuggestions (3 tests verifying: all 3 downtown SF tasks returned with distances, sorted by distance, proper response format with priority icons). Full suite: 1995 tests pass.",
       "updated_at": "2026-01-13"
@@ -1184,7 +1209,9 @@
       "risk": "R1",
       "title": "Implement Google Drive OAuth",
       "description": "OAuth flow for Google Drive sharing scopes with Calendar/Gmail.",
-      "depends_on": ["T-100"],
+      "depends_on": [
+        "T-100"
+      ],
       "acceptance_tests": [],
       "passes": true,
       "evidence": "Google OAuth in src/assistant/google/auth.py includes drive.file scope. DriveClient in drive.py uses shared credentials.",
@@ -1196,7 +1223,9 @@
       "risk": "R1",
       "title": "Create folder structure manager",
       "description": "Create and manage Second Brain folder hierarchy in Google Drive per PRD 4.7.",
-      "depends_on": ["T-160"],
+      "depends_on": [
+        "T-160"
+      ],
       "acceptance_tests": [],
       "passes": true,
       "evidence": "DriveClient.ensure_folder_structure() creates Second Brain/{Research/General, Meeting Notes, Reports, Drafts} hierarchy. Uses _find_or_create_folder() with caching.",
@@ -1208,7 +1237,9 @@
       "risk": "R1",
       "title": "Implement Google Docs creation",
       "description": "Create Google Docs with initial content in specified folders.",
-      "depends_on": ["T-161"],
+      "depends_on": [
+        "T-161"
+      ],
       "acceptance_tests": [],
       "passes": true,
       "evidence": "DriveClient.create_document() creates Google Docs with initial_content via Docs API batchUpdate. Returns DriveFile with id, web_view_link.",
@@ -1220,7 +1251,9 @@
       "risk": "R1",
       "title": "Implement Google Sheets creation",
       "description": "Create Google Sheets with headers and initial data.",
-      "depends_on": ["T-161"],
+      "depends_on": [
+        "T-161"
+      ],
       "acceptance_tests": [],
       "passes": true,
       "evidence": "DriveClient.create_spreadsheet() creates Sheets with headers and data rows via Sheets API values().update(). Returns DriveFile.",
@@ -1232,8 +1265,13 @@
       "risk": "R1",
       "title": "Build research-to-doc pipeline",
       "description": "When user requests research, create Drive doc with findings and link to Notion task.",
-      "depends_on": ["T-162", "T-103"],
-      "acceptance_tests": ["AT-124"],
+      "depends_on": [
+        "T-162",
+        "T-103"
+      ],
+      "acceptance_tests": [
+        "AT-124"
+      ],
       "passes": true,
       "evidence": "Created src/assistant/services/research_pipeline.py with ResearchPipeline class. Features: 1) ResearchPipelineResult dataclass with success/query/findings/drive_file_id/task_id, 2) is_research_request() and extract_research_topic() pattern matchers, 3) execute() orchestrates research -> Drive doc -> Task creation, 4) _create_research_doc() uses DriveClient.create_research_document(), 5) _create_research_task() creates Notion Task with drive_file_id/drive_file_url. Added drive_file_id and drive_file_url fields to Task schema. Added NotionClient.update_task_drive_file() method. Updated services/__init__.py exports. Tests in tests/test_research_pipeline.py (35 tests pass) including TestAT124DriveResearchDocument (4 acceptance tests). scripts/verify.sh passes (8/8).",
       "updated_at": "2026-01-13"
@@ -1244,8 +1282,13 @@
       "risk": "R1",
       "title": "Implement meeting notes creator",
       "description": "Create meeting notes doc linked to People database attendees.",
-      "depends_on": ["T-162", "T-070"],
-      "acceptance_tests": ["AT-125"],
+      "depends_on": [
+        "T-162",
+        "T-070"
+      ],
+      "acceptance_tests": [
+        "AT-125"
+      ],
       "passes": true,
       "evidence": "Created src/assistant/services/meeting_notes.py with MeetingNotesService class. Features: 1) is_meeting_notes_request() and extract_meeting_title() pattern matchers, 2) extract_attendees() extracts names from 'meeting/call/sync with X' patterns, 3) MeetingNotesService.create_meeting_notes() looks up attendees via PeopleService.lookup_or_create(), 4) Creates Drive doc via DriveClient.create_meeting_notes(), 5) Returns MeetingNotesResult with drive_file_id and people_ids for Notion task linking. Tests in tests/test_meeting_notes.py (48 tests pass) including TestAT125MeetingNotesWithPeopleLink (5 acceptance tests). AT-125 verified: Drive doc created, linked to Sarah in People database.",
       "updated_at": "2026-01-13"
@@ -1256,8 +1299,12 @@
       "risk": "R1",
       "title": "Implement comparison sheet generator",
       "description": "Create comparison matrix sheets with structured criteria columns.",
-      "depends_on": ["T-163"],
-      "acceptance_tests": ["AT-126"],
+      "depends_on": [
+        "T-163"
+      ],
+      "acceptance_tests": [
+        "AT-126"
+      ],
       "passes": true,
       "evidence": "Created src/assistant/services/comparison_sheet.py with ComparisonSheetService. Features: is_comparison_request() detection, extract_comparison_options() for extracting items to compare, create_comparison_sheet() for creating Google Sheets via DriveClient. Default criteria: Price, Features, Ease of Use, Support, Integration, Performance, Security, Scalability. Creates Notion task linked to sheet. Tests in tests/test_comparison_sheet.py (47 tests pass) including AT-126 acceptance tests. AT-126: 'Compare iPhone vs Android - create a sheet' creates Google Sheet with structured columns (Criteria, Option1, Option2, Notes).",
       "updated_at": "2026-01-13"
@@ -1268,7 +1315,10 @@
       "risk": "R1",
       "title": "Link Drive files to Notion tasks",
       "description": "Store drive_file_id in Notion Tasks and enable bidirectional linking.",
-      "depends_on": ["T-162", "T-051"],
+      "depends_on": [
+        "T-162",
+        "T-051"
+      ],
       "acceptance_tests": [],
       "passes": true,
       "evidence": "Implemented bidirectional Drive-Task linking. Added: NotionClient.query_task_by_drive_file() for reverse lookup (Drive -> Task), NotionClient.get_task() for single task retrieval, DriveTaskLinker service with link/unlink/find/is_linked methods. Tests in tests/test_drive_task_linker.py (47 tests pass). Full test suite: 2137 tests pass.",
@@ -1294,8 +1344,8 @@
       "description": "Fix 3 mypy errors in src/assistant/services/llm_client.py: 1) Line 78: Dict entry has incompatible type str: tuple[float, float] expected str: dict[str, tuple[float, float]]. 2) Line 88: Unsupported operand types for / (str and int). 3) Line 468: Incompatible types in assignment (None vs LLMProvider).",
       "depends_on": [],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": "",
+      "passes": true,
+      "evidence": "Fixed 3 mypy errors: 1) PROVIDER_COSTS type annotation dict[str, dict[...]] -> dict[str, tuple[float, float]], 2) Cost calculation now works (was cascading from #1), 3) self._primary explicitly typed as LLMProvider | None. mypy now reports: Success: no issues found. All 50 llm_client tests pass.",
       "updated_at": "2026-01-13"
     },
     {
