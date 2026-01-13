@@ -1484,3 +1484,50 @@
   - Commands: PYTHONPATH=src python3 -m pytest tests/test_always_on.py -v (43 passed)
   - Verification: scripts/verify.sh (8/8 checks pass)
   - Commit: 2d20666
+- Iteration 49 (T-140) - WhatsApp Business Cloud API Integration
+  - Task: Implement WhatsApp integration as alternative to Telegram per PRD
+  - Created src/assistant/whatsapp/ module structure:
+    - __init__.py: exports WhatsAppClient, WhatsAppWebhook, WebhookEvent
+    - client.py: WhatsAppClient class for WhatsApp Business Cloud API
+      - send_text() with truncation for long messages
+      - send_template() for pre-approved message templates
+      - send_interactive_buttons() for button messages (max 3)
+      - send_interactive_list() for list selection messages
+      - download_media() for voice message audio retrieval
+      - mark_as_read() for read receipts
+      - SendResult/MediaDownloadResult/WhatsAppMessage dataclasses
+      - Module singleton: get_whatsapp_client(), is_whatsapp_available()
+    - webhook.py: WhatsAppWebhook class for webhook handling
+      - verify_webhook() for Meta subscription handshake
+      - verify_signature() for HMAC-SHA256 payload verification
+      - parse_payload() for incoming event parsing (bytes/string/dict)
+      - WebhookEvent, StatusUpdate, WebhookEventType, MessageStatus dataclasses
+      - WebhookVerificationError, WebhookParseError exceptions
+    - handlers.py: WhatsAppHandler for message processing
+      - Integrates with shared MessageProcessor (same as Telegram)
+      - _handle_text_message() processes text like Telegram
+      - _handle_audio_message() downloads and transcribes via Whisper
+      - _handle_location_message() stores as place reference
+      - Correction tracking via track_created_task()
+  - Updated src/assistant/config.py with WhatsApp settings:
+    - whatsapp_phone_number_id, whatsapp_access_token
+    - whatsapp_verify_token, whatsapp_app_secret
+    - has_whatsapp property for availability check
+  - Created tests/test_whatsapp.py (42 tests):
+    - TestWhatsAppMessage (3): text, audio, location properties
+    - TestSendResult (2): success and failure results
+    - TestWhatsAppClientInit (2): with/without credentials
+    - TestWhatsAppClientSendText (2): success, truncation
+    - TestWhatsAppClientSendTemplate (1): template messages
+    - TestWhatsAppClientSendInteractive (2): buttons, list
+    - TestWhatsAppClientDownloadMedia (1): media download
+    - TestModuleLevelFunctions (2): singleton, availability
+    - TestWebhookVerification (4): success, wrong mode/token, no challenge
+    - TestWebhookSignatureVerification (4): valid, invalid, no header, no secret
+    - TestWebhookPayloadParsing (9): text, audio, location, status, interactive, json/bytes, errors
+    - TestWebhookModuleFunctions (3): singleton, verify, parse convenience
+    - TestWhatsAppHandlerIntegration (1): complete text message flow
+    - TestT140WhatsAppIntegration (6): exports, config, processor shared, task creation, handshake, message types
+  - Commands: PYTHONPATH=src python3 -m pytest tests/test_whatsapp.py -v (42 passed)
+  - Verification: scripts/verify.sh (8/8 checks pass)
+  - Commit: 0d50c18

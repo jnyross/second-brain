@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     google_maps_api_key: str = ""
 
+    # WhatsApp Business Cloud API settings
+    whatsapp_phone_number_id: str = ""
+    whatsapp_access_token: str = ""
+    whatsapp_verify_token: str = ""
+    whatsapp_app_secret: str = ""
+
     user_timezone: str = "UTC"
     user_home_address: str = ""
     user_telegram_chat_id: str = ""
@@ -56,6 +62,10 @@ class Settings(BaseSettings):
     @property
     def has_google_maps(self) -> bool:
         return bool(self.google_maps_api_key)
+
+    @property
+    def has_whatsapp(self) -> bool:
+        return bool(self.whatsapp_phone_number_id and self.whatsapp_access_token)
 
 
 settings = Settings()

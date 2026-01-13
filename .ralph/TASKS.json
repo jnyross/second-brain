@@ -871,9 +871,9 @@
         "T-060"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
-      "updated_at": "2026-01-11"
+      "passes": true,
+      "evidence": "Created src/assistant/whatsapp/ module with: client.py (WhatsAppClient class for WhatsApp Business Cloud API with send_text, send_template, send_interactive_buttons/list, download_media, mark_as_read), webhook.py (WhatsAppWebhook for verification and payload parsing with signature verification), handlers.py (WhatsAppHandler integrating with shared MessageProcessor for text/audio/location messages). Added config settings (whatsapp_phone_number_id, whatsapp_access_token, whatsapp_verify_token, whatsapp_app_secret, has_whatsapp property). Tests in tests/test_whatsapp.py (42 tests pass). scripts/verify.sh passes (8/8).",
+      "updated_at": "2026-01-12"
     },
     {
       "id": "T-200",
