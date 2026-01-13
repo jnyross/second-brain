@@ -117,15 +117,16 @@ async def cmd_setup_google(message: Message) -> None:
         )
         return
 
+    # Note: Don't use parse_mode here - the auth URL contains special chars
     await message.answer(
-        "🔐 **Connect Google Account**\n\n"
+        "🔐 Connect Google Account\n\n"
         "1. Click this link to authorize:\n"
         f"{auth_url}\n\n"
         "2. After authorizing, you'll be redirected to a page "
         "(it might say 'This site can't be reached').\n\n"
-        "3. Copy the **entire URL** from your browser's address bar "
+        "3. Copy the ENTIRE URL from your browser's address bar "
         "and send it to me.\n\n"
-        "_The URL will contain a code I need to complete the connection._"
+        "The URL will contain a code I need to complete the connection."
     )
 
 
