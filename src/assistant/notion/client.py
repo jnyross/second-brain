@@ -131,7 +131,7 @@ class NotionClient:
             "needs_clarification",
             "dedupe_key",
         },
-        "tasks": {"title", "status", "priority", "due_date", "confidence", "deleted_at"},
+        "tasks": {"title", "status", "priority", "due_date", "confidence", "deleted_at", "place_ids"},
         "people": {"name", "email", "relationship", "deleted_at", "archived"},
         "places": {"name", "place_type", "address", "lat", "lng", "google_place_id", "phone", "website"},
         "projects": {"name", "status", "deadline"},

@@ -91,6 +91,7 @@ class Task(BaseModel):
     due_date: datetime | None = None
     due_timezone: str | None = None
     people_ids: list[str] = Field(default_factory=list)
+    place_ids: list[str] = Field(default_factory=list)
     project_id: str | None = None
     source: TaskSource = TaskSource.TELEGRAM
     source_inbox_item_id: str | None = None

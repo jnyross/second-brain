@@ -929,3 +929,337 @@ class TestT111AcceptanceTest:
         assert "tess" in result.lower()
         # Verify person icon shown for person_alias type
         assert "👤" in result
+
+
+class TestTravelTimeInBriefing:
+    """Tests for T-155: Travel times in morning briefing."""
+
+    def setup_method(self):
+        """Set up test fixtures."""
+        with patch("assistant.services.briefing.settings") as mock_settings:
+            mock_settings.has_notion = False
+            mock_settings.user_timezone = "America/Los_Angeles"
+            mock_settings.user_home_address = ""
+            mock_settings.google_maps_api_key = ""
+            self.generator = BriefingGenerator()
+
+    def test_format_calendar_events_without_travel_info(self):
+        """Calendar events format correctly without travel info."""
+        from assistant.google.calendar import CalendarEvent
+
+        la_tz = pytz.timezone("America/Los_Angeles")
+        events = [
+            CalendarEvent(
+                event_id="event-1",
+                title="Dentist appointment",
+                start_time=la_tz.localize(datetime(2026, 1, 13, 14, 0)),
+                end_time=la_tz.localize(datetime(2026, 1, 13, 15, 0)),
+                timezone="America/Los_Angeles",
+                attendees=[],
+                location="123 Main St",
+            ),
+        ]
+        result = self.generator._format_calendar_events(events, travel_info=None)
+
+        assert result is not None
+        assert "📅 **TODAY**" in result
+        assert "14:00 - Dentist appointment" in result
+        assert "(123 Main St)" in result
+        assert "Leave by" not in result  # No travel info
+
+    def test_format_calendar_events_with_travel_info(self):
+        """Calendar events include 'Leave by' when travel info is provided (AT-122)."""
+        from assistant.google.calendar import CalendarEvent
+        from assistant.google.maps import TravelTime
+        from assistant.services.briefing import TravelInfo
+
+        la_tz = pytz.timezone("America/Los_Angeles")
+        event_time = la_tz.localize(datetime(2026, 1, 13, 14, 0))
+        events = [
+            CalendarEvent(
+                event_id="event-1",
+                title="Dentist appointment",
+                start_time=event_time,
+                end_time=la_tz.localize(datetime(2026, 1, 13, 15, 0)),
+                timezone="America/Los_Angeles",
+                attendees=[],
+                location="123 Main St",
+            ),
+        ]
+
+        # Create travel info with 20 min travel time
+        travel_time = TravelTime(
+            origin="Home Address",
+            destination="123 Main St",
+            distance_meters=10000,
+            duration_seconds=1200,  # 20 min
+            duration_in_traffic_seconds=None,
+        )
+        travel_info = {
+            "event-1": TravelInfo(
+                leave_by=event_time - timedelta(minutes=20),
+                travel_time=travel_time,
+                from_location="Home Address",
+                to_location="123 Main St",
+            ),
+        }
+
+        result = self.generator._format_calendar_events(events, travel_info=travel_info)
+
+        assert result is not None
+        assert "Leave by 13:40" in result
+        assert "(20 min)" in result
+
+    def test_format_tasks_with_travel_info(self):
+        """Tasks with places show 'Leave by' departure time (AT-122)."""
+        from assistant.google.maps import TravelTime
+        from assistant.services.briefing import TravelInfo
+
+        la_tz = pytz.timezone("America/Los_Angeles")
+        due_time = la_tz.localize(datetime(2026, 1, 13, 14, 0))
+
+        tasks = [
+            {
+                "id": "task-dentist",
+                "properties": {
+                    "title": {"title": [{"text": {"content": "Dentist appointment"}}]},
+                    "status": {"select": {"name": "todo"}},
+                    "priority": {"select": {"name": "high"}},
+                    "due_date": {"date": {"start": due_time.isoformat()}},
+                },
+            },
+        ]
+
+        # Create travel info with 25 min travel time
+        travel_time = TravelTime(
+            origin="Home",
+            destination="123 Main St",
+            distance_meters=15000,
+            duration_seconds=1500,  # 25 min
+            duration_in_traffic_seconds=None,
+        )
+        travel_info = {
+            "task-dentist": TravelInfo(
+                leave_by=due_time - timedelta(minutes=25),
+                travel_time=travel_time,
+                from_location="Home",
+                to_location="123 Main St",
+            ),
+        }
+
+        result = self.generator._format_tasks_due_today(tasks, travel_info=travel_info)
+
+        assert result is not None
+        assert "✅ **DUE TODAY**" in result
+        assert "Dentist appointment" in result
+        assert "at 14:00" in result
+        assert "Leave by 13:35" in result
+        assert "(25 min)" in result
+
+
+class TestTravelInfoDataclass:
+    """Tests for TravelInfo dataclass."""
+
+    def test_format_departure(self):
+        """TravelInfo formats departure time correctly."""
+        from assistant.google.maps import TravelTime
+        from assistant.services.briefing import TravelInfo
+
+        la_tz = pytz.timezone("America/Los_Angeles")
+        leave_by = la_tz.localize(datetime(2026, 1, 13, 13, 40))
+
+        travel_time = TravelTime(
+            origin="Home",
+            destination="Office",
+            distance_meters=10000,
+            duration_seconds=1200,  # 20 min
+            duration_in_traffic_seconds=None,
+        )
+        info = TravelInfo(
+            leave_by=leave_by,
+            travel_time=travel_time,
+            from_location="Home",
+            to_location="Office",
+        )
+
+        result = info.format_departure(la_tz)
+        assert result == "Leave by 13:40 (20 min)"
+
+    def test_format_departure_with_traffic(self):
+        """TravelInfo uses traffic-aware duration when available."""
+        from assistant.google.maps import TravelTime
+        from assistant.services.briefing import TravelInfo
+
+        la_tz = pytz.timezone("America/Los_Angeles")
+        leave_by = la_tz.localize(datetime(2026, 1, 13, 13, 30))
+
+        travel_time = TravelTime(
+            origin="Home",
+            destination="Office",
+            distance_meters=10000,
+            duration_seconds=1200,  # 20 min without traffic
+            duration_in_traffic_seconds=1800,  # 30 min with traffic
+        )
+        info = TravelInfo(
+            leave_by=leave_by,
+            travel_time=travel_time,
+            from_location="Home",
+            to_location="Office",
+        )
+
+        result = info.format_departure(la_tz)
+        assert result == "Leave by 13:30 (30 min)"  # Uses traffic-aware time
+
+
+class TestExtractPlaceIds:
+    """Tests for _extract_place_ids helper."""
+
+    def setup_method(self):
+        """Set up test fixtures."""
+        with patch("assistant.services.briefing.settings") as mock_settings:
+            mock_settings.has_notion = False
+            mock_settings.user_timezone = "UTC"
+            mock_settings.user_home_address = ""
+            mock_settings.google_maps_api_key = ""
+            self.generator = BriefingGenerator()
+
+    def test_extract_place_ids_from_relation(self):
+        """Extracts place IDs from Notion relation property."""
+        task = {
+            "properties": {
+                "places": {
+                    "relation": [
+                        {"id": "place-123"},
+                        {"id": "place-456"},
+                    ]
+                }
+            }
+        }
+        result = self.generator._extract_place_ids(task)
+        assert result == ["place-123", "place-456"]
+
+    def test_extract_place_ids_from_multi_select(self):
+        """Extracts place IDs from multi_select property (fallback)."""
+        task = {
+            "properties": {
+                "place_ids": {
+                    "multi_select": [
+                        {"name": "place-789"},
+                    ]
+                }
+            }
+        }
+        result = self.generator._extract_place_ids(task)
+        assert result == ["place-789"]
+
+    def test_extract_place_ids_from_rich_text(self):
+        """Extracts place IDs from rich_text property (fallback)."""
+        task = {
+            "properties": {
+                "place_ids": {
+                    "rich_text": [
+                        {"text": {"content": "place-abc, place-def"}}
+                    ]
+                }
+            }
+        }
+        result = self.generator._extract_place_ids(task)
+        assert result == ["place-abc", "place-def"]
+
+    def test_extract_place_ids_empty(self):
+        """Returns empty list when no places found."""
+        task = {"properties": {}}
+        result = self.generator._extract_place_ids(task)
+        assert result == []
+
+
+class TestAT122TravelTimeInMorningBriefing:
+    """Acceptance test for AT-122: Travel Time in Morning Briefing.
+
+    Given: User has task "Dentist at 2pm" with place "123 Main St"
+    When: Morning briefing generated
+    Then: Briefing includes travel estimate from home
+    Pass condition: Briefing contains "Leave by X" with calculated departure time
+    """
+
+    @pytest.mark.asyncio
+    async def test_at122_travel_time_in_briefing(self):
+        """
+        AT-122: Travel times appear in morning briefing for tasks with places.
+
+        Given: User has task "Dentist at 2pm" with place "123 Main St"
+        When: Morning briefing generated
+        Then: Briefing includes travel estimate from home
+        Pass condition: Briefing contains "Leave by X" with calculated departure time
+        """
+        from assistant.google.maps import MapsClient, TravelTime
+        from assistant.google.calendar import CalendarClient
+
+        # Mock Notion with a task that has a place
+        mock_notion = AsyncMock()
+        la_tz = pytz.timezone("America/Los_Angeles")
+        due_time = la_tz.localize(datetime(2026, 1, 13, 14, 0))  # 2pm
+
+        # Task "Dentist at 2pm" with place
+        mock_notion.query_tasks.return_value = [
+            {
+                "id": "task-dentist-123",
+                "properties": {
+                    "title": {"title": [{"text": {"content": "Dentist"}}]},
+                    "status": {"select": {"name": "todo"}},
+                    "priority": {"select": {"name": "high"}},
+                    "due_date": {"date": {"start": due_time.isoformat()}},
+                    "places": {"relation": [{"id": "place-123-main-st"}]},
+                },
+            },
+        ]
+        mock_notion.query_inbox.return_value = []
+        mock_notion.query_patterns.return_value = []
+
+        # Place "123 Main St"
+        mock_notion.get_place.return_value = {
+            "id": "place-123-main-st",
+            "properties": {
+                "name": {"title": [{"text": {"content": "Dr Smith Office"}}]},
+                "address": {"rich_text": [{"text": {"content": "123 Main St"}}]},
+            },
+        }
+
+        # Mock Maps with 20 min travel time
+        mock_maps = AsyncMock(spec=MapsClient)
+        mock_maps.get_travel_time.return_value = TravelTime(
+            origin="456 Home Ave",
+            destination="123 Main St",
+            distance_meters=10000,
+            duration_seconds=1200,  # 20 min
+            duration_in_traffic_seconds=None,
+        )
+
+        # Mock Calendar (no events for this test)
+        mock_calendar = MagicMock(spec=CalendarClient)
+        mock_calendar.is_authenticated.return_value = False
+
+        with patch("assistant.services.briefing.settings") as mock_settings:
+            mock_settings.has_notion = True
+            mock_settings.user_timezone = "America/Los_Angeles"
+            mock_settings.user_home_address = "456 Home Ave"
+            mock_settings.google_maps_api_key = "test-key"
+
+            generator = BriefingGenerator(
+                notion_client=mock_notion,
+                calendar_client=mock_calendar,
+                maps_client=mock_maps,
+            )
+            result = await generator.generate_morning_briefing()
+
+        # AT-122 Pass condition: Briefing contains "Leave by X"
+        assert "Leave by" in result, f"AT-122 FAIL: 'Leave by' not found in briefing:\n{result}"
+        assert "13:40" in result, f"AT-122 FAIL: Expected departure time '13:40' not found:\n{result}"
+        assert "20 min" in result, f"AT-122 FAIL: Expected travel duration not found:\n{result}"
+
+        # Verify Maps API was called correctly
+        mock_maps.get_travel_time.assert_called_once_with(
+            origin="456 Home Ave",
+            destination="123 Main St",
+            mode="driving",
+        )

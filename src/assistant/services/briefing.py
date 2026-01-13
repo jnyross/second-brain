@@ -1,14 +1,15 @@
 """Morning briefing generator for Second Brain.
 
 Generates a comprehensive morning briefing including:
-- Today's calendar events (from Google Calendar)
+- Today's calendar events (from Google Calendar) with travel times
 - Emails needing attention (requires Gmail integration)
-- Tasks due today
+- Tasks due today with departure time suggestions
 - Items needing clarification
 - This week's upcoming tasks and deadlines
 """
 
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -17,18 +18,35 @@ import pytz
 from assistant.config import settings
 from assistant.google.calendar import CalendarClient, CalendarEvent, get_calendar_client
 from assistant.google.gmail import EmailMessage, GmailClient, get_gmail_client
+from assistant.google.maps import MapsClient, TravelTime
 from assistant.notion import NotionClient
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class TravelInfo:
+    """Travel time information for a task or event."""
+
+    leave_by: datetime
+    travel_time: TravelTime
+    from_location: str
+    to_location: str
+
+    def format_departure(self, timezone: Any) -> str:
+        """Format departure time as 'Leave by HH:MM (X min)'."""
+        leave_local = self.leave_by.astimezone(timezone)
+        duration = self.travel_time.format_duration(include_traffic=True)
+        return f"Leave by {leave_local.strftime('%H:%M')} ({duration})"
 
 
 class BriefingGenerator:
     """Generates morning briefings from Notion data.
 
     The briefing format follows PRD Section 5.2:
-    - 📅 TODAY - Calendar events (placeholder until Google Calendar integration)
-    - 📧 EMAIL - Emails needing attention (placeholder until Gmail integration)
-    - ✅ DUE TODAY - Tasks due today
+    - 📅 TODAY - Calendar events with travel time estimates
+    - 📧 EMAIL - Emails needing attention
+    - ✅ DUE TODAY - Tasks due today with departure suggestions
     - ⚠️ NEEDS CLARIFICATION - Flagged inbox items
     - 📊 THIS WEEK - Upcoming tasks and deadlines
     """
@@ -38,6 +56,7 @@ class BriefingGenerator:
         notion_client: NotionClient | None = None,
         calendar_client: CalendarClient | None = None,
         gmail_client: GmailClient | None = None,
+        maps_client: MapsClient | None = None,
     ):
         """Initialize briefing generator.
 
@@ -48,6 +67,8 @@ class BriefingGenerator:
                              uses the global singleton if Google OAuth is configured.
             gmail_client: Optional GmailClient instance. If not provided,
                           uses the global singleton if Google OAuth is configured.
+            maps_client: Optional MapsClient instance for travel time calculations.
+                         If not provided, creates one if Maps API is configured.
         """
         self.notion = (
             notion_client
@@ -56,7 +77,13 @@ class BriefingGenerator:
         )
         self.calendar = calendar_client if calendar_client is not None else get_calendar_client()
         self.gmail = gmail_client if gmail_client is not None else get_gmail_client()
+        self.maps = (
+            maps_client
+            if maps_client is not None
+            else (MapsClient() if settings.google_maps_api_key else None)
+        )
         self.timezone = pytz.timezone(settings.user_timezone)
+        self.home_address = settings.user_home_address
 
     async def generate_morning_briefing(self) -> str:
         """Generate the complete morning briefing.
@@ -84,9 +111,12 @@ class BriefingGenerator:
                 if email_section:
                     sections.append(email_section)
 
-                # ✅ DUE TODAY section
+                # ✅ DUE TODAY section (with travel times for tasks with places)
                 tasks_today = await self._get_tasks_due_today(today_start, today_end)
-                tasks_section = self._format_tasks_due_today(tasks_today)
+                task_travel_info: dict[str, TravelInfo] = {}
+                if self.maps and self.home_address and tasks_today:
+                    task_travel_info = await self._calculate_travel_times_for_tasks(tasks_today)
+                tasks_section = self._format_tasks_due_today(tasks_today, task_travel_info)
                 if tasks_section:
                     sections.append(tasks_section)
 
@@ -122,6 +152,9 @@ class BriefingGenerator:
     async def _generate_calendar_section(self) -> str | None:
         """Generate calendar section with today's events from Google Calendar.
 
+        Includes travel time estimates for events with locations per PRD 5.2:
+        'Leave by X' suggestions based on Distance Matrix API.
+
         Returns:
             Formatted calendar section or None if not available or no events.
         """
@@ -144,17 +177,219 @@ class BriefingGenerator:
             if not events:
                 return None
 
-            return self._format_calendar_events(events)
+            # Calculate travel times for events with locations
+            travel_info: dict[str, TravelInfo] = {}
+            if self.maps and self.home_address:
+                travel_info = await self._calculate_travel_times_for_events(events)
+
+            return self._format_calendar_events(events, travel_info)
 
         except Exception as e:
             logger.exception(f"Failed to fetch calendar events: {e}")
             return None
 
-    def _format_calendar_events(self, events: list[CalendarEvent]) -> str | None:
+    async def _calculate_travel_times_for_events(
+        self,
+        events: list[CalendarEvent],
+    ) -> dict[str, TravelInfo]:
+        """Calculate travel times for events with locations.
+
+        For the first event with a location, calculates from home.
+        For subsequent events, calculates from the previous event's location.
+
+        Args:
+            events: List of calendar events to analyze
+
+        Returns:
+            Dict mapping event_id to TravelInfo
+        """
+        if not self.maps or not self.home_address:
+            return {}
+
+        travel_info: dict[str, TravelInfo] = {}
+        previous_location = self.home_address
+
+        for event in events:
+            if not event.location or not event.event_id:
+                continue
+
+            # Skip all-day events
+            start_time = event.start_time
+            if start_time.tzinfo is not None:
+                try:
+                    start_time = start_time.astimezone(self.timezone)
+                except Exception:
+                    pass
+
+            is_all_day = (
+                start_time.hour == 0
+                and start_time.minute == 0
+                and event.end_time.hour == 0
+                and event.end_time.minute == 0
+            )
+            if is_all_day:
+                continue
+
+            try:
+                travel_time = await self.maps.get_travel_time(
+                    origin=previous_location,
+                    destination=event.location,
+                    mode="driving",
+                )
+
+                if travel_time:
+                    # Use traffic-aware duration if available
+                    duration_seconds = (
+                        travel_time.duration_in_traffic_seconds
+                        if travel_time.duration_in_traffic_seconds
+                        else travel_time.duration_seconds
+                    )
+                    # Calculate when to leave (event time - travel time)
+                    leave_by = event.start_time - timedelta(seconds=duration_seconds)
+
+                    travel_info[event.event_id] = TravelInfo(
+                        leave_by=leave_by,
+                        travel_time=travel_time,
+                        from_location=previous_location,
+                        to_location=event.location,
+                    )
+
+                    # Update previous location for chained travel calculations
+                    previous_location = event.location
+
+            except Exception as e:
+                logger.debug(f"Failed to get travel time for event {event.title}: {e}")
+
+        return travel_info
+
+    async def _calculate_travel_times_for_tasks(
+        self,
+        tasks: list[dict[str, Any]],
+    ) -> dict[str, TravelInfo]:
+        """Calculate travel times for tasks with places and specific due times.
+
+        Per AT-122: Tasks like 'Dentist at 2pm' with a place should show
+        'Leave by X' departure time calculated from home.
+
+        Args:
+            tasks: List of task results from Notion
+
+        Returns:
+            Dict mapping task page ID to TravelInfo
+        """
+        if not self.maps or not self.home_address or not self.notion:
+            return {}
+
+        travel_info: dict[str, TravelInfo] = {}
+
+        for task in tasks:
+            task_id = task.get("id")
+            if not task_id:
+                continue
+
+            # Get the due date with time
+            due_date = self._extract_date(task, "due_date")
+            if not due_date:
+                continue
+
+            # Skip tasks without a specific time (midnight = no time specified)
+            if due_date.hour == 0 and due_date.minute == 0:
+                continue
+
+            # Get place_ids from the task (relation property or rich_text)
+            place_ids = self._extract_place_ids(task)
+            if not place_ids:
+                continue
+
+            # Get the first place's address
+            try:
+                place = await self.notion.get_place(place_ids[0])
+                if not place:
+                    continue
+
+                # Extract address from place
+                address = self._extract_text(place, "address")
+                if not address:
+                    # Try to use the place name as address
+                    address = self._extract_title(place)
+
+                if not address:
+                    continue
+
+                # Calculate travel time from home to place
+                travel_time = await self.maps.get_travel_time(
+                    origin=self.home_address,
+                    destination=address,
+                    mode="driving",
+                )
+
+                if travel_time:
+                    # Use traffic-aware duration if available
+                    duration_seconds = (
+                        travel_time.duration_in_traffic_seconds
+                        if travel_time.duration_in_traffic_seconds
+                        else travel_time.duration_seconds
+                    )
+                    # Calculate when to leave (task time - travel time)
+                    leave_by = due_date - timedelta(seconds=duration_seconds)
+
+                    travel_info[task_id] = TravelInfo(
+                        leave_by=leave_by,
+                        travel_time=travel_time,
+                        from_location=self.home_address,
+                        to_location=address,
+                    )
+
+            except Exception as e:
+                title = self._extract_title(task)
+                logger.debug(f"Failed to get travel time for task '{title}': {e}")
+
+        return travel_info
+
+    def _extract_place_ids(self, task: dict[str, Any]) -> list[str]:
+        """Extract place IDs from a task.
+
+        Handles both relation properties (list of page IDs) and
+        rich_text storage of place IDs.
+
+        Args:
+            task: Task page from Notion
+
+        Returns:
+            List of place page IDs
+        """
+        props = task.get("properties", {})
+
+        # Try relation property first
+        place_relation = props.get("places", {}).get("relation", [])
+        if place_relation:
+            return [p.get("id") for p in place_relation if p.get("id")]
+
+        # Try place_ids as multi_select (IDs stored as names)
+        place_ids_prop = props.get("place_ids", {})
+        multi_select = place_ids_prop.get("multi_select", [])
+        if multi_select:
+            return [p.get("name") for p in multi_select if p.get("name")]
+
+        # Try place_ids as rich_text (comma-separated IDs)
+        rich_text = place_ids_prop.get("rich_text", [])
+        if rich_text:
+            text = rich_text[0].get("text", {}).get("content", "")
+            if text:
+                return [pid.strip() for pid in text.split(",") if pid.strip()]
+
+        return []
+
+    def _format_calendar_events(
+        self,
+        events: list[CalendarEvent],
+        travel_info: dict[str, TravelInfo] | None = None,
+    ) -> str | None:
         """Format calendar events for the briefing.
 
         Args:
             events: List of CalendarEvent objects from Google Calendar
+            travel_info: Optional dict mapping event_id to TravelInfo
 
         Returns:
             Formatted calendar section string or None if no events
@@ -162,6 +397,7 @@ class BriefingGenerator:
         if not events:
             return None
 
+        travel_info = travel_info or {}
         lines = ["📅 **TODAY**"]
 
         for event in events[:10]:  # Limit to 10 events
@@ -197,6 +433,12 @@ class BriefingGenerator:
                 line += f" ({loc})"
 
             lines.append(line)
+
+            # Add travel time info if available (per PRD 5.2)
+            if event.event_id and event.event_id in travel_info:
+                info = travel_info[event.event_id]
+                departure_str = info.format_departure(self.timezone)
+                lines.append(f"  └─ {departure_str}")
 
         if len(events) > 10:
             lines.append(f"  _...and {len(events) - 10} more events_")
@@ -470,11 +712,16 @@ class BriefingGenerator:
             limit=10,
         )
 
-    def _format_tasks_due_today(self, tasks: list[dict[str, Any]]) -> str | None:
+    def _format_tasks_due_today(
+        self,
+        tasks: list[dict[str, Any]],
+        travel_info: dict[str, TravelInfo] | None = None,
+    ) -> str | None:
         """Format tasks due today section.
 
         Args:
             tasks: List of task results from Notion
+            travel_info: Optional dict mapping task ID to TravelInfo for departure times
 
         Returns:
             Formatted section string or None if no tasks
@@ -482,17 +729,32 @@ class BriefingGenerator:
         if not tasks:
             return None
 
+        travel_info = travel_info or {}
         lines = ["✅ **DUE TODAY**"]
         for task in tasks[:5]:
+            task_id = task.get("id")
             title = self._extract_title(task)
             priority = self._extract_select(task, "priority")
             status = self._extract_select(task, "status")
+            due_date = self._extract_date(task, "due_date")
 
             # Add priority indicator
             priority_icon = self._get_priority_icon(priority)
             status_suffix = f" [{status}]" if status and status not in ("todo", "inbox") else ""
 
-            lines.append(f"• {priority_icon}{title}{status_suffix}")
+            # Add time if specific time is set
+            time_str = ""
+            if due_date and not (due_date.hour == 0 and due_date.minute == 0):
+                due_local = due_date.astimezone(self.timezone) if due_date.tzinfo else due_date
+                time_str = f" at {due_local.strftime('%H:%M')}"
+
+            lines.append(f"• {priority_icon}{title}{time_str}{status_suffix}")
+
+            # Add travel time info if available (per AT-122)
+            if task_id and task_id in travel_info:
+                info = travel_info[task_id]
+                departure_str = info.format_departure(self.timezone)
+                lines.append(f"  └─ {departure_str}")
 
         if len(tasks) > 5:
             lines.append(f"  _...and {len(tasks) - 5} more_")

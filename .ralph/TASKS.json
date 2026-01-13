@@ -1150,8 +1150,8 @@
       "description": "Include 'Leave by X' departure times for location-based tasks in morning briefing per PRD 5.2.",
       "depends_on": ["T-154", "T-080"],
       "acceptance_tests": ["AT-122"],
-      "passes": false,
-      "evidence": "",
+      "passes": true,
+      "evidence": "Added TravelInfo dataclass and MapsClient integration to BriefingGenerator. Features: _calculate_travel_times_for_events() chains travel from home→event1→event2, _calculate_travel_times_for_tasks() for tasks with places and due times, _extract_place_ids() handles relation/multi_select/rich_text formats. Updated _format_calendar_events() and _format_tasks_due_today() to show 'Leave by HH:MM (X min)'. Tests in tests/test_briefing.py: TestTravelTimeInBriefing (3), TestTravelInfoDataclass (2), TestExtractPlaceIds (4), TestAT122TravelTimeInMorningBriefing (1). All 86 briefing tests pass. Full suite: 1882 tests pass.",
       "updated_at": "2026-01-13"
     },
     {

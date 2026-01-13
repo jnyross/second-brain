@@ -13,9 +13,9 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phases 0-7 complete. Deployment complete. Phase 8 (Google Maps) in progress - T-153 complete. **Next: T-155 (travel times in briefing)**.
-- Remaining Tasks: T-155, T-156, T-157 (Maps), T-164, T-165, T-166, T-167 (Drive)
-- Remaining ATs: AT-122, AT-123, AT-124, AT-125, AT-126, AT-127
+- Status: Phases 0-7 complete. Deployment complete. Phase 8 (Google Maps) in progress - T-155 complete. **Next: T-156 (schedule conflict detection)**.
+- Remaining Tasks: T-156, T-157 (Maps), T-164, T-165, T-166, T-167 (Drive)
+- Remaining ATs: AT-123, AT-124, AT-125, AT-126, AT-127
 
 ## Iteration Log
 
@@ -1737,4 +1737,26 @@
     - PYTHONPATH=src python3 -m pytest tests/ (1872 passed, 5 skipped)
     - scripts/verify.sh (8/8 pass)
   - Results: AT-121 verified - place geocoded with address, lat/lng, google_place_id, phone, website when Maps API enabled
+  - Commit: pending
+
+- Iteration 80 (T-155: Add travel times to morning briefing)
+  - Task: Include 'Leave by X' departure times for location-based tasks in morning briefing per PRD 5.2
+  - Changes:
+    1. Added TravelInfo dataclass to briefing.py: leave_by, travel_time, from_location, to_location, format_departure()
+    2. Updated BriefingGenerator.__init__(): Added maps_client and user_home_address parameters
+    3. Added _calculate_travel_times_for_events(): Chains travel from home→event1→event2 using Google Maps Distance Matrix API
+    4. Added _calculate_travel_times_for_tasks(): Calculates travel for tasks with places and specific due times
+    5. Added _extract_place_ids(): Handles relation, multi_select, rich_text formats for place_ids
+    6. Updated _format_calendar_events(): Shows "Leave by HH:MM (X min)" under events with locations
+    7. Updated _format_tasks_due_today(): Shows departure times for tasks with places and times
+  - Tests added (10 tests):
+    - TestTravelTimeInBriefing (3): events with/without travel info, tasks with travel info
+    - TestTravelInfoDataclass (2): format_departure with/without traffic
+    - TestExtractPlaceIds (4): relation, multi_select, rich_text, empty
+    - TestAT122TravelTimeInMorningBriefing (1): Full acceptance test verifying "Leave by 13:40 (20 min)" format
+  - Commands:
+    - PYTHONPATH=src python3 -m pytest tests/test_briefing.py -v (86 passed)
+    - PYTHONPATH=src python3 -m pytest tests/ (1882 passed, 5 skipped)
+    - mypy src (pass)
+  - Results: AT-122 verified - morning briefing includes "Leave by X" departure times for calendar events and tasks with places
   - Commit: pending
