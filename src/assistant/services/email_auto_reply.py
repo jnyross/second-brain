@@ -215,9 +215,7 @@ class EmailAutoReplyService:
         self._sender_patterns[sender_email] = pattern
         return pattern
 
-    async def _analyze_style(
-        self, sent_emails: list[EmailMessage]
-    ) -> tuple[str, str, str]:
+    async def _analyze_style(self, sent_emails: list[EmailMessage]) -> tuple[str, str, str]:
         """Analyze writing style from sent emails.
 
         Args:

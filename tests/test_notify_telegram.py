@@ -247,10 +247,7 @@ class TestCDWorkflowNotifySteps:
     def test_success_step_has_condition(self, cd_workflow: dict):
         """Success notification only runs on success."""
         notify = cd_workflow["jobs"]["notify"]
-        success_steps = [
-            s for s in notify["steps"]
-            if "success" in s.get("name", "").lower()
-        ]
+        success_steps = [s for s in notify["steps"] if "success" in s.get("name", "").lower()]
         assert len(success_steps) == 1
         assert "success" in success_steps[0].get("if", "")
 
@@ -258,7 +255,8 @@ class TestCDWorkflowNotifySteps:
         """Failure notification only runs on failure."""
         notify = cd_workflow["jobs"]["notify"]
         failure_steps = [
-            s for s in notify["steps"]
+            s
+            for s in notify["steps"]
             if "failure" in s.get("name", "").lower() and "Log" not in s.get("name", "")
         ]
         assert len(failure_steps) == 1
@@ -286,8 +284,11 @@ class TestCDWorkflowSecrets:
         all_runs = [s.get("run", "") for s in notify["steps"] if s.get("run")]
         combined = " ".join(all_runs)
         # Should check if chat ID is set before sending
-        assert 'if [[ -n "$TELEGRAM_CHAT_ID"' in combined or \
-               "-n" in combined and "TELEGRAM_CHAT_ID" in combined
+        assert (
+            'if [[ -n "$TELEGRAM_CHAT_ID"' in combined
+            or "-n" in combined
+            and "TELEGRAM_CHAT_ID" in combined
+        )
 
 
 class TestCDWorkflowEnvironmentVariables:

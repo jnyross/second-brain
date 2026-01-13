@@ -310,9 +310,7 @@ async def find_task_by_drive_file(
     include_deleted: bool = False,
 ) -> TaskInfo | None:
     """Convenience function to find task by Drive file."""
-    return await get_drive_task_linker().find_task_by_drive_file(
-        drive_file_id, include_deleted
-    )
+    return await get_drive_task_linker().find_task_by_drive_file(drive_file_id, include_deleted)
 
 
 async def is_drive_file_linked(drive_file_id: str) -> bool:

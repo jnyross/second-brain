@@ -154,8 +154,7 @@ class GeminiProvider(BaseLLMProvider):
         """Send completion to Gemini API."""
         start_time = time.time()
         endpoint = (
-            "https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{self.model}:generateContent"
+            f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
         )
 
         contents = []
@@ -297,9 +296,7 @@ class AnthropicProvider(BaseLLMProvider):
 
         messages = [{"role": "user", "content": prompt}]
         if json_mode:
-            messages[0]["content"] = (
-                f"{prompt}\n\nRespond with valid JSON only, no other text."
-            )
+            messages[0]["content"] = f"{prompt}\n\nRespond with valid JSON only, no other text."
 
         request_body: dict[str, Any] = {
             "model": self.model,
@@ -470,7 +467,8 @@ class LLMClient:
             self._fallback_order = [p for p in fallback_order if p in self._providers]
         else:
             self._fallback_order = [
-                p for p in [LLMProvider.GEMINI, LLMProvider.OPENAI, LLMProvider.ANTHROPIC]
+                p
+                for p in [LLMProvider.GEMINI, LLMProvider.OPENAI, LLMProvider.ANTHROPIC]
                 if p in self._providers and p != self._primary
             ]
 
@@ -538,8 +536,7 @@ class LLMClient:
             )
 
         providers_to_try = (
-            [provider] if provider and provider in self._providers
-            else self._get_provider_order()
+            [provider] if provider and provider in self._providers else self._get_provider_order()
         )
 
         errors: list[tuple[LLMProvider, Exception]] = []
@@ -615,9 +612,7 @@ class LLMClient:
         return {
             "daily_cost_usd": round(self._daily_cost_usd, 4),
             "daily_budget_usd": self.daily_budget_usd,
-            "providers": {
-                p.value: self.get_stats(p) for p in self._providers.keys()
-            },
+            "providers": {p.value: self.get_stats(p) for p in self._providers.keys()},
         }
 
     def close(self) -> None:

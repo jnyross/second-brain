@@ -92,8 +92,10 @@ class TestBackupCommandLineOptions:
             result = subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", str(backup_dir),
-                    "--data-dir", str(data_dir),
+                    "--backup-dir",
+                    str(backup_dir),
+                    "--data-dir",
+                    str(data_dir),
                     "--dry-run",
                 ],
                 capture_output=True,
@@ -108,9 +110,12 @@ class TestBackupCommandLineOptions:
             result = subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", tmpdir,
-                    "--data-dir", tmpdir,
-                    "--retention", "14",
+                    "--backup-dir",
+                    tmpdir,
+                    "--data-dir",
+                    tmpdir,
+                    "--retention",
+                    "14",
                     "--dry-run",
                 ],
                 capture_output=True,
@@ -134,8 +139,10 @@ class TestBackupDryRunMode:
             result = subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", str(backup_dir),
-                    "--data-dir", str(data_dir),
+                    "--backup-dir",
+                    str(backup_dir),
+                    "--data-dir",
+                    str(data_dir),
                     "--dry-run",
                 ],
                 capture_output=True,
@@ -161,8 +168,10 @@ class TestBackupCreation:
             result = subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", str(backup_dir),
-                    "--data-dir", str(data_dir),
+                    "--backup-dir",
+                    str(backup_dir),
+                    "--data-dir",
+                    str(data_dir),
                 ],
                 capture_output=True,
                 text=True,
@@ -186,8 +195,10 @@ class TestBackupCreation:
             subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", str(backup_dir),
-                    "--data-dir", str(data_dir),
+                    "--backup-dir",
+                    str(backup_dir),
+                    "--data-dir",
+                    str(data_dir),
                 ],
                 capture_output=True,
                 text=True,
@@ -214,8 +225,10 @@ class TestBackupCreation:
             subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", str(backup_dir),
-                    "--data-dir", str(data_dir),
+                    "--backup-dir",
+                    str(backup_dir),
+                    "--data-dir",
+                    str(data_dir),
                 ],
                 capture_output=True,
                 text=True,
@@ -241,8 +254,10 @@ class TestBackupCreation:
             subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", str(backup_dir),
-                    "--data-dir", str(data_dir),
+                    "--backup-dir",
+                    str(backup_dir),
+                    "--data-dir",
+                    str(data_dir),
                 ],
                 capture_output=True,
                 text=True,
@@ -267,8 +282,10 @@ class TestBackupCreation:
             result = subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", str(backup_dir),
-                    "--data-dir", str(data_dir),
+                    "--backup-dir",
+                    str(backup_dir),
+                    "--data-dir",
+                    str(data_dir),
                 ],
                 capture_output=True,
                 text=True,
@@ -285,8 +302,10 @@ class TestBackupCreation:
             result = subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", str(backup_dir),
-                    "--data-dir", str(data_dir),
+                    "--backup-dir",
+                    str(backup_dir),
+                    "--data-dir",
+                    str(data_dir),
                 ],
                 capture_output=True,
                 text=True,
@@ -319,9 +338,12 @@ class TestBackupRetention:
             result = subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", str(backup_dir),
-                    "--data-dir", str(data_dir),
-                    "--retention", "7",
+                    "--backup-dir",
+                    str(backup_dir),
+                    "--data-dir",
+                    str(data_dir),
+                    "--retention",
+                    "7",
                 ],
                 capture_output=True,
                 text=True,
@@ -348,9 +370,12 @@ class TestBackupRetention:
             result = subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", str(backup_dir),
-                    "--data-dir", str(data_dir),
-                    "--retention", "7",
+                    "--backup-dir",
+                    str(backup_dir),
+                    "--data-dir",
+                    str(data_dir),
+                    "--retention",
+                    "7",
                 ],
                 capture_output=True,
                 text=True,
@@ -366,8 +391,10 @@ class TestBackupRetention:
             result = subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", tmpdir,
-                    "--data-dir", tmpdir,
+                    "--backup-dir",
+                    tmpdir,
+                    "--data-dir",
+                    tmpdir,
                     "--dry-run",
                 ],
                 capture_output=True,
@@ -385,7 +412,8 @@ class TestBackupList:
             result = subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", tmpdir,
+                    "--backup-dir",
+                    tmpdir,
                     "--list",
                 ],
                 capture_output=True,
@@ -404,7 +432,8 @@ class TestBackupList:
             result = subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", str(backup_dir),
+                    "--backup-dir",
+                    str(backup_dir),
                     "--list",
                 ],
                 capture_output=True,
@@ -421,7 +450,8 @@ class TestBackupList:
             result = subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", f"{tmpdir}/nonexistent",
+                    "--backup-dir",
+                    f"{tmpdir}/nonexistent",
                     "--list",
                 ],
                 capture_output=True,
@@ -440,8 +470,10 @@ class TestBackupRestore:
             result = subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", tmpdir,
-                    "--restore", "nonexistent.tar.gz",
+                    "--backup-dir",
+                    tmpdir,
+                    "--restore",
+                    "nonexistent.tar.gz",
                 ],
                 capture_output=True,
                 text=True,
@@ -462,8 +494,10 @@ class TestBackupRestore:
             subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", str(backup_dir),
-                    "--data-dir", str(data_dir),
+                    "--backup-dir",
+                    str(backup_dir),
+                    "--data-dir",
+                    str(data_dir),
                 ],
                 capture_output=True,
             )
@@ -473,9 +507,12 @@ class TestBackupRestore:
             result = subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", str(backup_dir),
-                    "--data-dir", str(data_dir),
-                    "--restore", backup_file.name,
+                    "--backup-dir",
+                    str(backup_dir),
+                    "--data-dir",
+                    str(data_dir),
+                    "--restore",
+                    backup_file.name,
                     "--dry-run",
                 ],
                 capture_output=True,
@@ -500,8 +537,10 @@ class TestBackupTimestampFormat:
             subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", str(backup_dir),
-                    "--data-dir", str(data_dir),
+                    "--backup-dir",
+                    str(backup_dir),
+                    "--data-dir",
+                    str(data_dir),
                 ],
                 capture_output=True,
             )
@@ -541,7 +580,7 @@ class TestBackupPRD129Compliance:
         content = SCRIPT_PATH.read_text()
         assert "RETENTION_DAYS" in content
         # Check that 7 is the default
-        assert re.search(r'RETENTION_DAYS.*[=:].*7', content)
+        assert re.search(r"RETENTION_DAYS.*[=:].*7", content)
 
 
 class TestBackupExitCodes:
@@ -558,8 +597,10 @@ class TestBackupExitCodes:
             result = subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", str(backup_dir),
-                    "--data-dir", str(data_dir),
+                    "--backup-dir",
+                    str(backup_dir),
+                    "--data-dir",
+                    str(data_dir),
                 ],
                 capture_output=True,
             )
@@ -581,13 +622,13 @@ class TestBackupEnvironmentVariables:
         """BACKUP_DIR environment variable is respected."""
         content = SCRIPT_PATH.read_text()
         assert "BACKUP_DIR" in content
-        assert re.search(r'BACKUP_DIR.*\$\{BACKUP_DIR:-', content)
+        assert re.search(r"BACKUP_DIR.*\$\{BACKUP_DIR:-", content)
 
     def test_data_dir_env_var(self):
         """DATA_DIR environment variable is respected."""
         content = SCRIPT_PATH.read_text()
         assert "DATA_DIR" in content
-        assert re.search(r'DATA_DIR.*\$\{DATA_DIR:-', content)
+        assert re.search(r"DATA_DIR.*\$\{DATA_DIR:-", content)
 
     def test_retention_days_env_var(self):
         """RETENTION_DAYS environment variable is respected."""
@@ -616,8 +657,10 @@ class TestT209AcceptanceTests:
             result = subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", str(backup_dir),
-                    "--data-dir", str(data_dir),
+                    "--backup-dir",
+                    str(backup_dir),
+                    "--data-dir",
+                    str(data_dir),
                 ],
                 capture_output=True,
                 text=True,
@@ -629,7 +672,8 @@ class TestT209AcceptanceTests:
             result = subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", str(backup_dir),
+                    "--backup-dir",
+                    str(backup_dir),
                     "--list",
                 ],
                 capture_output=True,
@@ -677,9 +721,12 @@ class TestT209AcceptanceTests:
             result = subprocess.run(
                 [
                     str(SCRIPT_PATH),
-                    "--backup-dir", str(backup_dir),
-                    "--data-dir", str(data_dir),
-                    "--retention", "7",
+                    "--backup-dir",
+                    str(backup_dir),
+                    "--data-dir",
+                    str(data_dir),
+                    "--retention",
+                    "7",
                 ],
                 capture_output=True,
                 text=True,

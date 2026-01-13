@@ -689,9 +689,7 @@ class TestT167BidirectionalLinking:
             "properties": {
                 "title": {"title": [{"plain_text": "Research: CRM Options"}]},
                 "drive_file_id": {"rich_text": [{"plain_text": "research-doc-123"}]},
-                "drive_file_url": {
-                    "url": "https://docs.google.com/document/d/research-doc-123"
-                },
+                "drive_file_url": {"url": "https://docs.google.com/document/d/research-doc-123"},
                 "status": {"select": {"name": "todo"}},
             },
         }
@@ -716,9 +714,7 @@ class TestNotionClientMethods:
 
         client = NotionClient()
         with patch.object(client, "_request") as mock_request:
-            mock_request.return_value = {
-                "results": [{"id": "task-123", "properties": {}}]
-            }
+            mock_request.return_value = {"results": [{"id": "task-123", "properties": {}}]}
 
             result = await client.query_task_by_drive_file("drive-456")
 

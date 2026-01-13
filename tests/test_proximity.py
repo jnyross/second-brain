@@ -404,12 +404,8 @@ class TestProximityTaskService:
         """Test that tasks beyond max distance are filtered out."""
         # Mock maps client
         maps_mock = MagicMock()
-        maps_mock.geocode = AsyncMock(
-            return_value=MagicMock(lat=37.7879, lng=-122.4074)
-        )
-        maps_mock.get_travel_time = AsyncMock(
-            return_value=MagicMock(duration_seconds=300)
-        )
+        maps_mock.geocode = AsyncMock(return_value=MagicMock(lat=37.7879, lng=-122.4074))
+        maps_mock.get_travel_time = AsyncMock(return_value=MagicMock(duration_seconds=300))
 
         # Mock notion client with task that has a distant place
         notion_mock = MagicMock()
@@ -449,12 +445,8 @@ class TestProximityTaskService:
     async def test_find_tasks_near_sorts_by_distance(self):
         """Test that results are sorted by distance."""
         maps_mock = MagicMock()
-        maps_mock.geocode = AsyncMock(
-            return_value=MagicMock(lat=37.7879, lng=-122.4074)
-        )
-        maps_mock.get_travel_time = AsyncMock(
-            return_value=MagicMock(duration_seconds=300)
-        )
+        maps_mock.geocode = AsyncMock(return_value=MagicMock(lat=37.7879, lng=-122.4074))
+        maps_mock.get_travel_time = AsyncMock(return_value=MagicMock(duration_seconds=300))
 
         notion_mock = MagicMock()
         notion_mock.query_tasks = AsyncMock(
@@ -651,9 +643,7 @@ class TestAT127ProximityTaskSuggestions:
         """AT-127: Response lists nearby tasks with distances in proper format."""
         maps_mock = MagicMock()
         maps_mock.geocode = AsyncMock(return_value=MagicMock(lat=37.7879, lng=-122.4074))
-        maps_mock.get_travel_time = AsyncMock(
-            return_value=MagicMock(duration_seconds=300)
-        )
+        maps_mock.get_travel_time = AsyncMock(return_value=MagicMock(duration_seconds=300))
 
         notion_mock = MagicMock()
         notion_mock.query_tasks = AsyncMock(

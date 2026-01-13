@@ -76,9 +76,7 @@ class HeartbeatService:
             heartbeat_url: UptimeRobot heartbeat URL (or from settings)
             interval: Seconds between heartbeats (default 300 = 5 min)
         """
-        self._heartbeat_url = heartbeat_url or getattr(
-            settings, "uptimerobot_heartbeat_url", None
-        )
+        self._heartbeat_url = heartbeat_url or getattr(settings, "uptimerobot_heartbeat_url", None)
         self._interval = interval
         self._running = False
         self._task: asyncio.Task[None] | None = None

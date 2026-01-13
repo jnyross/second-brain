@@ -177,7 +177,7 @@ class WhatsAppClient:
             SendResult with success status and message_id if successful
         """
         if len(text) > MAX_MESSAGE_LENGTH:
-            text = text[:MAX_MESSAGE_LENGTH - 3] + "..."
+            text = text[: MAX_MESSAGE_LENGTH - 3] + "..."
 
         payload = {
             "messaging_product": "whatsapp",

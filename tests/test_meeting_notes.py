@@ -334,9 +334,7 @@ class TestMeetingNotesServiceCreateFromRequest:
 
     @pytest.mark.asyncio
     async def test_parses_request_and_creates(self, mock_service: MeetingNotesService) -> None:
-        result = await mock_service.create_from_request(
-            "Create meeting notes for call with Sarah"
-        )
+        result = await mock_service.create_from_request("Create meeting notes for call with Sarah")
 
         assert result.success
         mock_service.create_meeting_notes.assert_called_once_with("call with Sarah")
@@ -407,9 +405,7 @@ class TestAT125MeetingNotesWithPeopleLink:
     ) -> None:
         """AT-125: Google Doc created in Second Brain/Meeting Notes/ folder."""
         service = MeetingNotesService(mock_drive_client, mock_people_service)
-        result = await service.create_from_request(
-            "Create meeting notes for call with Sarah"
-        )
+        result = await service.create_from_request("Create meeting notes for call with Sarah")
 
         assert result.success
         assert result.drive_file_id == "drive-file-at125"
@@ -424,9 +420,7 @@ class TestAT125MeetingNotesWithPeopleLink:
     ) -> None:
         """AT-125: Document titled with date and meeting description."""
         service = MeetingNotesService(mock_drive_client, mock_people_service)
-        result = await service.create_from_request(
-            "Create meeting notes for call with Sarah"
-        )
+        result = await service.create_from_request("Create meeting notes for call with Sarah")
 
         assert result.success
         # The call should include the meeting title
@@ -441,9 +435,7 @@ class TestAT125MeetingNotesWithPeopleLink:
     ) -> None:
         """AT-125: Linked to Sarah in People database."""
         service = MeetingNotesService(mock_drive_client, mock_people_service)
-        result = await service.create_from_request(
-            "Create meeting notes for call with Sarah"
-        )
+        result = await service.create_from_request("Create meeting notes for call with Sarah")
 
         assert result.success
         # Sarah should be looked up in People database
@@ -459,9 +451,7 @@ class TestAT125MeetingNotesWithPeopleLink:
     ) -> None:
         """AT-125 Pass condition: Drive doc exists AND task linked to Person 'Sarah'."""
         service = MeetingNotesService(mock_drive_client, mock_people_service)
-        result = await service.create_from_request(
-            "Create meeting notes for call with Sarah"
-        )
+        result = await service.create_from_request("Create meeting notes for call with Sarah")
 
         # Verify Drive doc exists
         assert result.success
@@ -490,9 +480,7 @@ class TestAT125MeetingNotesWithPeopleLink:
         )
 
         service = MeetingNotesService(mock_drive_client, mock_people_service)
-        result = await service.create_from_request(
-            "Create meeting notes for call with Sarah"
-        )
+        result = await service.create_from_request("Create meeting notes for call with Sarah")
 
         assert result.success
         assert "new-sarah-id" in result.people_ids

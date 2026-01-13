@@ -132,13 +132,26 @@ class NotionClient:
             "dedupe_key",
         },
         "tasks": {
-            "title", "status", "priority", "due_date", "confidence",
-            "deleted_at", "place_ids", "drive_file_id", "drive_file_url",
+            "title",
+            "status",
+            "priority",
+            "due_date",
+            "confidence",
+            "deleted_at",
+            "place_ids",
+            "drive_file_id",
+            "drive_file_url",
         },
         "people": {"name", "email", "relationship", "deleted_at", "archived"},
         "places": {
-            "name", "place_type", "address", "lat", "lng",
-            "google_place_id", "phone", "website",
+            "name",
+            "place_type",
+            "address",
+            "lat",
+            "lng",
+            "google_place_id",
+            "phone",
+            "website",
         },
         "projects": {"name", "status", "deadline"},
         "log": {"action_type", "action_taken", "timestamp", "idempotency_key", "confidence"},
@@ -1006,9 +1019,7 @@ class NotionClient:
             update["properties"]["drive_file_id"] = {"rich_text": []}
 
         if drive_file_url:
-            update["properties"]["drive_file_url"] = {
-                "url": drive_file_url
-            }
+            update["properties"]["drive_file_url"] = {"url": drive_file_url}
         else:
             update["properties"]["drive_file_url"] = {"url": None}
 

@@ -283,9 +283,7 @@ class ComparisonSheetService:
 
         return result
 
-    async def _create_task(
-        self, result: ComparisonSheetResult, drive_file: DriveFile
-    ) -> None:
+    async def _create_task(self, result: ComparisonSheetResult, drive_file: DriveFile) -> None:
         """Create a Notion task linked to the comparison sheet.
 
         Args:

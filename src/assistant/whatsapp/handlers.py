@@ -263,9 +263,7 @@ class WhatsAppHandler:
         from_number = message.from_number
         text = transcription.text
 
-        logger.info(
-            f"Transcribed audio (confidence: {transcription.confidence}%): {text[:50]}..."
-        )
+        logger.info(f"Transcribed audio (confidence: {transcription.confidence}%): {text[:50]}...")
 
         # Handle low-confidence transcriptions
         if transcription.is_low_confidence:
@@ -281,9 +279,7 @@ class WhatsAppHandler:
 
             # Include transcription in response
             response = (
-                f"I heard: \"{text}\"\n"
-                f"(Confidence: {transcription.confidence}%)\n\n"
-                f"{result.response}"
+                f'I heard: "{text}"\n(Confidence: {transcription.confidence}%)\n\n{result.response}'
             )
         else:
             # Process normally

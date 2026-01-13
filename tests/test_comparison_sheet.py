@@ -259,6 +259,7 @@ class TestComparisonSheetService:
         with MagicMock() as mock_schemas:
             mock_schemas.Task = mock_task_class
             import sys
+
             original_modules = sys.modules.copy()
             sys.modules["assistant.notion.schemas"] = mock_schemas
 
@@ -333,9 +334,7 @@ class TestComparisonSheetService:
             notion_client=mock_notion_client,
         )
 
-        result = await service.create_comparison_sheet(
-            "Compare iPhone vs Android - create sheet"
-        )
+        result = await service.create_comparison_sheet("Compare iPhone vs Android - create sheet")
 
         assert result.success is True
         assert len(result.criteria) == len(service.DEFAULT_CRITERIA)
@@ -576,9 +575,7 @@ class TestAT126ComparisonSheetCreation:
         )
 
         # AT-126 Given: User sends comparison request
-        result = await service.create_comparison_sheet(
-            "Compare iPhone vs Android - create a sheet"
-        )
+        result = await service.create_comparison_sheet("Compare iPhone vs Android - create a sheet")
 
         # AT-126 Then: Google Sheet created
         assert result.success is True
@@ -600,9 +597,7 @@ class TestAT126ComparisonSheetCreation:
             notion_client=mock_notion,
         )
 
-        await service.create_comparison_sheet(
-            "Compare iPhone vs Android - create a sheet"
-        )
+        await service.create_comparison_sheet("Compare iPhone vs Android - create a sheet")
 
         # AT-126 And: Sheet has structured columns
         call_kwargs = mock_drive.create_comparison_sheet.call_args[1]
@@ -632,9 +627,7 @@ class TestAT126ComparisonSheetCreation:
             notion_client=mock_notion,
         )
 
-        result = await service.create_comparison_sheet(
-            "Compare iPhone vs Android - create a sheet"
-        )
+        result = await service.create_comparison_sheet("Compare iPhone vs Android - create a sheet")
 
         # Pass condition: Drive API confirms Sheet exists
         assert result.success is True
@@ -655,9 +648,7 @@ class TestAT126ComparisonSheetCreation:
             notion_client=mock_notion,
         )
 
-        await service.create_comparison_sheet(
-            "Compare iPhone vs Android - create a sheet"
-        )
+        await service.create_comparison_sheet("Compare iPhone vs Android - create a sheet")
 
         # Verify the DriveClient method was called
         mock_drive.create_comparison_sheet.assert_called_once()

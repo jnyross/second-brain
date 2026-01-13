@@ -640,9 +640,7 @@ async def lookup_or_create_place_enriched(
     context: str | None = None,
 ) -> tuple[PlaceLookupResult, EnrichmentResult | None]:
     """Look up a place, creating and enriching it if not found."""
-    return await get_places_service().lookup_or_create_enriched(
-        name, place_type, address, context
-    )
+    return await get_places_service().lookup_or_create_enriched(name, place_type, address, context)
 
 
 async def create_place(

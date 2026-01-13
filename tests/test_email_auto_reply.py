@@ -258,9 +258,7 @@ class TestAnalyzeStyle:
     """Tests for style analysis."""
 
     @pytest.mark.asyncio
-    async def test_detects_greeting(
-        self, service: EmailAutoReplyService
-    ) -> None:
+    async def test_detects_greeting(self, service: EmailAutoReplyService) -> None:
         """Test detecting greeting patterns."""
         emails = [
             EmailMessage(
@@ -281,9 +279,7 @@ class TestAnalyzeStyle:
         assert "Hi" in greeting or greeting == ""
 
     @pytest.mark.asyncio
-    async def test_detects_formal_tone(
-        self, service: EmailAutoReplyService
-    ) -> None:
+    async def test_detects_formal_tone(self, service: EmailAutoReplyService) -> None:
         """Test detecting formal tone."""
         emails = [
             EmailMessage(
@@ -303,9 +299,7 @@ class TestAnalyzeStyle:
         assert tone == "formal"
 
     @pytest.mark.asyncio
-    async def test_detects_casual_tone(
-        self, service: EmailAutoReplyService
-    ) -> None:
+    async def test_detects_casual_tone(self, service: EmailAutoReplyService) -> None:
         """Test detecting casual tone."""
         emails = [
             EmailMessage(
@@ -672,6 +666,7 @@ class TestModuleLevelFunctions:
         """Test that singleton is returned."""
         # Reset singleton
         import assistant.services.email_auto_reply as module
+
         module._auto_reply_service = None
 
         service1 = get_auto_reply_service()

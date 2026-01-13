@@ -404,9 +404,7 @@ class TestAT124DriveResearchDocument:
         )
 
     @pytest.mark.asyncio
-    async def test_at124_research_creates_drive_doc(
-        self, mock_research_result, mock_drive_file
-    ):
+    async def test_at124_research_creates_drive_doc(self, mock_research_result, mock_drive_file):
         """AT-124: Research request creates Drive doc with findings."""
         # Setup mocks
         mock_researcher = MagicMock()
@@ -464,9 +462,7 @@ class TestAT124DriveResearchDocument:
         assert task.drive_file_url == mock_drive_file.web_view_link
 
     @pytest.mark.asyncio
-    async def test_at124_doc_in_research_folder(
-        self, mock_research_result, mock_drive_file
-    ):
+    async def test_at124_doc_in_research_folder(self, mock_research_result, mock_drive_file):
         """AT-124: Google Doc created in Second Brain/Research/ folder."""
         mock_researcher = MagicMock()
         mock_researcher.research_query = AsyncMock(return_value=mock_research_result)
@@ -491,9 +487,7 @@ class TestAT124DriveResearchDocument:
         assert "crm" in call_kwargs["topic"].lower()
 
     @pytest.mark.asyncio
-    async def test_at124_doc_populated_with_findings(
-        self, mock_research_result, mock_drive_file
-    ):
+    async def test_at124_doc_populated_with_findings(self, mock_research_result, mock_drive_file):
         """AT-124: Document populated with research findings."""
         mock_researcher = MagicMock()
         mock_researcher.research_query = AsyncMock(return_value=mock_research_result)

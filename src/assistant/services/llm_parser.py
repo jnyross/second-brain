@@ -75,8 +75,7 @@ class LLMIntentParser:
 
     def _request_llm(self, text: str) -> dict[str, Any]:
         endpoint = (
-            "https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{self.model}:generateContent"
+            f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
         )
         prompt = (
             "You are an intent parser for a personal assistant. "

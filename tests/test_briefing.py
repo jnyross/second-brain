@@ -1156,11 +1156,7 @@ class TestExtractPlaceIds:
         """Extracts place IDs from rich_text property (fallback)."""
         task = {
             "properties": {
-                "place_ids": {
-                    "rich_text": [
-                        {"text": {"content": "place-abc, place-def"}}
-                    ]
-                }
+                "place_ids": {"rich_text": [{"text": {"content": "place-abc, place-def"}}]}
             }
         }
         result = self.generator._extract_place_ids(task)

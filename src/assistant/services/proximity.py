@@ -171,9 +171,7 @@ def extract_location_from_query(text: str) -> str | None:
     return None
 
 
-def haversine_distance(
-    lat1: float, lng1: float, lat2: float, lng2: float
-) -> float:
+def haversine_distance(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     """Calculate the great-circle distance between two points in meters.
 
     Uses the Haversine formula for accuracy on Earth's surface.
@@ -315,9 +313,7 @@ class ProximityTaskService:
             # Extract place address
             place_address_prop = place_props.get("address", {})
             place_address_text = place_address_prop.get("rich_text", [])
-            place_address = (
-                place_address_text[0]["text"]["content"] if place_address_text else None
-            )
+            place_address = place_address_text[0]["text"]["content"] if place_address_text else None
 
             # Extract place coordinates
             lat_prop = place_props.get("lat", {})
@@ -340,15 +336,11 @@ class ProximityTaskService:
                         place_lng = place_details.lng
 
             if place_lat is None or place_lng is None:
-                logger.warning(
-                    f"Place {place_name} has no coordinates and could not be geocoded"
-                )
+                logger.warning(f"Place {place_name} has no coordinates and could not be geocoded")
                 continue
 
             # Calculate distance using Haversine (fast, no API call)
-            distance_meters = int(
-                haversine_distance(query_lat, query_lng, place_lat, place_lng)
-            )
+            distance_meters = int(haversine_distance(query_lat, query_lng, place_lat, place_lng))
 
             # Skip if too far
             if distance_meters > self.max_distance:

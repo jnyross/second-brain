@@ -66,13 +66,13 @@ def test_llm_parser_parses_valid_response():
                     "parts": [
                         {
                             "text": (
-                                "{\"intent_type\": \"task\", "
-                                "\"title\": \"Book flight\", "
-                                "\"confidence\": 92, "
-                                "\"due_date\": \"2026-01-15T09:00:00-08:00\", "
-                                "\"due_timezone\": \"America/Los_Angeles\", "
-                                "\"people\": [\"Alex\"], "
-                                "\"places\": [\"LAX\"]}"
+                                '{"intent_type": "task", '
+                                '"title": "Book flight", '
+                                '"confidence": 92, '
+                                '"due_date": "2026-01-15T09:00:00-08:00", '
+                                '"due_timezone": "America/Los_Angeles", '
+                                '"people": ["Alex"], '
+                                '"places": ["LAX"]}'
                             )
                         }
                     ]

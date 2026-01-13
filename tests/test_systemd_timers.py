@@ -55,47 +55,35 @@ class TestBriefingTimerFiles:
 
     def test_briefing_service_exists(self) -> None:
         """Briefing service file should exist."""
-        service_path = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.service"
-        )
+        service_path = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.service"
         assert service_path.exists()
 
     def test_briefing_timer_exists(self) -> None:
         """Briefing timer file should exist."""
-        timer_path = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
-        )
+        timer_path = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
         assert timer_path.exists()
 
     def test_briefing_timer_runs_at_7am(self) -> None:
         """Briefing timer should be configured for 7:00 AM."""
-        timer_path = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
-        )
+        timer_path = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
         content = timer_path.read_text()
         assert "OnCalendar=*-*-* 07:00:00" in content
 
     def test_briefing_timer_is_persistent(self) -> None:
         """Briefing timer should have Persistent=true for missed runs."""
-        timer_path = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
-        )
+        timer_path = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
         content = timer_path.read_text()
         assert "Persistent=true" in content
 
     def test_briefing_timer_has_randomized_delay(self) -> None:
         """Briefing timer should have randomized delay to avoid thundering herd."""
-        timer_path = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
-        )
+        timer_path = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
         content = timer_path.read_text()
         assert "RandomizedDelaySec=300" in content
 
     def test_briefing_timer_points_to_service(self) -> None:
         """Briefing timer should trigger the correct service."""
-        timer_path = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
-        )
+        timer_path = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
         content = timer_path.read_text()
         assert "Unit=second-brain-briefing.service" in content
 
@@ -105,9 +93,7 @@ class TestNudgeTimerFiles:
 
     def test_nudge_service_exists(self) -> None:
         """Nudge service file should exist."""
-        service_path = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-nudge.service"
-        )
+        service_path = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-nudge.service"
         assert service_path.exists()
 
     def test_nudge_timer_exists(self) -> None:
@@ -260,33 +246,25 @@ class TestServiceFiles:
 
     def test_briefing_service_runs_docker_exec(self) -> None:
         """Briefing service should use docker exec."""
-        service_path = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.service"
-        )
+        service_path = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.service"
         content = service_path.read_text()
         assert "docker exec" in content or "docker compose" in content
 
     def test_briefing_service_runs_briefing_command(self) -> None:
         """Briefing service should run the briefing command."""
-        service_path = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.service"
-        )
+        service_path = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.service"
         content = service_path.read_text()
         assert "briefing" in content
 
     def test_nudge_service_runs_docker_exec(self) -> None:
         """Nudge service should use docker exec."""
-        service_path = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-nudge.service"
-        )
+        service_path = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-nudge.service"
         content = service_path.read_text()
         assert "docker exec" in content or "docker compose" in content
 
     def test_nudge_service_runs_nudge_command(self) -> None:
         """Nudge service should run the nudge command."""
-        service_path = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-nudge.service"
-        )
+        service_path = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-nudge.service"
         content = service_path.read_text()
         assert "nudge" in content
 
@@ -302,9 +280,7 @@ class TestAT206ScheduledTimersWork:
 
     def test_briefing_timer_configured_for_7am(self) -> None:
         """Briefing timer should be set to 7:00 AM."""
-        timer_path = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
-        )
+        timer_path = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
         content = timer_path.read_text()
         # AT-206: Timer triggers at 7am
         assert "07:00:00" in content
@@ -318,9 +294,7 @@ class TestAT206ScheduledTimersWork:
 
     def test_timers_are_persistent(self) -> None:
         """Both timers should be persistent for reliability."""
-        briefing_timer = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
-        )
+        briefing_timer = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
         nudge_timer = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-nudge.timer"
 
         assert "Persistent=true" in briefing_timer.read_text()
@@ -337,12 +311,8 @@ class TestAT206ScheduledTimersWork:
 
     def test_services_execute_correct_commands(self) -> None:
         """Services should execute the correct CLI commands."""
-        briefing_service = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.service"
-        )
-        nudge_service = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-nudge.service"
-        )
+        briefing_service = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.service"
+        nudge_service = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-nudge.service"
 
         # AT-206: Commands execute successfully
         assert "briefing" in briefing_service.read_text()
@@ -354,9 +324,7 @@ class TestT207PRDCompliance:
 
     def test_prd_briefing_at_7am(self) -> None:
         """PRD 5.2 requires morning briefing at 7am."""
-        timer_path = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
-        )
+        timer_path = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
         content = timer_path.read_text()
         # PRD 5.2: "Morning Briefing (7am)"
         assert "07:00:00" in content
@@ -370,18 +338,14 @@ class TestT207PRDCompliance:
 
     def test_prd_docker_container_name(self) -> None:
         """PRD 1.2 requires container named 'second-brain' for docker exec."""
-        briefing_service = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.service"
-        )
+        briefing_service = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.service"
         content = briefing_service.read_text()
         # PRD 1.2: "container_name second-brain"
         assert "second-brain" in content
 
     def test_prd_systemd_timer_reliability(self) -> None:
         """PRD requires systemd timer for reliable 7am delivery."""
-        timer_path = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
-        )
+        timer_path = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
         content = timer_path.read_text()
         # PRD: "systemd timer guarantees 7am briefing even if main process is down"
         # Persistent ensures missed runs are caught up
@@ -461,9 +425,7 @@ class TestTimerAccuracy:
 
     def test_briefing_timer_has_accuracy(self) -> None:
         """Briefing timer should have AccuracySec setting."""
-        timer_path = (
-            PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
-        )
+        timer_path = PROJECT_ROOT / "deploy" / "systemd" / "second-brain-briefing.timer"
         content = timer_path.read_text()
         assert "AccuracySec=" in content
 

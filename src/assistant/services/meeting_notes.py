@@ -172,6 +172,7 @@ class MeetingNotesService:
         """Get or create DriveClient."""
         if self._drive_client is None:
             from assistant.google.drive import DriveClient
+
             self._drive_client = DriveClient()
         return self._drive_client
 
@@ -180,6 +181,7 @@ class MeetingNotesService:
         """Get or create PeopleService."""
         if self._people_service is None:
             from assistant.services.people import PeopleService
+
             self._people_service = PeopleService(self._notion_client)
         return self._people_service
 
