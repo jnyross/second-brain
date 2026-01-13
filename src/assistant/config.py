@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     sentry_dsn: str = ""
     sentry_environment: str = "production"
 
+    # UptimeRobot heartbeat monitoring
+    uptimerobot_heartbeat_url: str = ""
+    uptimerobot_heartbeat_interval: int = 300  # seconds (5 min default)
+
     confidence_threshold: int = 80
     morning_briefing_hour: int = 7
     log_level: str = "INFO"
@@ -74,6 +78,10 @@ class Settings(BaseSettings):
     @property
     def has_sentry(self) -> bool:
         return bool(self.sentry_dsn)
+
+    @property
+    def has_uptimerobot(self) -> bool:
+        return bool(self.uptimerobot_heartbeat_url)
 
 
 settings = Settings()

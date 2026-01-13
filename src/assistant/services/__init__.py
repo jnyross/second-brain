@@ -144,6 +144,14 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "get_auto_reply_service": ("assistant.services.email_auto_reply", "get_auto_reply_service"),
     "process_auto_reply": ("assistant.services.email_auto_reply", "process_auto_reply"),
     "should_auto_reply": ("assistant.services.email_auto_reply", "should_auto_reply"),
+    # Heartbeat/UptimeRobot Monitoring (T-211)
+    "HeartbeatResult": ("assistant.services.heartbeat", "HeartbeatResult"),
+    "HeartbeatService": ("assistant.services.heartbeat", "HeartbeatService"),
+    "get_heartbeat_service": ("assistant.services.heartbeat", "get_heartbeat_service"),
+    "is_heartbeat_configured": ("assistant.services.heartbeat", "is_heartbeat_configured"),
+    "send_heartbeat": ("assistant.services.heartbeat", "send_heartbeat"),
+    "start_heartbeat": ("assistant.services.heartbeat", "start_heartbeat"),
+    "stop_heartbeat": ("assistant.services.heartbeat", "stop_heartbeat"),
     # Always-On Listening (T-131 - Future Phase 3)
     "AlwaysOnListener": ("assistant.services.always_on", "AlwaysOnListener"),
     "AlwaysOnListenerNotAvailable": (

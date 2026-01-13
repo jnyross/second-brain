@@ -5,6 +5,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 from assistant.config import settings
+from assistant.services.heartbeat import start_heartbeat, stop_heartbeat
 from assistant.telegram.handlers import setup_handlers
 
 logger = logging.getLogger(__name__)
@@ -22,9 +23,12 @@ class SecondBrainBot:
 
     async def start(self) -> None:
         logger.info("Starting Second Brain bot...")
+        # Start UptimeRobot heartbeat monitoring (if configured)
+        await start_heartbeat()
         try:
             await self.dp.start_polling(self.bot)
         finally:
+            await stop_heartbeat()
             await self.bot.session.close()
 
     async def stop(self) -> None:

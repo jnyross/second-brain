@@ -1050,8 +1050,8 @@
         "T-204"
       ],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": null,
+      "passes": true,
+      "evidence": "Created src/assistant/services/heartbeat.py with HeartbeatService class. Features: 1) UptimeRobot heartbeat monitoring (push-based), 2) Configurable interval (default 5 min), 3) Automatic retry and error handling, 4) Integrated into bot.py (start_heartbeat on boot, stop_heartbeat on shutdown), 5) Config settings: UPTIMEROBOT_HEARTBEAT_URL, UPTIMEROBOT_HEARTBEAT_INTERVAL. Created docs/uptimerobot-setup.md with setup guide. Tests in tests/test_heartbeat.py (31 tests pass). scripts/verify.sh passes (8/8).",
       "updated_at": "2026-01-12"
     },
     {

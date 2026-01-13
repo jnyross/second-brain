@@ -1578,3 +1578,52 @@
     - Free tier compatible
   - Commands: PYTHONPATH=src python3 -m pytest tests/test_sentry.py -v (31 passed, 5 skipped)
   - Verification: scripts/verify.sh (8/8 checks pass)
+
+- Iteration (T-211): UptimeRobot monitoring
+  - Task: Set up UptimeRobot monitoring with Telegram alerts per PRD Section 12.8
+  - Design Decision: Using UptimeRobot Heartbeat (push-based) instead of HTTP endpoint because:
+    - Bot uses Telegram long-polling (no HTTP server exposed)
+    - No ports need to be opened in firewalls
+    - Works naturally with Docker/NAT environments
+  - Created src/assistant/services/heartbeat.py with HeartbeatService class:
+    - HeartbeatResult dataclass: success, timestamp, response_code, error, status_message
+    - HeartbeatService class:
+      - __init__(): configurable heartbeat_url and interval (default 300s = 5 min)
+      - is_configured property: checks if URL is set
+      - is_running property: heartbeat loop status
+      - last_result property: last heartbeat result
+      - send_heartbeat(): sends HTTP GET to UptimeRobot URL
+      - start(): initiates background heartbeat loop
+      - stop(): gracefully stops heartbeat loop
+      - _heartbeat_loop(): async background task for periodic heartbeats
+    - Module-level singleton and convenience functions
+  - Updated src/assistant/config.py:
+    - Added uptimerobot_heartbeat_url setting
+    - Added uptimerobot_heartbeat_interval setting (default 300)
+    - Added has_uptimerobot property
+  - Updated src/assistant/telegram/bot.py:
+    - Imports start_heartbeat and stop_heartbeat
+    - Calls start_heartbeat() on bot startup
+    - Calls stop_heartbeat() in finally block on shutdown
+  - Updated src/assistant/services/__init__.py:
+    - Added heartbeat service exports
+  - Created docs/uptimerobot-setup.md:
+    - Step-by-step UptimeRobot account setup
+    - Heartbeat monitor creation guide
+    - Telegram alert contact configuration
+    - Environment variable configuration
+    - Verification and troubleshooting steps
+  - Created tests/test_heartbeat.py (31 tests):
+    - TestHeartbeatResult: success/failed/http_error results
+    - TestHeartbeatServiceInit: with/without URL, custom interval, from settings
+    - TestHeartbeatServiceProperties: is_running, last_result
+    - TestHeartbeatServiceSendHeartbeat: not configured, success, http error, timeout, request error
+    - TestHeartbeatServiceStartStop: not configured, configured, double start, stop when not running
+    - TestModuleLevelFunctions: singleton, send_heartbeat, is_heartbeat_configured
+    - TestConstants: default interval (300s), timeout (10s)
+    - TestT211Acceptance: lifecycle, telegram alert trigger, config via environment
+    - TestBotIntegration: imports verification, start/stop calls
+    - TestDocumentation: exists, contains key sections
+  - Commands: PYTHONPATH=src python3 -m pytest tests/test_heartbeat.py -v (31 passed)
+  - Verification: scripts/verify.sh (8/8 checks pass)
+  - Commit: pending
