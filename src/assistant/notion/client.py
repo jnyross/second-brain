@@ -620,8 +620,7 @@ class NotionClient:
             Place data dict or None if not found
         """
         try:
-            result = await self._request("GET", f"/pages/{place_id}")
-            return cast(dict[str, Any], result)
+            return await self._request("GET", f"/pages/{place_id}")
         except Exception:
             return None
 
@@ -1066,8 +1065,7 @@ class NotionClient:
             Task page data from Notion, or None if not found
         """
         try:
-            result = await self._request("GET", f"/pages/{page_id}")
-            return cast(dict[str, Any], result)
+            return await self._request("GET", f"/pages/{page_id}")
         except Exception:
             return None
 

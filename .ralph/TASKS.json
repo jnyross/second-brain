@@ -1392,8 +1392,8 @@
       "description": "Fix 1 mypy error in src/assistant/telegram/handlers.py: Line 417: Incompatible types in assignment (expression has type BinaryIO, variable has type bytes).",
       "depends_on": [],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": "",
+      "passes": true,
+      "evidence": "Error was already fixed - code has explicit `audio_bytes: bytes` type annotation (line 413) and conditional handling for BytesIO vs bytes (lines 414-417). mypy reports 0 errors in handlers.py.",
       "updated_at": "2026-01-13"
     },
     {
@@ -1404,8 +1404,8 @@
       "description": "Fix 2 mypy warnings in src/assistant/notion/client.py: Lines 618 and 1064 have redundant cast to dict[str, Any]. Remove the unnecessary cast() calls.",
       "depends_on": [],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": "",
+      "passes": true,
+      "evidence": "Removed redundant cast() calls at lines 623 and 1068 in get_place() and get_task() methods. _request() already returns dict[str, Any], so casts were unnecessary. mypy reports 0 errors in notion/client.py. scripts/verify.sh passes (8/8).",
       "updated_at": "2026-01-13"
     },
     {

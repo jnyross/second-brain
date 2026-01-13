@@ -2024,3 +2024,19 @@
   - Tests: python3 -m pytest tests/test_whatsapp.py -v (42 passed)
   - Verification: scripts/verify.sh (8/8 pass)
   - Commit: c8f8dd6
+
+- Iteration 99 (T-305, T-306) - Fix mypy type errors
+  - T-305: Fix mypy type errors in telegram/handlers.py
+    - Status: Already fixed in previous commit
+    - Error was: Line 417 incompatible types (BinaryIO vs bytes)
+    - Fix: Code has explicit `audio_bytes: bytes` annotation (line 413) with conditional handling for BytesIO vs bytes (lines 414-417)
+    - mypy reports 0 errors in handlers.py
+  - T-306: Remove redundant casts in notion/client.py
+    - Fixed 2 redundant cast() calls at lines 623 and 1068
+    - get_place() and get_task() methods were casting _request() result to dict[str, Any]
+    - _request() already returns dict[str, Any], so casts were unnecessary
+    - Removed the intermediate `result = await self._request(...)` + `return cast(...)` pattern
+    - Changed to direct `return await self._request(...)`
+  - Commands: mypy src/assistant/notion/client.py (0 errors in client.py)
+  - Verification: scripts/verify.sh (8/8 pass)
+  - Commit: 88cb628
