@@ -13,9 +13,9 @@
 ## Current State
 
 - Initialized: yes
-- Status: Phases 0-8 complete (Maps). Phase 9 (Google Drive) in progress. **Next: T-166 (comparison sheet generator)**.
-- Remaining Tasks: T-166, T-167 (Drive)
-- Remaining ATs: AT-126
+- Status: **ALL TASKS COMPLETE!** Phases 0-9 fully implemented. All 2137 tests pass.
+- Remaining Tasks: None
+- Remaining ATs: None
 
 ## Iteration Log
 
@@ -1921,3 +1921,44 @@
     - PYTHONPATH=src python3 -m pytest tests/test_comparison_sheet.py -v (47 passed)
   - Results: AT-126 verified - "Compare iPhone vs Android - create a sheet" creates Google Sheet with structured columns (Criteria, Option1, Option2, Notes)
   - Commit: e8da50e
+
+- Iteration 70 (T-167) - Bidirectional Drive-Task Linking
+  - Task: Enable bidirectional linking between Google Drive files and Notion tasks (forward: Task -> Drive, reverse: Drive -> Task)
+  - Changes:
+    1. Updated src/assistant/notion/client.py:
+       - Added query_task_by_drive_file(): queries Tasks database by drive_file_id for reverse lookup (Drive -> Task)
+       - Added get_task(): retrieves single task by Notion page ID
+    2. Created src/assistant/services/drive_task_linker.py:
+       - LinkResult dataclass: success, task_id, drive_file_id, drive_file_url, error, linked_at, has_link property
+       - TaskInfo dataclass: page_id, title, drive_file_id, drive_file_url, status, raw_data, has_drive_link property
+       - DriveTaskLinker class:
+         - link(): creates forward link (Task -> Drive) via update_task_drive_file()
+         - unlink(): removes link by clearing drive_file_id/url
+         - find_task_by_drive_file(): reverse lookup via query_task_by_drive_file()
+         - get_task_with_drive_info(): fetch task with Drive link info
+         - is_drive_file_linked(): check if Drive file has linked task
+         - is_task_linked_to_drive(): check if task has Drive link
+         - relink(): replace existing Drive link
+         - _extract_task_info(): parses Notion API response to TaskInfo
+       - Module-level singleton: get_drive_task_linker()
+       - Convenience functions: link_drive_to_task(), find_task_by_drive_file(), is_drive_file_linked(), unlink_drive_from_task()
+    3. Updated src/assistant/services/__init__.py:
+       - Added 8 new exports: DriveTaskLinker, LinkResult, TaskInfo, get_drive_task_linker, link_drive_to_task, find_task_by_drive_file, is_drive_file_linked, unlink_drive_from_task
+  - Tests added (47 tests) in tests/test_drive_task_linker.py:
+    - TestLinkResult (6): default values, has_link property, error field
+    - TestTaskInfo (4): default values, has_drive_link property
+    - TestDriveTaskLinkerInit (4): with/without client, notion property
+    - TestDriveTaskLinkerLink (3): success, without URL, failure handling
+    - TestDriveTaskLinkerUnlink (2): success, failure handling
+    - TestDriveTaskLinkerFindTask (3): found, not found, include_deleted
+    - TestDriveTaskLinkerGetTask (2): found, not found
+    - TestDriveTaskLinkerChecks (5): is_drive_file_linked true/false, is_task_linked_to_drive true/false
+    - TestDriveTaskLinkerRelink (1): replace link
+    - TestExtractTaskInfo (4): full info, empty title, no drive fields, empty drive_file_id
+    - TestModuleLevelFunctions (5): singleton, convenience functions
+    - TestT167BidirectionalLinking (4): forward link, reverse lookup, full workflow, research pipeline integration
+    - TestNotionClientMethods (4): query_task_by_drive_file returns/none, get_task returns/none
+  - Commands:
+    - PYTHONPATH=src python3 -m pytest tests/test_drive_task_linker.py -v (47 passed)
+    - PYTHONPATH=src python3 -m pytest tests/ -q (2137 passed, 5 skipped)
+  - Results: T-167 verified - bidirectional linking implemented with forward (Task -> Drive via drive_file_id/url) and reverse (Drive -> Task via query_task_by_drive_file) lookup

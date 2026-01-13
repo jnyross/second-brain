@@ -1270,8 +1270,8 @@
       "description": "Store drive_file_id in Notion Tasks and enable bidirectional linking.",
       "depends_on": ["T-162", "T-051"],
       "acceptance_tests": [],
-      "passes": false,
-      "evidence": "",
+      "passes": true,
+      "evidence": "Implemented bidirectional Drive-Task linking. Added: NotionClient.query_task_by_drive_file() for reverse lookup (Drive -> Task), NotionClient.get_task() for single task retrieval, DriveTaskLinker service with link/unlink/find/is_linked methods. Tests in tests/test_drive_task_linker.py (47 tests pass). Full test suite: 2137 tests pass.",
       "updated_at": "2026-01-13"
     }
   ]

@@ -264,6 +264,30 @@ _EXPORTS: dict[str, tuple[str, str]] = {
         "assistant.services.comparison_sheet",
         "is_comparison_request",
     ),
+    # Drive Task Linker (T-167)
+    "DriveTaskLinker": ("assistant.services.drive_task_linker", "DriveTaskLinker"),
+    "LinkResult": ("assistant.services.drive_task_linker", "LinkResult"),
+    "TaskInfo": ("assistant.services.drive_task_linker", "TaskInfo"),
+    "find_task_by_drive_file": (
+        "assistant.services.drive_task_linker",
+        "find_task_by_drive_file",
+    ),
+    "get_drive_task_linker": (
+        "assistant.services.drive_task_linker",
+        "get_drive_task_linker",
+    ),
+    "is_drive_file_linked": (
+        "assistant.services.drive_task_linker",
+        "is_drive_file_linked",
+    ),
+    "link_drive_to_task": (
+        "assistant.services.drive_task_linker",
+        "link_drive_to_task",
+    ),
+    "unlink_drive_from_task": (
+        "assistant.services.drive_task_linker",
+        "unlink_drive_from_task",
+    ),
     # Always-On Listening (T-131 - Future Phase 3)
     "AlwaysOnListener": ("assistant.services.always_on", "AlwaysOnListener"),
     "AlwaysOnListenerNotAvailable": (

@@ -1009,6 +1009,62 @@ class NotionClient:
 
         await self._request("PATCH", f"/pages/{page_id}", update)
 
+    async def query_task_by_drive_file(
+        self,
+        drive_file_id: str,
+        include_deleted: bool = False,
+    ) -> dict[str, Any] | None:
+        """Find a task linked to a specific Google Drive file.
+
+        Args:
+            drive_file_id: Google Drive file ID to search for
+            include_deleted: Include soft-deleted tasks
+
+        Returns:
+            Task result from Notion, or None if not found
+        """
+        filters: list[dict[str, Any]] = [
+            {
+                "property": "drive_file_id",
+                "rich_text": {"equals": drive_file_id},
+            }
+        ]
+
+        if not include_deleted:
+            filters.append(
+                {
+                    "property": "deleted_at",
+                    "date": {"is_empty": True},
+                }
+            )
+
+        result = await self._request(
+            "POST",
+            f"/databases/{settings.notion_tasks_db_id}/query",
+            {
+                "filter": {"and": filters} if len(filters) > 1 else filters[0],
+                "page_size": 1,
+            },
+        )
+
+        results = result.get("results", [])
+        return results[0] if results else None
+
+    async def get_task(self, page_id: str) -> dict[str, Any] | None:
+        """Retrieve a single task by its Notion page ID.
+
+        Args:
+            page_id: Notion page ID of the task
+
+        Returns:
+            Task page data from Notion, or None if not found
+        """
+        try:
+            result = await self._request("GET", f"/pages/{page_id}")
+            return cast(dict[str, Any], result)
+        except Exception:
+            return None
+
     async def process_offline_queue(self) -> int:
         if not OFFLINE_QUEUE_PATH.exists():
             return 0
