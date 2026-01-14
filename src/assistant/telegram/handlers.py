@@ -131,9 +131,7 @@ async def cmd_setup_google(message: Message) -> None:
         )
     except Exception as e:
         logger.exception(f"setup_google command failed: {e}")
-        await message.answer(
-            f"Error setting up Google: {type(e).__name__}: {e}"
-        )
+        await message.answer(f"Error setting up Google: {type(e).__name__}: {e}")
 
 
 @router.message(Command("today"))
