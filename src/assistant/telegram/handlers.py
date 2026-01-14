@@ -103,7 +103,8 @@ async def cmd_setup_google(message: Message) -> None:
                 "Google already connected!\n\n"
                 "Calendar, Gmail, and Drive integration is active.\n\n"
                 "To reconnect with a different account, delete the token "
-                "and run /setup_google again."
+                "and run /setup_google again.",
+                parse_mode=None,
             )
             return
 
@@ -114,7 +115,8 @@ async def cmd_setup_google(message: Message) -> None:
             await message.answer(
                 "Google OAuth not configured.\n\n"
                 "The server needs a google_credentials.json file. "
-                "Please contact the administrator."
+                "Please contact the administrator.",
+                parse_mode=None,
             )
             return
 
