@@ -23,6 +23,7 @@ class LLMProvider(str, Enum):
     GEMINI = "gemini"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
+    OPENROUTER = "openrouter"
 
 
 @dataclass
@@ -66,16 +67,41 @@ class LLMUsageStats:
 
 
 # Cost per 1M tokens (input/output) - prices as of Jan 2026
+# NOTE: Optimized for SPEED and PERFORMANCE, not cost
 PROVIDER_COSTS: dict[str, tuple[float, float]] = {
-    "gemini-2.5-flash-lite": (0.075, 0.30),  # Very cheap
+    # Direct Gemini API - Flagship & Fast models
+    "gemini-2.0-flash": (0.10, 0.40),  # FAST: 200+ tokens/sec
+    "gemini-2.0-flash-lite": (0.075, 0.30),
+    "gemini-1.5-pro": (1.25, 5.00),  # 1M context
+    "gemini-2.5-flash-lite": (0.075, 0.30),
     "gemini-2.5-flash": (0.15, 0.60),
     "gemini-2.5-pro": (1.25, 5.00),
+    # Direct OpenAI API - Latest flagship models
+    "gpt-4o": (2.50, 10.00),  # Strong multimodal
     "gpt-4o-mini": (0.15, 0.60),
-    "gpt-4o": (2.50, 10.00),
     "gpt-4-turbo": (10.00, 30.00),
+    # Direct Anthropic API - Claude 4.5 series (latest)
+    "claude-sonnet-4-5-20250514": (3.00, 15.00),  # Claude 4.5 Sonnet - latest
+    "claude-haiku-4-5-20250514": (0.80, 4.00),  # Claude 4.5 Haiku - lowest latency
+    "claude-opus-4-5-20250514": (15.00, 75.00),  # Claude 4.5 Opus - most capable
+    # Claude 4 / 3.5 series (legacy)
     "claude-3-5-haiku-20241022": (0.80, 4.00),
     "claude-3-5-sonnet-20241022": (3.00, 15.00),
     "claude-3-opus-20240229": (15.00, 75.00),
+    # OpenRouter models (provider/model format)
+    "openai/gpt-4o": (2.50, 10.00),  # High performance
+    "openai/gpt-4o-mini": (0.15, 0.60),
+    "anthropic/claude-3.5-sonnet": (3.00, 15.00),
+    "anthropic/claude-3.5-haiku": (0.80, 4.00),
+    "google/gemini-flash-1.5": (0.075, 0.30),
+    "google/gemini-flash-1.5-8b": (0.0375, 0.15),
+    "google/gemini-pro-1.5": (1.25, 5.00),
+    "meta-llama/llama-3.3-70b-instruct": (0.35, 0.40),
+    "meta-llama/llama-3.1-8b-instruct": (0.055, 0.055),
+    "deepseek/deepseek-chat": (0.14, 0.28),
+    "deepseek/deepseek-r1": (0.55, 2.19),
+    "mistralai/mistral-small-24b-instruct-2501": (0.10, 0.30),
+    "qwen/qwen-2.5-72b-instruct": (0.35, 0.40),
 }
 
 
@@ -140,7 +166,7 @@ class GeminiProvider(BaseLLMProvider):
     """Google Gemini API provider."""
 
     provider = LLMProvider.GEMINI
-    default_model = "gemini-2.5-flash-lite"
+    default_model = "gemini-2.0-flash"  # 200+ tokens/sec throughput
 
     def complete(
         self,
@@ -213,7 +239,7 @@ class OpenAIProvider(BaseLLMProvider):
     """OpenAI API provider."""
 
     provider = LLMProvider.OPENAI
-    default_model = "gpt-4o-mini"
+    default_model = "gpt-4o"  # Best multimodal, strong reasoning
 
     def complete(
         self,
@@ -279,7 +305,7 @@ class AnthropicProvider(BaseLLMProvider):
     """Anthropic Claude API provider."""
 
     provider = LLMProvider.ANTHROPIC
-    default_model = "claude-3-5-haiku-20241022"
+    default_model = "claude-sonnet-4-5-20250514"  # Claude 4.5 Sonnet - latest, fast + capable
 
     def complete(
         self,
@@ -334,6 +360,75 @@ class AnthropicProvider(BaseLLMProvider):
         usage = data.get("usage", {})
         tokens_input = usage.get("input_tokens", self._estimate_tokens(prompt))
         tokens_output = usage.get("output_tokens", self._estimate_tokens(text))
+
+        return LLMResponse(
+            text=text,
+            provider=self.provider,
+            model=self.model,
+            tokens_input=tokens_input,
+            tokens_output=tokens_output,
+            latency_ms=latency_ms,
+            cost_usd=estimate_cost(self.model, tokens_input, tokens_output),
+            raw_response=data,
+        )
+
+
+class OpenRouterProvider(BaseLLMProvider):
+    """OpenRouter API provider - OpenAI-compatible interface to 100+ models."""
+
+    provider = LLMProvider.OPENROUTER
+    default_model = "openai/gpt-4o"  # High performance via OpenRouter
+
+    def complete(
+        self,
+        prompt: str,
+        *,
+        system_prompt: str | None = None,
+        temperature: float = 0.2,
+        max_tokens: int = 1024,
+        json_mode: bool = False,
+    ) -> LLMResponse:
+        """Send completion to OpenRouter API."""
+        start_time = time.time()
+        endpoint = "https://openrouter.ai/api/v1/chat/completions"
+
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        request_body: dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        if json_mode:
+            request_body["response_format"] = {"type": "json_object"}
+
+        response = self._client.post(
+            endpoint,
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "X-Title": "Second Brain Assistant",
+            },
+            json=request_body,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        latency_ms = int((time.time() - start_time) * 1000)
+
+        # Extract text (OpenAI-compatible format)
+        text = ""
+        choices = data.get("choices", [])
+        if choices:
+            text = choices[0].get("message", {}).get("content", "")
+
+        # Extract usage
+        usage = data.get("usage", {})
+        tokens_input = usage.get("prompt_tokens", self._estimate_tokens(prompt))
+        tokens_output = usage.get("completion_tokens", self._estimate_tokens(text))
 
         return LLMResponse(
             text=text,
@@ -413,11 +508,12 @@ class LLMClient:
         gemini_api_key: str = "",
         openai_api_key: str = "",
         anthropic_api_key: str = "",
+        openrouter_api_key: str = "",
         primary_provider: LLMProvider | None = None,
         fallback_order: list[LLMProvider] | None = None,
         rate_limit_requests_per_minute: int = 60,
         rate_limit_tokens_per_minute: int = 100_000,
-        daily_budget_usd: float = 10.0,
+        daily_budget_usd: float = 100.0,  # High budget for performance-first usage
         timeout: float = 30.0,
     ) -> None:
         self._providers: dict[LLMProvider, BaseLLMProvider] = {}
@@ -452,13 +548,21 @@ class LLMClient:
                 rate_limit_requests_per_minute, rate_limit_tokens_per_minute
             )
 
+        if openrouter_api_key:
+            self._providers[LLMProvider.OPENROUTER] = OpenRouterProvider(
+                api_key=openrouter_api_key, timeout=timeout
+            )
+            self._rate_limiters[LLMProvider.OPENROUTER] = RateLimiter(
+                rate_limit_requests_per_minute, rate_limit_tokens_per_minute
+            )
+
         # Determine provider order
         self._primary: LLMProvider | None = None
         if primary_provider and primary_provider in self._providers:
             self._primary = primary_provider
         elif self._providers:
-            # Default priority: Gemini (cheapest) > OpenAI > Anthropic
-            for p in [LLMProvider.GEMINI, LLMProvider.OPENAI, LLMProvider.ANTHROPIC]:
+            # Default priority: Gemini (fastest) > OpenAI (capable) > Anthropic > OpenRouter
+            for p in [LLMProvider.GEMINI, LLMProvider.OPENAI, LLMProvider.ANTHROPIC, LLMProvider.OPENROUTER]:
                 if p in self._providers:
                     self._primary = p
                     break
@@ -468,7 +572,7 @@ class LLMClient:
         else:
             self._fallback_order = [
                 p
-                for p in [LLMProvider.GEMINI, LLMProvider.OPENAI, LLMProvider.ANTHROPIC]
+                for p in [LLMProvider.GEMINI, LLMProvider.OPENAI, LLMProvider.ANTHROPIC, LLMProvider.OPENROUTER]
                 if p in self._providers and p != self._primary
             ]
 
@@ -635,6 +739,7 @@ def get_llm_client() -> LLMClient:
             gemini_api_key=settings.gemini_api_key,
             openai_api_key=settings.openai_api_key,
             anthropic_api_key=getattr(settings, "anthropic_api_key", ""),
+            openrouter_api_key=getattr(settings, "openrouter_api_key", ""),
         )
     return _client
 

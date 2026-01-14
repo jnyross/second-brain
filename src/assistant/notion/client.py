@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from assistant.config import settings
 from assistant.notion.schemas import (
     ActionType,
+    Email,
     InboxItem,
     LogEntry,
     Pattern,
@@ -161,13 +162,25 @@ class NotionClient:
             "subject",
             "from_address",
             "to_address",
+            "gmail_id",
             "thread_id",
-            "message_id",
             "received_at",
             "snippet",
+            "body_preview",
             "has_attachments",
             "labels",
+            "importance_score",
+            "urgency",
+            "action_items",
+            "people_mentioned",
+            "suggested_response",
+            "category",
+            "analyzed_at",
             "processed",
+            "needs_response",
+            "response_draft",
+            "response_sent",
+            "linked_task_id",
         },
     }
 
@@ -1088,6 +1101,281 @@ class NotionClient:
             return await self._request("GET", f"/pages/{page_id}")
         except Exception:
             return None
+
+    # -------------------------------------------------------------------------
+    # Email Methods
+    # -------------------------------------------------------------------------
+
+    async def create_email(self, email: Email) -> str:
+        """Create a new email record in Notion.
+
+        Args:
+            email: Email object to create
+
+        Returns:
+            Notion page ID of the created email
+        """
+        # Check for existing email with same gmail_id
+        existing = await self.get_email_by_gmail_id(email.gmail_id)
+        if existing:
+            return existing["id"]
+
+        properties = self._model_to_notion_properties(email, "emails")
+        result = await self._request(
+            "POST",
+            "/pages",
+            {
+                "parent": {"database_id": settings.notion_emails_db_id},
+                "properties": properties,
+            },
+        )
+        return cast(str, result["id"])
+
+    async def get_email_by_gmail_id(self, gmail_id: str) -> dict[str, Any] | None:
+        """Find an email by its Gmail message ID.
+
+        Args:
+            gmail_id: Gmail message ID
+
+        Returns:
+            Email page data from Notion, or None if not found
+        """
+        result = await self._request(
+            "POST",
+            f"/databases/{settings.notion_emails_db_id}/query",
+            {
+                "filter": {
+                    "property": "gmail_id",
+                    "rich_text": {"equals": gmail_id},
+                },
+                "page_size": 1,
+            },
+        )
+
+        results = result.get("results", [])
+        return results[0] if results else None
+
+    async def query_emails(
+        self,
+        processed: bool | None = None,
+        needs_response: bool | None = None,
+        min_importance: int | None = None,
+        urgency: str | None = None,
+        category: str | None = None,
+        received_after: datetime | None = None,
+        received_before: datetime | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        """Query emails with optional filters.
+
+        Args:
+            processed: Filter by processed state
+            needs_response: Filter by needs_response flag
+            min_importance: Minimum importance score
+            urgency: Filter by urgency level
+            category: Filter by category
+            received_after: Emails received after this datetime
+            received_before: Emails received before this datetime
+            limit: Maximum number of results
+
+        Returns:
+            List of email results from Notion
+        """
+        filters: list[dict[str, Any]] = []
+
+        if processed is not None:
+            filters.append(
+                {
+                    "property": "processed",
+                    "checkbox": {"equals": processed},
+                }
+            )
+
+        if needs_response is not None:
+            filters.append(
+                {
+                    "property": "needs_response",
+                    "checkbox": {"equals": needs_response},
+                }
+            )
+
+        if min_importance is not None:
+            filters.append(
+                {
+                    "property": "importance_score",
+                    "number": {"greater_than_or_equal_to": min_importance},
+                }
+            )
+
+        if urgency:
+            filters.append(
+                {
+                    "property": "urgency",
+                    "select": {"equals": urgency},
+                }
+            )
+
+        if category:
+            filters.append(
+                {
+                    "property": "category",
+                    "select": {"equals": category},
+                }
+            )
+
+        if received_after:
+            filters.append(
+                {
+                    "property": "received_at",
+                    "date": {"on_or_after": received_after.isoformat()},
+                }
+            )
+
+        if received_before:
+            filters.append(
+                {
+                    "property": "received_at",
+                    "date": {"on_or_before": received_before.isoformat()},
+                }
+            )
+
+        query_filter = {"and": filters} if len(filters) > 1 else (filters[0] if filters else None)
+
+        result = await self._request(
+            "POST",
+            f"/databases/{settings.notion_emails_db_id}/query",
+            {
+                "filter": query_filter,
+                "page_size": limit,
+                "sorts": [{"property": "received_at", "direction": "descending"}],
+            }
+            if query_filter
+            else {
+                "page_size": limit,
+                "sorts": [{"property": "received_at", "direction": "descending"}],
+            },
+        )
+
+        return cast(list[dict[str, Any]], result.get("results", []))
+
+    async def update_email(
+        self,
+        page_id: str,
+        importance_score: int | None = None,
+        urgency: str | None = None,
+        action_items: list[str] | None = None,
+        people_mentioned: list[str] | None = None,
+        suggested_response: str | None = None,
+        category: str | None = None,
+        analyzed_at: datetime | None = None,
+        processed: bool | None = None,
+        needs_response: bool | None = None,
+        response_draft: str | None = None,
+        response_sent: bool | None = None,
+        linked_task_id: str | None = None,
+    ) -> None:
+        """Update an email with analysis results or state changes.
+
+        Args:
+            page_id: Notion page ID of the email
+            importance_score: LLM-computed importance (0-100)
+            urgency: Urgency level (urgent/high/normal/low)
+            action_items: List of extracted action items
+            people_mentioned: List of people mentioned in email
+            suggested_response: LLM-suggested response approach
+            category: Email category (work, personal, newsletter, etc.)
+            analyzed_at: When the email was analyzed
+            processed: Whether the email has been processed
+            needs_response: Whether the email needs a response
+            response_draft: Draft response text
+            response_sent: Whether a response was sent
+            linked_task_id: ID of linked task if created
+        """
+        properties: dict[str, Any] = {}
+
+        if importance_score is not None:
+            properties["importance_score"] = {"number": importance_score}
+
+        if urgency is not None:
+            properties["urgency"] = {"select": {"name": urgency}}
+
+        if action_items is not None:
+            properties["action_items"] = {"multi_select": [{"name": item} for item in action_items]}
+
+        if people_mentioned is not None:
+            properties["people_mentioned"] = {
+                "multi_select": [{"name": name} for name in people_mentioned]
+            }
+
+        if suggested_response is not None:
+            properties["suggested_response"] = {
+                "rich_text": [{"text": {"content": suggested_response[:2000]}}]
+            }
+
+        if category is not None:
+            properties["category"] = {"select": {"name": category}}
+
+        if analyzed_at is not None:
+            properties["analyzed_at"] = {"date": {"start": analyzed_at.isoformat()}}
+
+        if processed is not None:
+            properties["processed"] = {"checkbox": processed}
+
+        if needs_response is not None:
+            properties["needs_response"] = {"checkbox": needs_response}
+
+        if response_draft is not None:
+            properties["response_draft"] = {
+                "rich_text": [{"text": {"content": response_draft[:2000]}}]
+            }
+
+        if response_sent is not None:
+            properties["response_sent"] = {"checkbox": response_sent}
+
+        if linked_task_id is not None:
+            properties["linked_task_id"] = {
+                "rich_text": [{"text": {"content": linked_task_id}}]
+            }
+
+        if properties:
+            await self._request(
+                "PATCH",
+                f"/pages/{page_id}",
+                {"properties": properties},
+            )
+
+    async def get_unprocessed_emails(self, limit: int = 50) -> list[dict[str, Any]]:
+        """Get emails that haven't been analyzed yet.
+
+        Args:
+            limit: Maximum number of results
+
+        Returns:
+            List of unprocessed email results
+        """
+        return await self.query_emails(processed=False, limit=limit)
+
+    async def get_important_emails(
+        self,
+        min_score: int = 70,
+        received_after: datetime | None = None,
+        limit: int = 20,
+    ) -> list[dict[str, Any]]:
+        """Get high-importance emails.
+
+        Args:
+            min_score: Minimum importance score (default 70)
+            received_after: Only emails received after this time
+            limit: Maximum number of results
+
+        Returns:
+            List of important email results
+        """
+        return await self.query_emails(
+            min_importance=min_score,
+            received_after=received_after,
+            limit=limit,
+        )
 
     async def process_offline_queue(self) -> int:
         if not OFFLINE_QUEUE_PATH.exists():

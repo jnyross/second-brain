@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL = "gemini-2.5-flash-lite"
+DEFAULT_MODEL = "gemini-2.0-flash"  # 200+ tokens/sec throughput
 DEFAULT_TIMEOUT_SECONDS = 15.0
 
 

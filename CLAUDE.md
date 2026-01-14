@@ -147,6 +147,70 @@ This project uses the Ralph Loop contract (`Prompt.md`) for autonomous developme
 - Parser tests freeze timezone to `America/Los_Angeles` for determinism
 - Notion client tests should mock httpx responses
 
+## Development vs Production
+
+**Build locally, test remotely.** The bot runs on a DigitalOcean droplet, not locally.
+
+- **Local machine**: Development, linting, unit tests, commits
+- **Remote droplet**: The Telegram bot runs here in production
+- **Bot username**: `@LittleJohnRoss_bot`
+
+To test the live bot, use Telegram Web via browser or the Telegram app directly. Do not attempt to run `python -m assistant run` locally for integration testing - the bot is already running on the droplet.
+
+## Browser-Based Integration Testing
+
+Use `agent-browser` to test the live bot via Telegram Web. This enables automated end-to-end testing.
+
+### Setup (one-time)
+
+```bash
+# Install agent-browser globally
+npm install -g agent-browser
+
+# Set Chrome executable (required for headed mode)
+export AGENT_BROWSER_EXECUTABLE_PATH="/Users/johnross/Library/Caches/ms-playwright/chromium-1200/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+
+# First-time login (scan QR code with phone)
+agent-browser --session telegram --headed open "https://web.telegram.org"
+# Then navigate to @LittleJohnRoss_bot and scan QR with Telegram mobile app
+```
+
+### Running Tests
+
+```bash
+# Run the integration test suite
+python scripts/test_bot_browser.py
+
+# Or run individual test
+python scripts/test_bot_browser.py --test today
+```
+
+### Manual Testing Commands
+
+```bash
+# Open Telegram Web (reuses saved session)
+agent-browser --session telegram open "https://web.telegram.org/k/#@LittleJohnRoss_bot"
+
+# Get page snapshot (for finding elements)
+agent-browser snapshot -i -c
+
+# Send a message
+agent-browser eval "const el = document.querySelector('.input-message-input'); el.focus(); el.textContent = 'your message here';"
+agent-browser press Enter
+
+# Take screenshot
+agent-browser screenshot /tmp/telegram.png
+
+# Close browser
+agent-browser close
+```
+
+### Key Notes
+
+- Session `telegram` persists login across runs
+- Kill daemon before changing executable: `pkill -9 -f daemon.js`
+- Screenshots saved to `/tmp/` for inspection
+
 ## Workflow Requirements
 
 **Push after each iteration**: After completing any significant work (feature, bug fix, refactor), always commit and push changes to GitHub. This ensures:
@@ -161,3 +225,14 @@ git add .
 git commit -m "feat/fix/refactor: Description of changes"
 git push origin main
 ```
+
+## Terminal Autonomy
+
+**Execute directly, don't ask**: You have full terminal access via bash tools. Never ask the user to run commands that you can execute directly. This includes:
+- Installing packages (`pip install`, `npm install`, etc.)
+- Running tests (`pytest`, etc.)
+- Git operations (`git status`, `git add`, `git commit`, `git push`, etc.)
+- File operations, builds, linting, type checking
+- Any command you need to verify your work
+
+If a command fails, debug and retry. Only involve the user when you genuinely need their input or authorization, not for command execution.

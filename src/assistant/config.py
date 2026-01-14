@@ -8,8 +8,10 @@ class Settings(BaseSettings):
     notion_api_key: str = ""
     openai_api_key: str = ""
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash-lite"
+    gemini_model: str = "gemini-2.0-flash"  # Fast: 200+ tokens/sec
     anthropic_api_key: str = ""
+    openrouter_api_key: str = ""
+    openrouter_model: str = "openai/gpt-4o"  # High performance via OpenRouter
 
     notion_inbox_db_id: str = ""
     notion_tasks_db_id: str = ""
@@ -43,6 +45,12 @@ class Settings(BaseSettings):
     uptimerobot_heartbeat_url: str = ""
     uptimerobot_heartbeat_interval: int = 300  # seconds (5 min default)
 
+    # Email Intelligence settings
+    email_scan_enabled: bool = True
+    email_scan_interval: int = 300  # seconds (5 min default)
+    email_importance_threshold: int = 50  # minimum score to flag as important
+    email_llm_model: str = "google/gemini-2.0-flash-exp"  # Gemini 3 Flash via OpenRouter
+
     confidence_threshold: int = 80
     morning_briefing_hour: int = 7
     log_level: str = "INFO"
@@ -67,6 +75,10 @@ class Settings(BaseSettings):
     @property
     def has_anthropic(self) -> bool:
         return bool(self.anthropic_api_key)
+
+    @property
+    def has_openrouter(self) -> bool:
+        return bool(self.openrouter_api_key)
 
     @property
     def has_google(self) -> bool:

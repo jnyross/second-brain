@@ -44,6 +44,13 @@ class Relationship(str, Enum):
     ACQUAINTANCE = "acquaintance"
 
 
+class EmailUrgency(str, Enum):
+    URGENT = "urgent"
+    HIGH = "high"
+    NORMAL = "normal"
+    LOW = "low"
+
+
 class ActionType(str, Enum):
     CAPTURE = "capture"
     CLASSIFY = "classify"
@@ -194,20 +201,36 @@ class Pattern(BaseModel):
 
 
 class Email(BaseModel):
+    """Email stored in Notion with LLM-analyzed intelligence."""
+
     id: str = Field(default_factory=generate_id)
     gmail_id: str
     thread_id: str
-    from_person_id: str | None = None
     subject: str
+    from_address: str
+    to_address: str | None = None
     snippet: str | None = None
+    body_preview: str | None = None  # First ~500 chars of body for context
     received_at: datetime
-    is_read: bool = False
+    has_attachments: bool = False
+    labels: list[str] = Field(default_factory=list)
+
+    # Intelligence fields (populated by LLM analysis)
+    importance_score: int | None = None  # 0-100
+    urgency: str = "normal"  # urgent/high/normal/low
+    action_items: list[str] = Field(default_factory=list)
+    people_mentioned: list[str] = Field(default_factory=list)
+    suggested_response: str | None = None
+    category: str | None = None  # work, personal, newsletter, etc.
+    analyzed_at: datetime | None = None
+
+    # Processing state
+    processed: bool = False
     needs_response: bool = False
-    priority: str = "normal"
-    extracted_task_ids: list[str] = Field(default_factory=list)
     response_draft: str | None = None
     response_sent: bool = False
     response_sent_at: datetime | None = None
+    linked_task_id: str | None = None  # If a task was created from this email
 
 
 class LogEntry(BaseModel):

@@ -87,7 +87,7 @@ async def cmd_help(message: Message) -> None:
         "/today - See today's schedule\n"
         "/status - Check pending tasks\n"
         "/debrief - Review unclear items\n"
-        "/setup_google - Connect Google Calendar/Gmail"
+        "`/setup_google` - Connect Google Calendar/Gmail"
     )
 
 
@@ -565,6 +565,30 @@ async def handle_text(message: Message) -> None:
     if not text or not text.strip():
         return
 
+    # Skip commands - they should be handled by command handlers
+    # This is a safety check in case command handlers don't catch them
+    if text.strip().startswith("/"):
+        logger.warning(f"Unhandled command reached text handler: {text}")
+        # Check for common commands that might have been missed
+        cmd = text.strip().split()[0].lower()
+        if cmd in ("/help", "/start", "/today", "/status", "/debrief", "/setup_google"):
+            # These should be handled by command handlers - something is wrong
+            await message.answer(
+                "Sorry, that command didn't work. Please try again.\n\n"
+                "Available commands:\n"
+                "/today - See today's schedule\n"
+                "/debrief - Review unclear items\n"
+                "/status - Check pending tasks\n"
+                "/help - Show help"
+            )
+            return
+        # Unknown command - let user know
+        await message.answer(
+            f"Unknown command: {cmd}\n\n"
+            "Try /help to see available commands."
+        )
+        return
+
     logger.info(f"Received text message: '{text[:50]}...'")
 
     try:
@@ -650,7 +674,7 @@ async def _try_google_oauth_code(message: Message, text: str) -> bool:
         await message.answer(
             "❌ **Authentication failed**\n\n"
             "The code might have expired or been invalid.\n"
-            "Please try /setup_google again to get a fresh link."
+            "Please try `/setup_google` again to get a fresh link."
         )
         return True
 

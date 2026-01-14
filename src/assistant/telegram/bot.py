@@ -5,6 +5,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 from assistant.config import settings
+from assistant.services.email_scanner import start_email_scanner, stop_email_scanner
 from assistant.services.heartbeat import start_heartbeat, stop_heartbeat
 from assistant.telegram.handlers import setup_handlers
 
@@ -23,11 +24,13 @@ class SecondBrainBot:
 
     async def start(self) -> None:
         logger.info("Starting Second Brain bot...")
-        # Start UptimeRobot heartbeat monitoring (if configured)
-        await start_heartbeat()
+        # Start background services
+        await start_heartbeat()  # UptimeRobot monitoring (if configured)
+        await start_email_scanner()  # Email intelligence scanning (if configured)
         try:
             await self.dp.start_polling(self.bot)
         finally:
+            await stop_email_scanner()
             await stop_heartbeat()
             await self.bot.session.close()
 

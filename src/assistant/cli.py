@@ -158,6 +158,113 @@ async def send_nudges() -> None:
         print("\nAll candidates already nudged today.")
 
 
+async def scan_emails() -> None:
+    """Manually trigger email scan and analysis."""
+    from assistant.google.auth import google_auth
+    from assistant.services.email_scanner import scan_emails_now
+
+    if not settings.has_openrouter:
+        print("Error: OPENROUTER_API_KEY not configured")
+        sys.exit(1)
+
+    if not settings.notion_emails_db_id:
+        print("Error: NOTION_EMAILS_DB_ID not configured")
+        sys.exit(1)
+
+    if not google_auth.is_authenticated():
+        print("Error: Google account not connected")
+        print("Run the bot and use /setup_google command first")
+        sys.exit(1)
+
+    print("Scanning emails...")
+
+    result = await scan_emails_now()
+
+    print("\nScan results:")
+    print(f"  Emails fetched: {result.emails_fetched}")
+    print(f"  Emails analyzed: {result.emails_analyzed}")
+    print(f"  Emails stored (important): {result.emails_stored}")
+    print(f"  Emails skipped (already processed): {result.emails_skipped}")
+
+    if result.errors:
+        print(f"  Errors: {len(result.errors)}")
+        for error in result.errors[:5]:  # Show first 5 errors
+            print(f"    - {error}")
+
+    if result.success:
+        print("\nScan completed successfully!")
+    else:
+        print("\nScan completed with errors.")
+
+
+async def email_report() -> None:
+    """Show report of important/flagged emails from Notion."""
+    from datetime import timedelta
+
+    from assistant.notion.client import NotionClient
+
+    if not settings.notion_emails_db_id:
+        print("Error: NOTION_EMAILS_DB_ID not configured")
+        sys.exit(1)
+
+    from datetime import UTC, datetime
+
+    print("Email Intelligence Report\n")
+
+    client = NotionClient()
+
+    # Get important emails from last 7 days
+    week_ago = datetime.now(UTC) - timedelta(days=7)
+    emails = await client.get_important_emails(
+        min_score=settings.email_importance_threshold,
+        received_after=week_ago,
+        limit=20,
+    )
+
+    if not emails:
+        print("No important emails found in the last 7 days.")
+        await client.close()
+        return
+
+    print(f"Found {len(emails)} important emails:\n")
+
+    for email in emails:
+        props = email.get("properties", {})
+
+        # Extract values from Notion properties
+        subject_prop = props.get("subject", {}).get("title", [])
+        subject = subject_prop[0]["text"]["content"] if subject_prop else "No subject"
+
+        from_prop = props.get("from_address", {}).get("rich_text", [])
+        from_addr = from_prop[0]["text"]["content"] if from_prop else "Unknown"
+
+        score_prop = props.get("importance_score", {}).get("number")
+        score = score_prop if score_prop is not None else 0
+
+        urgency_prop = props.get("urgency", {}).get("select", {})
+        urgency = urgency_prop.get("name", "normal") if urgency_prop else "normal"
+
+        needs_response = props.get("needs_response", {}).get("checkbox", False)
+
+        # Display
+        response_indicator = " [NEEDS RESPONSE]" if needs_response else ""
+        print(f"  Score: {score} | {urgency.upper()}{response_indicator}")
+        print(f"  From: {from_addr}")
+        print(f"  Subject: {subject[:60]}{'...' if len(subject) > 60 else ''}")
+        print()
+
+    await client.close()
+
+    # Show summary
+    needs_response_count = sum(
+        1
+        for e in emails
+        if e.get("properties", {}).get("needs_response", {}).get("checkbox", False)
+    )
+    if needs_response_count:
+        print(f"{needs_response_count} email(s) need a response.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Second Brain Personal Assistant")
     subparsers = parser.add_subparsers(dest="command", help="Commands")
@@ -167,6 +274,8 @@ def main() -> None:
     subparsers.add_parser("check", help="Check configuration")
     subparsers.add_parser("sync", help="Process offline queue")
     subparsers.add_parser("nudge", help="Send proactive task reminders")
+    subparsers.add_parser("scan-emails", help="Scan and analyze inbox with LLM")
+    subparsers.add_parser("email-report", help="Show important emails report")
 
     args = parser.parse_args()
 
@@ -189,6 +298,10 @@ def main() -> None:
             asyncio.run(process_queue())
         elif args.command == "nudge":
             asyncio.run(send_nudges())
+        elif args.command == "scan-emails":
+            asyncio.run(scan_emails())
+        elif args.command == "email-report":
+            asyncio.run(email_report())
         else:
             parser.print_help()
     finally:

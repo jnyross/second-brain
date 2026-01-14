@@ -105,10 +105,15 @@ class BriefingGenerator:
                 if calendar_section:
                     sections.append(calendar_section)
 
-                # 📧 EMAIL section (placeholder until Gmail integration)
+                # 📧 EMAIL section (from Gmail - needs response)
                 email_section = await self._generate_email_section()
                 if email_section:
                     sections.append(email_section)
+
+                # 🎯 FLAGGED EMAIL section (from Notion - LLM-analyzed important emails)
+                analyzed_email_section = await self._generate_analyzed_email_section()
+                if analyzed_email_section:
+                    sections.append(analyzed_email_section)
 
                 # ✅ DUE TODAY section (with travel times for tasks with places)
                 tasks_today = await self._get_tasks_due_today(today_start, today_end)
@@ -511,6 +516,88 @@ class BriefingGenerator:
 
             line = f'• {email.sender_name}{priority_marker} - "{subject_preview}" - {time_ago}'
             lines.append(line)
+
+        lines.append("")
+        return "\n".join(lines)
+
+    async def _generate_analyzed_email_section(self) -> str | None:
+        """Generate section with LLM-analyzed important emails from Notion.
+
+        Shows high-importance emails that were flagged by the email scanner,
+        with their urgency, action items, and response status.
+
+        Returns:
+            Formatted section or None if not available or no important emails.
+        """
+        if not self.notion or not settings.notion_emails_db_id:
+            return None
+
+        try:
+            # Get important emails from last 24 hours
+            yesterday = datetime.now(self.timezone) - timedelta(hours=24)
+            emails = await self.notion.get_important_emails(
+                min_score=settings.email_importance_threshold,
+                received_after=yesterday,
+                limit=5,
+            )
+
+            if not emails:
+                return None
+
+            return self._format_analyzed_emails(emails)
+
+        except Exception as e:
+            logger.exception(f"Failed to fetch analyzed emails: {e}")
+            return None
+
+    def _format_analyzed_emails(self, emails: list[dict[str, Any]]) -> str | None:
+        """Format LLM-analyzed emails for the briefing.
+
+        Args:
+            emails: List of email results from Notion
+
+        Returns:
+            Formatted section or None if no emails
+        """
+        if not emails:
+            return None
+
+        lines = ["🎯 **FLAGGED BY AI** (high importance)"]
+
+        for email in emails[:5]:
+            props = email.get("properties", {})
+
+            # Extract values
+            subject_prop = props.get("subject", {}).get("title", [])
+            subject = (
+                subject_prop[0]["text"]["content"] if subject_prop else "No subject"
+            )
+
+            from_prop = props.get("from_address", {}).get("rich_text", [])
+            from_addr = from_prop[0]["text"]["content"] if from_prop else "Unknown"
+
+            urgency_prop = props.get("urgency", {}).get("select", {})
+            urgency = urgency_prop.get("name", "normal") if urgency_prop else "normal"
+
+            needs_response = props.get("needs_response", {}).get("checkbox", False)
+
+            # Build line with indicators
+            urgency_icon = {"urgent": "🔴", "high": "🟠", "normal": "", "low": ""}.get(
+                urgency, ""
+            )
+            response_tag = " ⚡needs reply" if needs_response else ""
+
+            subject_preview = subject[:35] + "..." if len(subject) > 35 else subject
+            from_name = from_addr.split("@")[0][:15]  # Just the name part
+
+            line = f"• {urgency_icon}{from_name}: {subject_preview}{response_tag}"
+            lines.append(line)
+
+            # Show action items if any
+            action_items = props.get("action_items", {}).get("multi_select", [])
+            if action_items:
+                first_action = action_items[0].get("name", "")[:40]
+                lines.append(f"  └─ Action: {first_action}")
 
         lines.append("")
         return "\n".join(lines)
