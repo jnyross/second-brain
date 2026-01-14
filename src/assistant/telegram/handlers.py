@@ -118,7 +118,8 @@ async def cmd_setup_google(message: Message) -> None:
             )
             return
 
-        # Note: Don't use parse_mode - the auth URL contains special chars
+        # Explicitly disable parse_mode - the auth URL contains underscores
+        # that Telegram interprets as Markdown italic markers
         await message.answer(
             "Connect Google Account\n\n"
             "1. Click this link to authorize:\n"
@@ -127,11 +128,12 @@ async def cmd_setup_google(message: Message) -> None:
             "(it might say 'This site can't be reached').\n\n"
             "3. Copy the ENTIRE URL from your browser's address bar "
             "and send it to me.\n\n"
-            "The URL will contain a code I need to complete the connection."
+            "The URL will contain a code I need to complete the connection.",
+            parse_mode=None,
         )
     except Exception as e:
         logger.exception(f"setup_google command failed: {e}")
-        await message.answer(f"Error setting up Google: {type(e).__name__}: {e}")
+        await message.answer(f"Error setting up Google: {type(e).__name__}: {e}", parse_mode=None)
 
 
 @router.message(Command("today"))
