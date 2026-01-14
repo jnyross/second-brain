@@ -156,23 +156,22 @@ class EmailIntelligenceService:
 
     def _build_analysis_prompt(self, email: EmailMessage) -> str:
         """Build the prompt for email analysis."""
-        # Truncate body if too long (keep first 2000 chars)
-        body = email.body_text or email.body_html or ""
+        # Use snippet as body (EmailMessage only has snippet, not full body)
+        body = email.snippet or ""
         if len(body) > 2000:
             body = body[:2000] + "\n... [truncated]"
 
         parts = [
-            f"From: {email.from_address}",
-            f"To: {email.to_addresses[0] if email.to_addresses else 'unknown'}",
+            f"From: {email.sender_name} <{email.sender_email}>",
             f"Subject: {email.subject}",
-            f"Date: {email.date.isoformat() if email.date else 'unknown'}",
+            f"Date: {email.received_at.isoformat()}",
             "",
             "Body:",
             body,
         ]
 
         if email.has_attachments:
-            parts.append(f"\n[Email has {len(email.attachments)} attachment(s)]")
+            parts.append("\n[Email has attachment(s)]")
 
         return "\n".join(parts)
 

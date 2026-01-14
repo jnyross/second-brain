@@ -34,8 +34,8 @@ try:
     SENTRY_AVAILABLE = True
 except ImportError:
     SENTRY_AVAILABLE = False
-    sentry_sdk = None  # type: ignore[assignment]
-    LoggingIntegration = None  # type: ignore[assignment,misc]
+    sentry_sdk = None
+    LoggingIntegration = None
 
 if TYPE_CHECKING:
     from sentry_sdk._types import Event, Hint
@@ -299,7 +299,7 @@ def capture_message(message: str, level: str = "info") -> str | None:
     if not SENTRY_AVAILABLE or not _initialized:
         return None
 
-    return sentry_sdk.capture_message(message, level=level)  # type: ignore[arg-type]
+    return sentry_sdk.capture_message(message, level=level)
 
 
 def flush(timeout: float = 2.0) -> None:

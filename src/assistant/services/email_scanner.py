@@ -85,7 +85,7 @@ class EmailScannerService:
     @property
     def is_configured(self) -> bool:
         """Check if email scanning is configured."""
-        return (
+        return bool(
             settings.email_scan_enabled
             and settings.has_openrouter
             and settings.notion_emails_db_id
@@ -220,11 +220,12 @@ class EmailScannerService:
                 self._gmail_client = GmailClient()
 
             # Fetch recent unread emails
-            emails = self._gmail_client.list_emails(
+            email_result = await self._gmail_client.list_emails(
                 max_results=self._max_emails,
                 label_ids=["INBOX"],
                 query="is:unread",
             )
+            emails = email_result.emails
             result.emails_fetched = len(emails)
             logger.info("Fetched %d emails for analysis", len(emails))
 
@@ -233,7 +234,7 @@ class EmailScannerService:
 
             for email in emails:
                 # Skip if already processed
-                if email.gmail_id in self._processed_ids:
+                if email.message_id in self._processed_ids:
                     result.emails_skipped += 1
                     continue
 
@@ -253,11 +254,11 @@ class EmailScannerService:
                         )
 
                     # Mark as processed
-                    self._processed_ids.add(email.gmail_id)
+                    self._processed_ids.add(email.message_id)
 
                 except Exception as e:
-                    logger.error("Failed to process email %s: %s", email.gmail_id, e)
-                    result.errors.append(f"{email.gmail_id}: {e}")
+                    logger.error("Failed to process email %s: %s", email.message_id, e)
+                    result.errors.append(f"{email.message_id}: {e}")
 
             # Periodically save processed IDs
             self._save_processed_ids()
@@ -288,14 +289,14 @@ class EmailScannerService:
 
         # Create Email schema object
         email = Email(
-            gmail_id=gmail_email.gmail_id,
+            gmail_id=gmail_email.message_id,
             thread_id=gmail_email.thread_id,
             subject=gmail_email.subject,
-            from_address=gmail_email.from_address,
-            to_address=gmail_email.to_addresses[0] if gmail_email.to_addresses else None,
+            from_address=gmail_email.sender_email,
+            to_address=None,  # EmailMessage doesn't include recipients
             snippet=gmail_email.snippet,
-            body_preview=(gmail_email.body_text or gmail_email.body_html or "")[:500],
-            received_at=gmail_email.date or datetime.now(UTC),
+            body_preview=gmail_email.snippet[:500] if gmail_email.snippet else "",
+            received_at=gmail_email.received_at,
             has_attachments=gmail_email.has_attachments,
             labels=gmail_email.labels,
             importance_score=analysis.importance_score,

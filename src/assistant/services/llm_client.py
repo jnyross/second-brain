@@ -561,8 +561,14 @@ class LLMClient:
         if primary_provider and primary_provider in self._providers:
             self._primary = primary_provider
         elif self._providers:
-            # Default priority: Gemini (fastest) > OpenAI (capable) > Anthropic > OpenRouter
-            for p in [LLMProvider.GEMINI, LLMProvider.OPENAI, LLMProvider.ANTHROPIC, LLMProvider.OPENROUTER]:
+            # Default priority: Gemini (fastest) > OpenAI > Anthropic > OpenRouter
+            priority_order = [
+                LLMProvider.GEMINI,
+                LLMProvider.OPENAI,
+                LLMProvider.ANTHROPIC,
+                LLMProvider.OPENROUTER,
+            ]
+            for p in priority_order:
                 if p in self._providers:
                     self._primary = p
                     break
@@ -570,9 +576,14 @@ class LLMClient:
         if fallback_order:
             self._fallback_order = [p for p in fallback_order if p in self._providers]
         else:
+            priority_order = [
+                LLMProvider.GEMINI,
+                LLMProvider.OPENAI,
+                LLMProvider.ANTHROPIC,
+                LLMProvider.OPENROUTER,
+            ]
             self._fallback_order = [
-                p
-                for p in [LLMProvider.GEMINI, LLMProvider.OPENAI, LLMProvider.ANTHROPIC, LLMProvider.OPENROUTER]
+                p for p in priority_order
                 if p in self._providers and p != self._primary
             ]
 
