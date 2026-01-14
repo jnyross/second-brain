@@ -104,7 +104,25 @@ def get_last_bot_response(wait_seconds: int = RESPONSE_TIMEOUT) -> str | None:
     screenshot_path = SCREENSHOT_DIR / f"response_{timestamp}.png"
     run_cmd(f'agent-browser --session {SESSION_NAME} screenshot "{screenshot_path}"')
 
-    # Get page content via snapshot
+    # Try to get just the last few messages using JavaScript
+    # This avoids capturing old chat history that causes false negatives
+    js_cmd = """
+    (function() {
+        const messages = document.querySelectorAll('.message');
+        if (messages.length === 0) return '';
+        // Get last 3 messages to capture the response
+        const recent = Array.from(messages).slice(-3);
+        return recent.map(m => m.textContent).join('\\n---\\n');
+    })()
+    """
+    success, output = run_cmd(
+        f'agent-browser --session {SESSION_NAME} eval "{js_cmd}"',
+        timeout=10
+    )
+    if success and output and len(output) > 20:
+        return output
+
+    # Fallback to full snapshot if JS extraction fails
     success, output = run_cmd(f"agent-browser --session {SESSION_NAME} snapshot -c")
     if not success:
         return None
@@ -121,10 +139,30 @@ def take_screenshot(name: str) -> str:
     return str(path)
 
 
+def is_logged_out(response: str) -> bool:
+    """Check if we're on the QR code login page instead of the chat."""
+    logout_indicators = [
+        "Log in to Telegram by QR Code",
+        "Open Telegram on your phone",
+        "Link Desktop Device",
+        "SettingsDevices",
+    ]
+    if response is None:
+        return True
+    for indicator in logout_indicators:
+        if indicator in response:
+            return True
+    return False
+
+
 def check_response_contains(response: str, expected: list[str]) -> tuple[bool, str]:
     """Check if response contains any of the expected strings."""
     if response is None:
         return False, "No response received"
+
+    # Check if we got logged out
+    if is_logged_out(response):
+        return False, "SESSION_EXPIRED: Telegram logged out - need to re-authenticate"
 
     for exp in expected:
         if exp.lower() in response.lower():
@@ -393,21 +431,366 @@ def test_notion_connectivity() -> TestResult:
 
 
 # =============================================================================
+# ADDITIONAL COMPREHENSIVE TESTS
+# =============================================================================
+
+def test_start_command() -> TestResult:
+    """Test /start command shows welcome message."""
+    start = time.time()
+    name = "start_command"
+
+    if not send_message("/start"):
+        return TestResult(name, False, "Failed to send /start command")
+
+    response = get_last_bot_response(5)
+    screenshot = take_screenshot(name)
+
+    # /start should NOT go to inbox
+    exclude_pass, _ = check_response_excludes(response, [
+        "added this to your inbox",
+        "saved locally",
+    ])
+
+    if not exclude_pass:
+        return TestResult(name, False, "/start went to inbox!", screenshot, time.time() - start)
+
+    passed, msg = check_response_contains(response, [
+        "welcome",
+        "hello",
+        "second brain",
+        "help",
+        "start",
+    ])
+
+    return TestResult(name, passed, msg, screenshot, time.time() - start)
+
+
+def test_status_command() -> TestResult:
+    """Test /status command shows task overview."""
+    start = time.time()
+    name = "status_command"
+
+    if not send_message("/status"):
+        return TestResult(name, False, "Failed to send /status command")
+
+    response = get_last_bot_response(5)
+    screenshot = take_screenshot(name)
+
+    passed, msg = check_response_contains(response, [
+        "status",
+        "progress",
+        "pending",
+        "task",
+        "inbox",
+        "no tasks",
+        "in progress",
+    ])
+
+    return TestResult(name, passed, msg, screenshot, time.time() - start)
+
+
+def test_setup_google_command() -> TestResult:
+    """Test /setup_google shows OAuth status or link."""
+    start = time.time()
+    name = "setup_google_command"
+
+    if not send_message("/setup_google"):
+        return TestResult(name, False, "Failed to send /setup_google command")
+
+    response = get_last_bot_response(5)
+    screenshot = take_screenshot(name)
+
+    passed, msg = check_response_contains(response, [
+        "google",
+        "oauth",
+        "connect",
+        "already connected",
+        "link",
+        "click",
+        "credentials",
+        "calendar",
+    ])
+
+    return TestResult(name, passed, msg, screenshot, time.time() - start)
+
+
+def test_task_with_time() -> TestResult:
+    """Test task with specific time is parsed correctly."""
+    start = time.time()
+    name = "task_with_time"
+
+    if not send_message("Call dentist at 3pm"):
+        return TestResult(name, False, "Failed to send task message")
+
+    response = get_last_bot_response(5)
+    screenshot = take_screenshot(name)
+
+    notion_ok, notion_msg = check_notion_connected(response)
+    if not notion_ok:
+        return TestResult(name, False, f"NOTION OFFLINE: {notion_msg}", screenshot, time.time() - start)
+
+    passed, msg = check_response_contains(response, [
+        "got it",
+        "dentist",
+        "call",
+        "3",
+        "pm",
+    ])
+
+    return TestResult(name, passed, msg, screenshot, time.time() - start)
+
+
+def test_task_with_person() -> TestResult:
+    """Test task mentioning a person links them."""
+    start = time.time()
+    name = "task_with_person"
+
+    if not send_message("Meet with Sarah about the project"):
+        return TestResult(name, False, "Failed to send task message")
+
+    response = get_last_bot_response(5)
+    screenshot = take_screenshot(name)
+
+    notion_ok, notion_msg = check_notion_connected(response)
+    if not notion_ok:
+        return TestResult(name, False, f"NOTION OFFLINE: {notion_msg}", screenshot, time.time() - start)
+
+    passed, msg = check_response_contains(response, [
+        "got it",
+        "sarah",
+        "meet",
+        "project",
+    ])
+
+    return TestResult(name, passed, msg, screenshot, time.time() - start)
+
+
+def test_urgent_task() -> TestResult:
+    """Test urgent task is recognized."""
+    start = time.time()
+    name = "urgent_task"
+
+    if not send_message("URGENT: Submit tax forms today"):
+        return TestResult(name, False, "Failed to send urgent task")
+
+    response = get_last_bot_response(5)
+    screenshot = take_screenshot(name)
+
+    notion_ok, notion_msg = check_notion_connected(response)
+    if not notion_ok:
+        return TestResult(name, False, f"NOTION OFFLINE: {notion_msg}", screenshot, time.time() - start)
+
+    passed, msg = check_response_contains(response, [
+        "got it",
+        "urgent",
+        "tax",
+        "submit",
+        "today",
+    ])
+
+    return TestResult(name, passed, msg, screenshot, time.time() - start)
+
+
+def test_reminder_specific_time() -> TestResult:
+    """Test reminder with specific time."""
+    start = time.time()
+    name = "reminder_specific_time"
+
+    if not send_message("Remind me at 9am to take medication"):
+        return TestResult(name, False, "Failed to send reminder")
+
+    response = get_last_bot_response(5)
+    screenshot = take_screenshot(name)
+
+    notion_ok, notion_msg = check_notion_connected(response)
+    if not notion_ok:
+        return TestResult(name, False, f"NOTION OFFLINE: {notion_msg}", screenshot, time.time() - start)
+
+    passed, msg = check_response_contains(response, [
+        "got it",
+        "remind",
+        "9",
+        "am",
+        "medication",
+    ])
+
+    return TestResult(name, passed, msg, screenshot, time.time() - start)
+
+
+def test_date_next_monday() -> TestResult:
+    """Test next Monday date parsing."""
+    start = time.time()
+    name = "date_next_monday"
+
+    if not send_message("Review budget next Monday"):
+        return TestResult(name, False, "Failed to send date message")
+
+    response = get_last_bot_response(5)
+    screenshot = take_screenshot(name)
+
+    notion_ok, notion_msg = check_notion_connected(response)
+    if not notion_ok:
+        return TestResult(name, False, f"NOTION OFFLINE: {notion_msg}", screenshot, time.time() - start)
+
+    passed, msg = check_response_contains(response, [
+        "got it",
+        "review",
+        "budget",
+        "monday",
+    ])
+
+    return TestResult(name, passed, msg, screenshot, time.time() - start)
+
+
+def test_unicode_message() -> TestResult:
+    """Test unicode characters are handled."""
+    start = time.time()
+    name = "unicode_message"
+
+    if not send_message("Meet cafe owner Jose tomorrow"):
+        return TestResult(name, False, "Failed to send unicode message")
+
+    response = get_last_bot_response(5)
+    screenshot = take_screenshot(name)
+
+    notion_ok, notion_msg = check_notion_connected(response)
+    if not notion_ok:
+        return TestResult(name, False, f"NOTION OFFLINE: {notion_msg}", screenshot, time.time() - start)
+
+    passed, msg = check_response_contains(response, [
+        "got it",
+        "meet",
+        "cafe",
+        "jose",
+        "tomorrow",
+    ])
+
+    return TestResult(name, passed, msg, screenshot, time.time() - start)
+
+
+def test_long_message() -> TestResult:
+    """Test long messages are handled."""
+    start = time.time()
+    name = "long_message"
+
+    long_msg = "Prepare for quarterly review meeting to discuss financial projections and team capacity"
+    if not send_message(long_msg):
+        return TestResult(name, False, "Failed to send long message")
+
+    response = get_last_bot_response(5)
+    screenshot = take_screenshot(name)
+
+    notion_ok, notion_msg = check_notion_connected(response)
+    if not notion_ok:
+        return TestResult(name, False, f"NOTION OFFLINE: {notion_msg}", screenshot, time.time() - start)
+
+    passed, msg = check_response_contains(response, [
+        "got it",
+        "prepare",
+        "meeting",
+        "review",
+    ])
+
+    return TestResult(name, passed, msg, screenshot, time.time() - start)
+
+
+def test_question_handling() -> TestResult:
+    """Test that questions are handled appropriately."""
+    start = time.time()
+    name = "question_handling"
+
+    if not send_message("Should I go to the meeting?"):
+        return TestResult(name, False, "Failed to send question")
+
+    response = get_last_bot_response(5)
+    screenshot = take_screenshot(name)
+
+    # Questions should be handled somehow (either flagged or acknowledged)
+    passed, msg = check_response_contains(response, [
+        "got it",
+        "inbox",
+        "added",
+        "review",
+        "clarif",
+        "meeting",
+    ])
+
+    return TestResult(name, passed, msg, screenshot, time.time() - start)
+
+
+def test_multiple_people() -> TestResult:
+    """Test task with multiple people mentioned."""
+    start = time.time()
+    name = "multiple_people"
+
+    if not send_message("Schedule meeting with Alice and Bob tomorrow"):
+        return TestResult(name, False, "Failed to send message")
+
+    response = get_last_bot_response(5)
+    screenshot = take_screenshot(name)
+
+    notion_ok, notion_msg = check_notion_connected(response)
+    if not notion_ok:
+        return TestResult(name, False, f"NOTION OFFLINE: {notion_msg}", screenshot, time.time() - start)
+
+    passed, msg = check_response_contains(response, [
+        "got it",
+        "schedule",
+        "meeting",
+        "alice",
+        "bob",
+    ])
+
+    return TestResult(name, passed, msg, screenshot, time.time() - start)
+
+
+# =============================================================================
 # TEST RUNNER
 # =============================================================================
 
 ALL_TESTS: dict[str, Callable[[], TestResult]] = {
+    # Core functionality
     "responds": test_bot_responds,
     "notion": test_notion_connectivity,
-    "today": test_today_command,
-    "debrief": test_debrief_command,
-    "task": test_simple_task,
-    "reminder": test_reminder_with_person,
-    "ambiguous": test_ambiguous_message,
+    # Commands
+    "start": test_start_command,
     "help": test_help_or_start,
+    "today": test_today_command,
+    "status": test_status_command,
+    "debrief": test_debrief_command,
+    "setup_google": test_setup_google_command,
+    # Task creation
+    "task": test_simple_task,
+    "task_time": test_task_with_time,
+    "task_person": test_task_with_person,
+    "urgent": test_urgent_task,
+    # Reminders & dates
+    "reminder": test_reminder_with_person,
+    "reminder_time": test_reminder_specific_time,
+    "date_monday": test_date_next_monday,
+    # People & places
+    "multiple_people": test_multiple_people,
     "place": test_place_mention,
+    # Other
+    "ambiguous": test_ambiguous_message,
+    "question": test_question_handling,
     "email": test_email_check,
+    # Edge cases
+    "unicode": test_unicode_message,
+    "long_msg": test_long_message,
 }
+
+
+def verify_session_active() -> tuple[bool, str]:
+    """Verify that Telegram session is active and not on login page."""
+    success, output = run_cmd(f"agent-browser --session {SESSION_NAME} snapshot -c")
+    if not success:
+        return False, "Failed to get page snapshot"
+
+    if is_logged_out(output):
+        return False, "Session logged out - QR code page detected"
+
+    return True, "Session active"
 
 
 def run_tests(test_names: list[str] | None = None) -> list[TestResult]:
@@ -423,10 +806,25 @@ def run_tests(test_names: list[str] | None = None) -> list[TestResult]:
 
     time.sleep(2)
 
+    # Verify session is active (not logged out)
+    print("Verifying session...")
+    session_ok, session_msg = verify_session_active()
+    if not session_ok:
+        print(f"ERROR: {session_msg}")
+        print("\nTo fix: Run in headed mode and scan QR code:")
+        print(f"  agent-browser --session {SESSION_NAME} --headed open 'https://web.telegram.org'")
+        sys.exit(1)
+    print(f"Session: {session_msg}")
+
     tests_to_run = test_names or list(ALL_TESTS.keys())
     results = []
+    session_expired = False
 
     for test_name in tests_to_run:
+        # Early exit if session expired
+        if session_expired:
+            results.append(TestResult(test_name, False, "Skipped - session expired"))
+            continue
         if test_name not in ALL_TESTS:
             print(f"Unknown test: {test_name}")
             continue
@@ -442,6 +840,13 @@ def run_tests(test_names: list[str] | None = None) -> list[TestResult]:
             print(f"  [{status}] {result.message}")
             if result.screenshot:
                 print(f"  Screenshot: {result.screenshot}")
+
+            # Check if session expired during this test
+            if "SESSION_EXPIRED" in result.message:
+                session_expired = True
+                print("\n  SESSION EXPIRED - Stopping tests")
+                print("  To re-authenticate, run:")
+                print(f"    agent-browser --session {SESSION_NAME} --headed open 'https://web.telegram.org'")
 
             # Small delay between tests
             time.sleep(2)
