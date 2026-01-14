@@ -70,6 +70,8 @@ disallow_untyped_calls = false
 disallow_any_generics = false
 # Disable import-untyped errors (stubs installed in CI via types-pytz)
 disable_error_code = ["import-untyped"]
+# Allow unused type: ignore (needed for optional deps like sentry-sdk)
+warn_unused_ignores = false
 
 [[tool.mypy.overrides]]
 module = [
