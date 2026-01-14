@@ -583,8 +583,7 @@ class LLMClient:
                 LLMProvider.OPENROUTER,
             ]
             self._fallback_order = [
-                p for p in priority_order
-                if p in self._providers and p != self._primary
+                p for p in priority_order if p in self._providers and p != self._primary
             ]
 
     @property

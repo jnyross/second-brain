@@ -569,9 +569,7 @@ class BriefingGenerator:
 
             # Extract values
             subject_prop = props.get("subject", {}).get("title", [])
-            subject = (
-                subject_prop[0]["text"]["content"] if subject_prop else "No subject"
-            )
+            subject = subject_prop[0]["text"]["content"] if subject_prop else "No subject"
 
             from_prop = props.get("from_address", {}).get("rich_text", [])
             from_addr = from_prop[0]["text"]["content"] if from_prop else "Unknown"
@@ -582,9 +580,7 @@ class BriefingGenerator:
             needs_response = props.get("needs_response", {}).get("checkbox", False)
 
             # Build line with indicators
-            urgency_icon = {"urgent": "🔴", "high": "🟠", "normal": "", "low": ""}.get(
-                urgency, ""
-            )
+            urgency_icon = {"urgent": "🔴", "high": "🟠", "normal": "", "low": ""}.get(urgency, "")
             response_tag = " ⚡needs reply" if needs_response else ""
 
             subject_preview = subject[:35] + "..." if len(subject) > 35 else subject

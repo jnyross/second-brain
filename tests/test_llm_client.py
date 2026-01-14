@@ -229,7 +229,7 @@ class TestGeminiProvider:
 
         assert response.text == "Hello, world!"
         assert response.provider == LLMProvider.GEMINI
-        assert response.model == "gemini-2.5-flash-lite"
+        assert response.model == "gemini-2.0-flash"
 
     def test_complete_with_system_prompt(self) -> None:
         """System prompt should be included in request."""
@@ -293,7 +293,7 @@ class TestOpenAIProvider:
 
         assert response.text == "Hello from GPT!"
         assert response.provider == LLMProvider.OPENAI
-        assert response.model == "gpt-4o-mini"
+        assert response.model == "gpt-4o"
 
     def test_complete_with_system_prompt(self) -> None:
         """System prompt should be in messages."""
@@ -345,7 +345,7 @@ class TestAnthropicProvider:
 
         assert response.text == "Hello from Claude!"
         assert response.provider == LLMProvider.ANTHROPIC
-        assert response.model == "claude-3-5-haiku-20241022"
+        assert response.model == "claude-sonnet-4-5-20250514"
 
     def test_system_prompt_in_body(self) -> None:
         """System prompt should be in request body."""

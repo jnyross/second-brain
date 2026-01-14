@@ -1333,9 +1333,7 @@ class NotionClient:
             properties["response_sent"] = {"checkbox": response_sent}
 
         if linked_task_id is not None:
-            properties["linked_task_id"] = {
-                "rich_text": [{"text": {"content": linked_task_id}}]
-            }
+            properties["linked_task_id"] = {"rich_text": [{"text": {"content": linked_task_id}}]}
 
         if properties:
             await self._request(

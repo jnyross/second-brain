@@ -583,10 +583,7 @@ async def handle_text(message: Message) -> None:
             )
             return
         # Unknown command - let user know
-        await message.answer(
-            f"Unknown command: {cmd}\n\n"
-            "Try /help to see available commands."
-        )
+        await message.answer(f"Unknown command: {cmd}\n\nTry /help to see available commands.")
         return
 
     logger.info(f"Received text message: '{text[:50]}...'")
