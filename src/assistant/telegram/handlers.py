@@ -131,9 +131,7 @@ async def cmd_setup_google(message: Message) -> None:
         )
     except Exception as e:
         logger.exception(f"setup_google command failed: {e}")
-        await message.answer(
-            f"Error setting up Google: {type(e).__name__}: {e}"
-        )
+        await message.answer(f"Error setting up Google: {type(e).__name__}: {e}")
 
 
 @router.message(Command("today"))
@@ -144,7 +142,9 @@ async def cmd_today(message: Message) -> None:
         await message.answer(today_message, parse_mode="Markdown")
     except Exception as e:
         logger.exception(f"Today command failed: {e}")
-        await message.answer("Sorry, couldn't fetch today's schedule. Please try again later.")
+        await message.answer(
+            "Sorry, couldn't fetch today's schedule. Please try again later."
+        )
 
 
 async def _generate_today_message() -> str:
@@ -255,7 +255,9 @@ async def cmd_status(message: Message) -> None:
         await message.answer(status_message, parse_mode="Markdown")
     except Exception as e:
         logger.exception(f"Status command failed: {e}")
-        await message.answer("Sorry, couldn't fetch your status. Please try again later.")
+        await message.answer(
+            "Sorry, couldn't fetch your status. Please try again later."
+        )
 
 
 async def _generate_status_message() -> str:
@@ -451,7 +453,9 @@ async def handle_voice(message: Message, bot: Bot) -> None:
         # Download voice file from Telegram
         file = await bot.get_file(voice.file_id)
         if file.file_path is None:
-            await message.answer("Sorry, I couldn't get the voice file. Please try again.")
+            await message.answer(
+                "Sorry, I couldn't get the voice file. Please try again."
+            )
             return
         file_data = await bot.download_file(file.file_path)
 
@@ -465,7 +469,9 @@ async def handle_voice(message: Message, bot: Bot) -> None:
         elif file_data is not None:
             audio_bytes = file_data
         else:
-            await message.answer("Sorry, I couldn't download the voice file. Please try again.")
+            await message.answer(
+                "Sorry, I couldn't download the voice file. Please try again."
+            )
             return
 
         # Transcribe using Whisper
